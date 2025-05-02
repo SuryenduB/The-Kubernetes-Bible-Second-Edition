@@ -433,19 +433,13 @@ spec:
   selector:
     matchLabels:
       app: iiq # Use the new app label
-  strategy:
-    type: Recreate # Useful strategy, consider RollingUpdate for zero-downtime
+
   template:
     metadata:
       labels:
         app: iiq # Use the new app label
-        # Add labels here if needed for Traefik IngressRule matching
-        # Example: "traefik.enable": "true" # Might not be needed if using annotations
     spec:
-      initContainers: # Retained, wait for iiq-init job completion
-      - name: wait-for-init-job
-        image: busybox
-        command: ['sh', '-c', 'while ! kubectl get job iiq-init -o=jsonpath="{.status.conditions[?(@.type == \"Complete\")].status}" | grep -q "True"; do echo waiting for iiq-init job; sleep 5; done;']
+      restartPolicy: Always # Default for Deployments
       containers:
       - name: iiq # Container name
         image: 192.168.0.236:5000/sailpoint-docker:latest # Your pre-built IIQ image
