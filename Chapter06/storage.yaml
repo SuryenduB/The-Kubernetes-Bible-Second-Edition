@@ -1,0 +1,46 @@
+# Persistent Storage for MSSQL
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mssql-data-pvc
+  namespace: iiqstack
+  labels:
+    app: mssql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+
+---
+# Persistent Storage for MySQL
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-data-pvc
+  namespace: iiqstack
+  labels:
+    app: mysql
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+
+---
+# Persistent Storage for MailHog
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mailhog-data-pvc
+  namespace: iiqstack
+  labels:
+    app: mailhog
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

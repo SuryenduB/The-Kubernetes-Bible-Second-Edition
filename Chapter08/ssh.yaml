@@ -1,0 +1,61 @@
+# SSH Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ssh
+  namespace: iiqstack
+  labels:
+    app: ssh
+spec:
+  type: ClusterIP
+  ports:
+    - port: 22
+      targetPort: 22
+      protocol: TCP
+      name: ssh
+  selector:
+    app: ssh
+
+---
+# SSH Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh
+  namespace: iiqstack
+  labels:
+    app: ssh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh
+  template:
+    metadata:
+      labels:
+        app: ssh
+    spec:
+      containers:
+        - name: ssh
+          image: linuxserver/openssh-server:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 22
+              name: ssh
+          env:
+            - name: USER_NAME
+              value: "sshuser"
+            - name: PASSWORD_ACCESS
+              value: "true"
+            - name: USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: ssh-password
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"

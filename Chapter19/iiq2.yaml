@@ -1,0 +1,134 @@
+---
+# --- Kubernetes Job for iiq-init ---
+# This job runs the initialization task once.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iiq-init-job
+  namespace: iiqstack
+spec:
+  template:
+    spec:
+      containers:
+      - name: iiq-init
+        image: 192.168.0.236:5000/sailpoint-docker:latest
+        env:
+        - name: DATABASE_TYPE
+          value: "mysql"
+        - name: MSSQL_HOST
+          value: "db"
+        - name: MSSQL_SA_USER
+          value: "sa"
+        - name: MSSQL_USER
+          value: "identityiq"
+        - name: MYSQL_HOST
+          value: "db-mysql"
+        - name: MYSQL_USER
+          value: "identityiq"
+        - name: MYSQL_DATABASE
+          value: "identityiq"
+        - name: INIT
+          value: "y"
+        # Fixed keys to match Secret
+        - name: MSSQL_PASS
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: mssql-user-password
+        - name: MSSQL_SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: mssql-sa-password
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: mysql-user-password
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: database-secrets
+              key: mysql-root-password
+      restartPolicy: Never
+  backoffLimit: 4
+---
+
+# IIQ Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: iiq
+  namespace: iiqstack
+  labels:
+    app: iiq
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: iiq
+    task: app
+
+---
+# IIQ Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iiq
+  namespace: iiqstack
+  labels:
+    app: iiq
+    task: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iiq
+      task: app
+  template:
+    metadata:
+      labels:
+        app: iiq
+        task: app
+    spec:
+      containers:
+        - name: iiq
+          # Replace with your pre-built IIQ image
+          image: 192.168.0.236:5000/sailpoint-docker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: DATABASE_TYPE
+              value: "mysql"
+            - name: MYSQL_HOST
+              value: "db-mysql"
+            - name: MYSQL_USER
+              value: "identityiq"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: mysql-user-password
+            - name: CATALINA_OPTS
+              value: "-Xmx2048M"
+            - name: LDAP_HOST
+              value: "ldap"
+            - name: MAIL_HOST
+              value: "mail"
+            - name: MAIL_PORT
+              value: "1025"
+          resources:
+            requests:
+              memory: "1Gi"
+              cpu: "500m"
+            limits:
+              memory: "2Gi"
+              cpu: "1000m"
+          

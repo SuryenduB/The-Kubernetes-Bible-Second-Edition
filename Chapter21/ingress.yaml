@@ -1,0 +1,18 @@
+# Corrected iiq-ingress.yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: iiq-ingress
+  namespace: iiqstack
+spec:
+  entryPoints:
+    - web # Ensure this matches your Traefik service entrypoint for HTTP
+  routes:
+  - match: Host(`identityiq.example.com`) && PathPrefix(`/identityiq`) # Match Host AND Path Prefix
+    kind: Rule
+    services:
+    - name: iiq # Route to the iiq service
+      port: 8080 # On the service's port 8080
+      # No path stripping middleware is needed here because the backend
+      # application (IIQ) serves its content under /identityiq context path,
+      # as indicated by the readiness/liveness probes.

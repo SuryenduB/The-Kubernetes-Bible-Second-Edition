@@ -1,0 +1,161 @@
+# --- Kubernetes Secrets ---
+# Apply these first!
+# Remember to base64 encode your secret values:
+# echo -n 'your-password' | base64
+
+
+
+---
+# --- Kubernetes Job for iiq-init ---
+# This job runs the initialization task once.
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iiq-init-job
+  namespace: iiqstack # Optional: specify namespace
+spec:
+  template:
+    spec:
+      containers:
+      - name: iiq-init
+        image: git.identityworksllc.com:5005/idw/idw-sailpoint/sailpoint-docker:<YOUR_TAG> # Replace with your actual tag
+        env:
+        - name: DATABASE_TYPE
+          value: "mssql" # Or use a ConfigMap, default from compose: mssql
+        - name: MSSQL_HOST
+          value: "db" # Assuming 'db' is the service name of your MSSQL instance in K8s
+        - name: MSSQL_SA_USER
+          value: "sa"
+        - name: MSSQL_USER
+          value: "identityiq"
+        - name: MYSQL_HOST
+          value: "db_mysql" # Assuming 'db_mysql' is the service name of your MySQL instance in K8s
+        - name: MYSQL_USER
+          value: "identityiq"
+        - name: MYSQL_DATABASE
+          value: "identityiq"
+        - name: INIT
+          value: "y"
+        # Mount secrets as environment variables
+        - name: MSSQL_PASS
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MSSQL_PASS
+        - name: MSSQL_SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MSSQL_SA_PASSWORD
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MYSQL_PASSWORD
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MYSQL_ROOT_PASSWORD
+      restartPolicy: Never # Or OnFailure, matches compose restart_policy: none
+  backoffLimit: 4 # Optional: Number of retries before marking job as failed
+
+---
+# --- Kubernetes Deployment for iiq ---
+# Manages the main application pods.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iiq-deployment
+  namespace: iiqstack # Optional: specify namespace
+  labels:
+    app: iiq
+spec:
+  replicas: 1 # Replace with desired replica count (e.g., 2)
+  selector:
+    matchLabels:
+      app: iiq
+  template:
+    metadata:
+      labels:
+        app: iiq # Service selector will use this label
+    spec:
+      # Optional: Add initContainers if you need specific checks/setup before main container
+      containers:
+      - name: iiq
+        image: git.identityworksllc.com:5005/idw/idw-sailpoint/sailpoint-docker:<YOUR_TAG> # Replace with your actual tag
+        ports:
+        - containerPort: 8080 # Port the application listens on internally
+        env:
+        - name: DATABASE_TYPE
+          value: "mssql" # Or use a ConfigMap, default from compose: mssql
+        - name: MSSQL_HOST
+          value: "db" # Assuming 'db' is the service name of your MSSQL instance in K8s
+        - name: MSSQL_SA_USER
+          value: "sa"
+        - name: MSSQL_USER
+          value: "identityiq"
+        - name: MYSQL_HOST
+          value: "db_mysql" # Assuming 'db_mysql' is the service name of your MySQL instance in K8s
+        - name: MYSQL_USER
+          value: "identityiq"
+        - name: MYSQL_DATABASE
+          value: "identityiq"
+        - name: CATALINA_OPTS
+          value: "-Xmx2048M"
+        # Mount secrets as environment variables
+        - name: MSSQL_PASS
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MSSQL_PASS
+        - name: MSSQL_SA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MSSQL_SA_PASSWORD
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MYSQL_PASSWORD
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: iiq-secrets
+              key: MYSQL_ROOT_PASSWORD
+        # --- IMPORTANT: Add Readiness and Liveness Probes ---
+        # readinessProbe:
+        #   httpGet:
+        #     path: /identityiq/login.jsf # Adjust path as needed for a health check endpoint
+        #     port: 8080
+        #   initialDelaySeconds: 60
+        #   periodSeconds: 10
+        # livenessProbe:
+        #   httpGet:
+        #     path: /identityiq/login.jsf # Adjust path as needed
+        #     port: 8080
+        #   initialDelaySeconds: 120
+        #   periodSeconds: 30
+
+---
+# --- Kubernetes Service for iiq ---
+# Exposes the iiq Deployment internally within the cluster.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: iiq-service # The Ingress will point to this service name
+  namespace: iiqstack # Optional: specify namespace
+spec:
+  selector:
+    app: iiq # Selects pods with the label 'app: iiq' (from the Deployment)
+  ports:
+  - protocol: TCP
+    port: 80 # Port the service listens on
+    targetPort: 8080 # Port the pods listen on (containerPort in Deployment)
+  type: ClusterIP # Default type, exposes service only within the cluster
+
+---

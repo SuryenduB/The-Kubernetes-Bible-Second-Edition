@@ -1,0 +1,123 @@
+# LDAP Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldap
+  namespace: iiqstack
+  labels:
+    app: ldap
+spec:
+  type: ClusterIP
+  ports:
+    - port: 389
+      targetPort: 389
+      name: ldap
+  selector:
+    app: ldap
+
+---
+# LDAP Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ldap
+  namespace: iiqstack
+  labels:
+    app: ldap
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ldap
+  template:
+    metadata:
+      labels:
+        app: ldap
+    spec:
+      enableServiceLinks: false # Disable service links to avoid issues with DNS resolution
+      containers:
+        - name: ldap
+          image: osixia/openldap:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 389
+              name: port-389
+            - containerPort: 636
+              name: port-636
+          env:
+            - name: LDAP_DOMAIN
+              value: "sailpoint.demo"
+            - name: LDAP_ORGANISATION
+              value: "Sailpoint Demo"
+            - name: LDAP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: database-secrets
+                  key: ldap-admin-password
+            
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "200m"
+
+---
+# phpLDAPadmin Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpldapadmin
+  namespace: iiqstack
+  labels:
+    app: phpldapadmin
+spec:
+  clusterIP: None # Use None for headless service
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: phpldapadmin
+
+---
+# phpLDAPadmin Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpldapadmin
+  namespace: iiqstack
+  labels:
+    app: phpldapadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phpldapadmin
+  template:
+    metadata:
+      labels:
+        app: phpldapadmin
+    spec:
+      containers:
+        - name: phpldapadmin
+          image: osixia/phpldapadmin:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: PHPLDAPADMIN_LDAP_HOSTS
+              value: "ldap"
+            - name: PHPLDAPADMIN_HTTPS
+              value: "false"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"

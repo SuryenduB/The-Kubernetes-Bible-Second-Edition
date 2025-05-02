@@ -1,0 +1,70 @@
+# MailHog Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mail
+  namespace: iiqstack
+  labels:
+    app: mailhog
+spec:
+  type: ClusterIP
+  ports:
+    - port: 1025
+      targetPort: 1025
+      protocol: TCP
+      name: smtp
+    - port: 8025
+      targetPort: 8025
+      protocol: TCP
+      name: http
+  selector:
+    app: mailhog
+
+---
+# MailHog Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailhog
+  namespace: iiqstack
+  labels:
+    app: mailhog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailhog
+  template:
+    metadata:
+      labels:
+        app: mailhog
+    spec:
+      containers:
+        - name: mailhog
+          image: mailhog/mailhog:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 1025
+              name: smtp
+            - containerPort: 8025
+              name: http
+          volumeMounts:
+            - name: mailhog-storage
+              mountPath: /data
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: "/"
+              port: 8025
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: mailhog-storage
+          persistentVolumeClaim:
+            claimName: mailhog-data-pvc

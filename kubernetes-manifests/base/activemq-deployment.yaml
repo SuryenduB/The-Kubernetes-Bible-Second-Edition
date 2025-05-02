@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activemq
+  labels:
+    app: activemq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activemq
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+        - name: activemq
+          image: apache/activemq-artemis:latest-alpine
+          ports:
+            - containerPort: 8161
+          env:
+            - name: ARTEMIS_USER
+              value: "admin"
+            - name: ARTEMIS_PASSWORD
+              value: "admin"
+          readinessProbe:
+            httpGet:
+              path: /console
+              port: 8161
+            initialDelaySeconds: 30
+            periodSeconds: 10

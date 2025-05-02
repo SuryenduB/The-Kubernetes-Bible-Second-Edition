@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iiq-init
+spec:
+  template:
+    spec:
+      containers:
+      - name: iiq-init
+        image: 192.168.0.236:5000/sailpoint-docker:latest
+# ...existing code...
+        env:
+        - name: DATABASE_TYPE
+          value: "mssql"
+        - name: MSSQL_HOST
+          value: "db"
+        - name: MSSQL_SA_USER
+          value: "sa"
+        - name: MSSQL_USER
+          value: "identityiq"
+        - name: MSSQL_PASS
+          value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+        - name: MSSQL_SA_PASSWORD
+          value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+        - name: MYSQL_HOST
+          value: "db_mysql"
+        - name: MYSQL_USER
+          value: "identityiq"
+        - name: MYSQL_PASSWORD
+          value: "identityiq"
+        - name: MYSQL_DATABASE
+          value: "identityiq"
+        - name: MYSQL_ROOT_PASSWORD
+          value: "password"
+        - name: INIT
+          value: "y"
+      restartPolicy: Never
+  backoffLimit: 4

@@ -1,0 +1,23 @@
+# iiq-ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: iiq-ingress
+  namespace: iiqstack
+  annotations:
+    traefik.ingress.kubernetes.io/router.paths: "/identityiq"
+    traefik.ingress.kubernetes.io/router.entrypoints: "web"
+    traefik.ingress.kubernetes.io/router.middlewares: "default-strip-prefix"
+    traefik.ingress.kubernetes.io/router.middlewares.strip-prefix.regex: "true"
+    traefik.ingress.kubernetes.io/router.middlewares.strip-prefix.replacement: "/"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /identityiq
+            pathType: Prefix
+            backend:
+              service:
+                name: iiq
+                port:
+                  number: 8080

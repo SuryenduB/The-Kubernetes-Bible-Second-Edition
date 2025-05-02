@@ -512,21 +512,21 @@ spec:
     targetPort: 8080
 
 ---
-# --- Traefik IngressRoute for IdentityIQ (aligned name, updated service) ---
+# --- Traefik IngressRoute for IdentityIQ ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
 metadata:
-  name: iiq-ingress # Aligned naming
+  name: identityiq
 spec:
   entryPoints:
-    - web # Adjust if using different entrypoint (e.g., websecure)
+    - web
   routes:
   - match: PathPrefix(`/identityiq`)
     kind: Rule
     services:
-    - name: iiq # Points to the 'iiq' K8s Service name
+    - name: identityiq
       port: 8080
-      sticky: # Ensure your Traefik version/setup supports this
+      sticky:
         cookie: {}
 
 ---
@@ -561,3 +561,59 @@ spec:
 #     services:
 #     - name: phpldapadmin
 #       port: 443 # Service port
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: counter
+  
+  labels:
+    app: counter
+spec:
+  type: ClusterIP
+  ports:
+    - port: 12345
+      targetPort: 12345
+      protocol: TCP
+      name: http
+  selector:
+    app: counter
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: counter
+  
+  labels:
+    app: counter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: counter
+  template:
+    metadata:
+      labels:
+        app: counter
+    spec:
+      containers:
+        - name: counter
+          image: drosenbauer/docker-counter
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 12345
+              name: http
+          volumeMounts:
+            - name: counter-data
+              mountPath: /data
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "128Mi"
+              cpu: "100m"
+      volumes:
+        - name: counter-data
+          emptyDir: {}

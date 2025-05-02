@@ -1,0 +1,158 @@
+name: iiqstack
+
+services:
+  counter:
+    image: drosenbauer/docker-counter
+
+  ssh:
+    image: drosenbauer/docker-ssh-host
+    labels:
+      - traefik.enable=false
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    ports: 
+      - 1389:389
+    environment:
+      - LDAP_DOMAIN=sailpoint.demo
+      - LDAP_ORGANISATION=Sailpoint Demo
+      - LDAP_ADMIN_PASSWORD=spadmin
+    labels: 
+        - traefik.enable=false
+
+  phpldapadmin:
+    image: osixia/phpldapadmin
+    ports: 
+      - 8443:443
+    environment:
+      - PHPLDAPADMIN_LDAP_HOSTS=ldap
+
+  activemq:
+    image: apache/activemq-artemis:latest-alpine
+    labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.activemq.entrypoints=web"
+        - "traefik.http.routers.activemq.service=activemq"
+        - "traefik.http.routers.activemq.rule=PathPrefix(`/activemq`)"
+        - "traefik.http.services.activemq.loadbalancer.server.port=8161"
+        - "traefik.http.services.activemq.loadbalancer.server.scheme=http"
+        - "traefik.http.services.activemq.loadbalancer.sticky.cookie=true"    
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx
+      - MSSQL_PID=Developer
+    labels:
+        - traefik.enable=false
+
+  db_mysql:
+    image: "mysql:${MYSQL_VERSION:-8.0}"
+    environment:
+      - MYSQL_USER=identityiq
+      - MYSQL_PASSWORD=identityiq
+      - MYSQL_DATABASE=identityiq
+      - MYSQL_ROOT_PASSWORD=password
+    labels: 
+        - traefik.enable=false
+
+  mail:
+    image: axllent/mailpit
+    ports:
+      - 1025:1025
+      - "${MAILHOG_HTTP_PORT:-8025}:8025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATABASE: /data/mailpit.db
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    labels:
+      - traefik.enable=false
+
+  loadbalancer:
+    image: traefik:3.2.0
+    command:
+      - "--providers.docker=true" 
+      - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--log.level=DEBUG" 
+      - "--accesslog=true"
+      - "--accesslog.addinternals"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.web.address=:80"
+    ports:
+      - "${LISTEN_PORT:-8080}:80"      # The HTTP port
+      - "28080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro" # So that Traefik can listen to the Docker events
+    labels:
+        - "traefik.enable=false"
+
+  iiq:
+    build: ./iiq-build/
+    image: git.identityworksllc.com:5005/idw/idw-sailpoint/sailpoint-docker:${TAG:-latest}
+    environment:
+      - DATABASE_TYPE=${IIQ_DB_TYPE:-mssql}
+      - MSSQL_HOST=db
+      - MSSQL_SA_USER=sa
+      - MSSQL_USER=identityiq
+      - MSSQL_PASS=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx
+      - MSSQL_SA_PASSWORD=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx
+      - "MYSQL_HOST=db_mysql"
+      - MYSQL_USER=identityiq
+      - MYSQL_PASSWORD=identityiq
+      - MYSQL_DATABASE=identityiq
+      - MYSQL_ROOT_PASSWORD=password
+      - CATALINA_OPTS=-Xmx2048M
+    deploy:
+      mode: replicated
+      replicas: ${IIQ_REPLICAS:-2}
+    depends_on:
+      counter:
+          condition: service_started
+      db:
+          condition: service_started
+      db_mysql:
+          condition: service_started
+      mail:
+          condition: service_started
+      ldap:
+          condition: service_started
+      iiq-init:
+          condition: service_completed_successfully
+      activemq:
+          condition: service_started
+    labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.iiq.entrypoints=web"
+        - "traefik.http.routers.iiq.service=iiq"
+        - "traefik.http.routers.iiq.rule=PathPrefix(`/identityiq`)"
+        - "traefik.http.services.iiq.loadbalancer.server.port=8080"
+        - "traefik.http.services.iiq.loadbalancer.server.scheme=http"
+        - "traefik.http.services.iiq.loadbalancer.sticky.cookie=true"
+
+  iiq-init:
+    image: git.identityworksllc.com:5005/idw/idw-sailpoint/sailpoint-docker:${TAG:-latest}
+    environment:
+      - DATABASE_TYPE=${IIQ_DB_TYPE:-mssql}
+      - MSSQL_HOST=db
+      - MSSQL_SA_USER=sa
+      - MSSQL_USER=identityiq
+      - MSSQL_PASS=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx
+      - MSSQL_SA_PASSWORD=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx
+      - "MYSQL_HOST=db_mysql"
+      - MYSQL_USER=identityiq
+      - MYSQL_PASSWORD=identityiq
+      - MYSQL_DATABASE=identityiq
+      - MYSQL_ROOT_PASSWORD=password
+      - INIT=y
+    depends_on:
+      - db
+      - db_mysql
+      - mail
+      - ldap
+    deploy:
+      restart_policy:
+        condition: none

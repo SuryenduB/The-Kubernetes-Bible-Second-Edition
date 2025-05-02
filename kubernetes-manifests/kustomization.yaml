@@ -1,0 +1,22 @@
+resources:
+  - base/activemq-deployment.yaml
+  - base/activemq-service.yaml
+  - base/counter-deployment.yaml
+  - base/counter-service.yaml
+  - base/db-mysql-deployment.yaml
+  - base/db-mysql-service.yaml
+  - base/db-mssql-deployment.yaml
+  - base/db-mssql-service.yaml
+  - base/iiq-deployment.yaml
+  - base/iiq-service.yaml
+  - base/iiq-init-job.yaml
+  - base/ldap-deployment.yaml
+  - base/ldap-service.yaml
+  - base/loadbalancer-deployment.yaml
+  - base/loadbalancer-service.yaml
+  - base/mail-deployment.yaml
+  - base/mail-service.yaml
+  - base/phpldapadmin-deployment.yaml
+  - base/phpldapadmin-service.yaml
+  - base/ssh-deployment.yaml
+  - base/ssh-service.yaml

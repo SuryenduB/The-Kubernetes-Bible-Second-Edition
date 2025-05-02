@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loadbalancer
+  labels:
+    app: loadbalancer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: loadbalancer
+  template:
+    metadata:
+      labels:
+        app: loadbalancer
+    spec:
+      containers:
+        - name: traefik
+          image: traefik:3.2.0
+          args:
+            - "--providers.docker=true"
+            - "--providers.docker.endpoint=unix:///var/run/docker.sock"
+            - "--api.dashboard=true"
+            - "--api.insecure=true"
+            - "--log.level=DEBUG"
+            - "--accesslog=true"
+            - "--accesslog.addinternals"
+            - "--providers.docker.exposedbydefault=false"
+            - "--entryPoints.web.address=:80"
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: docker-sock
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: docker-sock
+          hostPath:
+            path: /var/run/docker.sock
+
+--- 
+apiVersion: v1
+kind: Service
+metadata:
+  name: loadbalancer
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080
+  selector:
+    app: loadbalancer

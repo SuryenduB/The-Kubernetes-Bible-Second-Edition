@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-mssql
+  labels:
+    app: db-mssql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-mssql
+  template:
+    metadata:
+      labels:
+        app: db-mssql
+    spec:
+      containers:
+      - name: db-mssql
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+        - name: ACCEPT_EULA
+          value: "Y"
+        - name: MSSQL_SA_PASSWORD
+          value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+        - name: MSSQL_PID
+          value: "Developer"
+        ports:
+        - containerPort: 1433
+        volumeMounts:
+        - name: mssql-data
+          mountPath: /var/opt/mssql
+      volumes:
+      - name: mssql-data
+        persistentVolumeClaim:
+          claimName: mssql-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mssql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

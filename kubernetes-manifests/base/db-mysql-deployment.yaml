@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db-mysql
+spec:
+  serviceName: db-mysql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-mysql
+  template:
+    metadata:
+      labels:
+        app: db-mysql
+    spec:
+      containers:
+        - name: mysql
+          image: "mysql:8.0"
+          env:
+            - name: MYSQL_USER
+              value: "identityiq"
+            - name: MYSQL_PASSWORD
+              value: "identityiq"
+            - name: MYSQL_DATABASE
+              value: "identityiq"
+            - name: MYSQL_ROOT_PASSWORD
+              value: "password"
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: mysql-data
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: mysql-data
+          persistentVolumeClaim:
+            claimName: mysql-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi

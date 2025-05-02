@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh-deployment
+  labels:
+    app: ssh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh
+  template:
+    metadata:
+      labels:
+        app: ssh
+    spec:
+      containers:
+        - name: ssh
+          image: drosenbauer/docker-ssh-host
+          ports:
+            - containerPort: 22
+          securityContext:
+            allowPrivilegeEscalation: false
+          resources:
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
