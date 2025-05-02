@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: db-mssql
+  name: db
   labels:
-    app: db-mssql
+    app: db
 spec:
   type: ClusterIP
   ports:
@@ -11,4 +11,4 @@ spec:
       targetPort: 1433
       protocol: TCP
   selector:
-    app: db-mssql
+    app: db

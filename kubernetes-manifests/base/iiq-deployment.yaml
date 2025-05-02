@@ -14,6 +14,20 @@ spec:
       labels:
         app: iiq
     spec:
+      initContainers:
+        - name: wait-for-identityiq-table
+          image: mcr.microsoft.com/mssql-tools
+          command:
+            - /bin/sh
+            - -c
+            - |
+              until /opt/mssql-tools/bin/sqlcmd -S db -U sa -P 'id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx' -Q "SELECT 1 FROM identityiq"; do
+                echo 'Waiting for identityiq table in MSSQL...'
+                sleep 10
+              done
+          env:
+            - name: MSSQL_SA_PASSWORD
+              value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
       containers:
         - name: iiq
           image: 192.168.0.236:5000/sailpoint-docker:latest
