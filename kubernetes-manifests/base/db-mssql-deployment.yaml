@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: db-mssql
+  name: db
   labels:
-    app: db-mssql
+    app: db
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: db-mssql
+      app: db
   template:
     metadata:
       labels:
-        app: db-mssql
+        app: db
     spec:
       containers:
-      - name: db-mssql
+      - name: db
         image: mcr.microsoft.com/mssql/server:2019-latest
         env:
         - name: ACCEPT_EULA
