@@ -1,0 +1,529 @@
+
+
+
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sailpoint-db-secrets
+type: Opaque
+stringData:
+  mssql-sa-password: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+  mssql-user-password: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+  mysql-root-password: "password"
+  mysql-user-password: "identityiq"
+  ldap-admin-password: "spadmin"
+  ssh-password: "password"
+  mysql_database: "mysql"
+
+
+---
+# kubernetes-iiq-bundle.yaml
+
+# --- LDAP StatefulSet (Persistent) ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ldap
+spec:
+  replicas: 1 # For a single primary LDAP server instance
+  serviceName: ldap # Matches the Service name below (recommend Headless for StatefuleSets, but keeping simple Service for now)
+  selector:
+    matchLabels:
+      app: ldap
+  template:
+    metadata:
+      labels:
+        app: ldap
+    spec:
+      enableServiceLinks: false
+      containers:
+      - name: ldap
+        image: osixia/openldap:1.5.0
+        ports:
+        - containerPort: 389
+        env:
+        - name: LDAP_DOMAIN
+          value: sailpoint.demo
+        - name: LDAP_ORGANISATION
+          value: Sailpoint Demo
+        - name: ldap-admin-password
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets # Name of the secret
+              key: ldap-admin-password   # Key within the secret
+        volumeMounts:
+        - name: ldap-persistent-storage
+          mountPath: /var/lib/ldap # Standard data path for OpenLDAP image
+        - name: ldap-persistent-storage # Often config also goes here or a subpath
+          mountPath: /etc/ldap/slapd.d # Standard config path
+  volumeClaimTemplates: # Define the template for PVCs managed by the StatefulSet
+  - metadata:
+      name: ldap-persistent-storage # This name is referenced in volumeMounts
+    spec:
+      accessModes:
+        - ReadWriteOnce # Only mountable by one pod at a time
+      resources:
+        requests:
+          storage: 2Gi # Request 2 GiB of storage (adjust as needed)
+      storageClassName: local-path # Specify your StorageClass name here, or omit if using the default
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ldap
+spec:
+  selector:
+    app: ldap
+  # type: ClusterIP # Default, fine for internal
+  ports:
+  - protocol: TCP # Explicitly specify protocol
+    port: 389
+    targetPort: 389
+
+---
+# --- phpLDAPadmin Deployment (No State) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpldapadmin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phpldapadmin
+  template:
+    metadata:
+      labels:
+        app: phpldapadmin
+    spec:
+      containers:
+      - name: phpldapadmin
+        image: osixia/phpldapadmin
+        ports:
+        - containerPort: 443
+        env:
+        - name: PHPLDAPADMIN_LDAP_HOSTS
+          value: ldap # Refers to the K8s Service name
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpldapadmin
+spec:
+  selector:
+    app: phpldapadmin
+  # type: ClusterIP # Default
+  ports:
+  - protocol: TCP
+    port: 443
+    targetPort: 443
+
+---
+# --- Mailpit StatefulSet (Persistent) ---
+# Converting from Deployment with emptyDir to StatefulSet with persistent storage
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mailpit
+spec:
+  replicas: 1 # Typically 1 for Mailpit
+  serviceName: mailpit # Matches the Service name
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      containers:
+      - name: mailpit
+        image: axllent/mailpit
+        ports:
+        - containerPort: 1025
+        - containerPort: 8025
+        env:
+        - name: MP_MAX_MESSAGES
+          value: "5000"
+        - name: MP_DATABASE # Stored in the persistent volume
+          value: "/data/mailpit.db"
+        - name: MP_SMTP_AUTH_ACCEPT_ANY
+          value: "1"
+        - name: MP_SMTP_AUTH_ALLOW_INSECURE
+          value: "1"
+        volumeMounts:
+        - name: mailpit-persistent-storage
+          mountPath: /data # Mount path where Mailpit stores its DB file
+  volumeClaimTemplates: # Define the template for PVCs managed by the StatefulSet
+  - metadata:
+      name: mailpit-persistent-storage # This name is referenced in volumeMounts
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi # Adjust size as needed
+      storageClassName: local-path # Specify your StorageClass name here
+
+---
+# Mailpit Service (matches previous spec)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit # Service name used internally (e.g., by IIQ for SMTP_HOST)
+spec:
+  selector:
+    app: mailpit
+  ports:
+  - name: smtp
+    protocol: TCP
+    port: 1025
+    targetPort: 1025
+  - name: http
+    protocol: TCP
+    port: 8025
+    targetPort: 8025
+
+---
+# --- MSSQL Database StatefulSet (Persistent) ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mssql # StatefulSet name
+spec:
+  replicas: 1 # For a single primary DB instance
+  serviceName: mssql # Matches the Service name below
+  selector:
+    matchLabels:
+      app: mssql
+  template:
+    metadata:
+      labels:
+        app: mssql
+    spec:
+      containers:
+      - name: mssql
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        ports:
+        - containerPort: 1433
+        env:
+        - name: ACCEPT_EULA
+          value: "Y"
+        - name: mssql-sa-password
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets # Name of the secret
+              key: mssql-sa-password   # Key within the secret
+        - name: MSSQL_PID
+          value: Developer # Consider changing this for production use
+        volumeMounts:
+        - name: mssql-persistent-storage
+          mountPath: /var/opt/mssql # Standard data path for MSSQL on Linux
+  volumeClaimTemplates: # Define the template for PVCs managed by the StatefulSet
+  - metadata:
+      name: mssql-persistent-storage # This name is referenced in volumeMounts
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi # Adjust size as needed
+      storageClassName: local-path # Specify your StorageClass name here
+
+---
+# MSSQL Service (Named 'mssql' as in your provided K8s, previously 'db' in Docker Compose)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mssql # Service name used by other apps (e.g., IIQ, IIQ-init)
+spec:
+  selector:
+    app: mssql # Selects pods managed by the mssql StatefulSet
+  # type: ClusterIP # Default
+  ports:
+  - protocol: TCP
+    port: 1433
+    targetPort: 1433
+
+---
+# --- MySQL Database StatefulSet (Persistent) ---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql # StatefulSet name
+spec:
+  replicas: 1 # For a single primary DB instance
+  serviceName: mysql # Matches the Service name below
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:8.0 # Using a specific tag is better
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets # Name of the secret
+              key: mysql-root-password # Key within the secret
+        - name: MYSQL_DATABASE
+          value: identityiq
+        - name: MYSQL_USER
+          value: identityiq
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mysql-user-password
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql # Standard data path for MySQL
+  volumeClaimTemplates: # Define the template for PVCs managed by the StatefulSet
+  - metadata:
+      name: mysql-persistent-storage # This name is referenced in volumeMounts
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 10Gi # Adjust size as needed
+      storageClassName: local-path # Specify your StorageClass name here
+
+---
+# MySQL Service (Named 'mysql' as in your provided K8s, previously 'db_mysql' in Docker Compose)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql # Service name used by other apps (e.g., IIQ, IIQ-init)
+spec:
+  selector:
+    app: mysql # Selects pods managed by the mysql StatefulSet
+  # type: ClusterIP # Default
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
+
+---
+# --- ActiveMQ Artemis Deployment (No State specified in compose volume section) ---
+# Retaining as Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activemq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: activemq
+  template:
+    metadata:
+      labels:
+        app: activemq
+    spec:
+      containers:
+      - name: activemq
+        image: apache/activemq-artemis:latest-alpine # Using specific tag is better
+        ports:
+        - containerPort: 8161
+        # Consider persistent volume for ActiveMQ data if needed,
+        # then convert this to a StatefulSet as well.
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: activemq
+spec:
+  selector:
+    app: activemq
+  # type: ClusterIP # Default
+  ports:
+  - protocol: TCP
+    port: 8161
+    targetPort: 8161
+
+---
+# --- IdentityIQ Init Job ---
+# Adjusting environment variables to use Secret references
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: iiq-init
+spec:
+  template:
+    metadata:
+      labels:
+        app: iiq-init
+    spec:
+      restartPolicy: Never # Match docker compose restart: none
+      #Optional initContainer to wait for databases/dependencies
+      initContainers:
+      - name: wait-for-dbs
+        image: busybox # or k8s.gcr.io/e2e-test-images/agnhost:2.39 -- /agnhost connect 
+        command: ['sh', '-c', 'until nc -z mssql 1433; do echo waiting for mssql; sleep 2; done; until nc -z mysql 3306; do echo waiting for mysql; sleep 2; done;']
+      containers:
+      - name: iiq-init
+        image: 192.168.0.236:5000/sailpoint-docker:latest # Your pre-built IIQ image
+        env:
+        - name: DATABASE_TYPE # Assume env var controls which database is used (mssql or mysql)
+          value: "db" # Set according to which DB type you want to use
+        - name: MSSQL_HOST # Service name
+          value: mssql
+        - name: MSSQL_SA_USER # Required by IIQ setup
+          value: sa
+        - name: mssql-sa-password # SA password from Secret
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mssql-sa-password
+        - name: INIT # Trigger initialization
+          value: "y"
+        # Include other dependency hosts if your init script needs them
+        - name: LDAP_HOST
+          value: ldap
+        - name: MAIL_HOST
+          value: mailpit # Note Service name is 'mailpit'
+
+---
+
+# --- IdentityIQ Deployment ---
+# Retaining as Deployment with Secret references
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: identityiq
+spec:
+  replicas: 2 # Number of IIQ application instances
+  selector:
+    matchLabels:
+      app: identityiq
+  template:
+    metadata:
+      labels:
+        app: identityiq
+    spec:
+      # Consider initContainer here to wait for iiq-init job to complete successfully
+      initContainers:
+      - name: wait-for-init-job
+        image: busybox # Or a suitable image
+        command: ['sh', '-c', 'while ! kubectl get job iiq-init -o=jsonpath="{.status.conditions[?(@.type == \"Complete\")].status}" | grep -q "True"; do echo waiting for iiq-init job; sleep 5; done;']
+      # Requires sufficient RBAC permissions for the pod's Service Account to 'get job iiq-init'
+      containers:
+      - name: identityiq
+        image: 192.168.0.236:5000/sailpoint-docker:latest # Your pre-built IIQ image
+        ports:
+        - containerPort: 8080 # Assuming IIQ runs on 8080 (e.g., Tomcat)
+        env:
+        - name: DATABASE_TYPE
+          value: db # Set according to which DB type you use
+        # MSSQL Config (using Secret references)
+        - name: MSSQL_HOST # Service name
+          value: mssql
+        - name: MSSQL_SA_USER
+          value: sa # Still needed for some scripts/access, get from config not necessarily secret
+        - name: mssql-sa-password # SA password from Secret
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mssql-sa-password
+        - name: MSSQL_USER # IIQ database user
+          value: identityiq
+        - name: MSSQL_PASS # Password for the IIQ user from Secret
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mssql_identityiq_password # Assuming you used this key
+        # MySQL Config (using Secret references, if using MySQL)
+        - name: MYSQL_HOST
+          value: mysql # Service name
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mysql_user
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mysql_password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: sailpoint-db-secrets
+              key: mysql_database
+        # Dependency Hostnames (referencing K8s Service names)
+        - name: LDAP_HOST # Used by IIQ for directory integrations
+          value: ldap
+        - name: MAIL_HOST # Used by IIQ for sending mail
+          value: mailpit # Note Service name is 'mailpit'
+        - name: ACTIVEMQ_HOST # Used by IIQ for messaging queues
+          value: activemq
+
+        - name: CATALINA_OPTS # Tomcat JVM options
+          value: -Xmx2048M
+        # IMPORTANT: Remove INIT=y from the app deployment!
+
+---
+# IdentityIQ Service (matches previous spec)
+apiVersion: v1
+kind: Service
+metadata:
+  name: identityiq # Service name used by Traefik/Ingress
+spec:
+  selector:
+    app: identityiq
+  # type: ClusterIP # Default
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 8080
+
+---
+# --- Traefik IngressRoute for IdentityIQ ---
+# (No change, references the identityiq Service)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: identityiq
+spec:
+  entryPoints:
+    - web # Make sure this entrypoint exists and is exposed by your Traefik setup
+  routes:
+  - match: PathPrefix(`/identityiq`)
+    kind: Rule
+    services:
+    - name: identityiq # Points to the identityiq Service
+      port: 8080
+      # Assuming your Traefik version/setup supports 'sticky' on IngressRoute
+      sticky:
+        cookie: {}
+
+---
+# --- Traefik IngressRoute for ActiveMQ ---
+# (No change, references the activemq Service)
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: activemq
+spec:
+  entryPoints:
+    - web # Make sure this entrypoint exists and is exposed by your Traefik setup
+  routes:
+  - match: PathPrefix(`/activemq`)
+    kind: Rule
+    services:
+    - name: activemq # Points to the activemq Service
+      port: 8161
+      # Assuming your Traefik version/setup supports 'sticky' on IngressRoute
+      sticky:
+        cookie: {}
