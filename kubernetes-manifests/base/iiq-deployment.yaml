@@ -15,19 +15,28 @@ spec:
         app: iiq
     spec:
       initContainers:
-        - name: wait-for-identityiq-table
-          image: mcr.microsoft.com/mssql-tools
+        - name: wait-for-hr-table
+          image: mysql:8.0
           command:
             - /bin/sh
             - -c
             - |
-              until /opt/mssql-tools/bin/sqlcmd -S db -U sa -P 'id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx' -Q "SELECT 1 FROM identityiq"; do
-                echo 'Waiting for identityiq table in MSSQL...'
-                sleep 10
+              echo "Waiting for MySQL to be available at db-mysql:3306..."
+              until mysqladmin ping -hdb-mysql -uidentityiq -pidentityiq --silent; do
+                echo "MySQL not up yet..."
+                sleep 5
               done
-          env:
-            - name: MSSQL_SA_PASSWORD
-              value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+              echo "Checking for hr database..."
+              until mysql -hdb-mysql -uidentityiq -pidentityiq -e "USE hr;" ; do
+                echo "hr database not found yet..."
+                sleep 5
+              done
+              echo "Checking for hr_people table in hr database..."
+              until mysql -hdb-mysql -uidentityiq -pidentityiq -e "USE hr; DESCRIBE hr_people;" ; do
+                echo "hr_people table not found yet..."
+                sleep 5
+              done
+              echo "MySQL, hr database, and hr_people table are ready."
       containers:
         - name: iiq
           image: 192.168.0.236:5000/sailpoint-docker:latest

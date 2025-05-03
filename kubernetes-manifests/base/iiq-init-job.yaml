@@ -23,7 +23,7 @@ spec:
         - name: MSSQL_SA_PASSWORD
           value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
         - name: MYSQL_HOST
-          value: "db_mysql"
+          value: "db-mysql"
         - name: MYSQL_USER
           value: "identityiq"
         - name: MYSQL_PASSWORD
