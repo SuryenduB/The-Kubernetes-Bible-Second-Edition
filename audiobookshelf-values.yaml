@@ -1,0 +1,46 @@
+env:
+  TZ: "Europe/Berlin"  # Correct timezone format
+  AUDIOBOOKSHELF_UID: 1000
+  AUDIOBOOKSHELF_GID: 1000
+
+service:
+  main:
+    type: NodePort
+    ports:
+      http:
+        port: 80
+
+ingress:
+  main:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: "traefik"
+    hosts:
+      - host: "audiobookshelf.local"  # Matches all hosts
+        paths:
+          - path: /audiobook
+            pathType: Prefix
+    tls: []  # You can add TLS if required
+
+
+persistence:
+  config:
+    enabled: true
+    mountPath: /config
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: local-path
+
+  metadata:
+    enabled: true
+    mountPath: /metadata
+    size: 1Gi
+    accessMode: ReadWriteOnce
+    storageClass: local-path
+
+  media:
+    enabled: true
+    mountPath: /audiobooks
+    size: 10Gi
+    accessMode: ReadWriteOnce
+    storageClass: local-path
