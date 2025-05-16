@@ -1,0 +1,9 @@
+.tfstate
+.terraform
+.tfplan
+.lock.hcl
+provider.tf
+data/
+locals.tf
+variables.tf
+outputs.tf

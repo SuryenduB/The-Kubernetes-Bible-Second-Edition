@@ -165,8 +165,8 @@ nmcli device show
 | Tool      | Setup Status | Command/Notes                        |
 |-----------|--------------|--------------------------------------|
 | etcdctl   | ❌ / ✅        | `k3s etcd-snapshot save`             |
-| Velero    | ✅            | `velero backup create <name>`        |
-| S3 Backup | ✅            | AWS/GCP/Minio bucket used            |
+| Velero    | ❌ / ✅       | `velero backup create <name>`        |
+| S3 Backup | ❌ / ✅            | AWS/GCP/Minio bucket used            |
 
 ---
 

@@ -56,7 +56,7 @@ This directory contains Kubernetes manifests for deploying a multi-node K3s clus
 
 2. **Apply Manifests**: Use the following command to apply all manifests:
    ```
-   kubectl apply -k ./kubernetes-manifests
+   kubectl apply -k ./whoami-manifests
    ```
 
 3. **Verify Deployments**: Check the status of your deployments with:
