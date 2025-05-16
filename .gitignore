@@ -7,3 +7,5 @@ data/
 locals.tf
 variables.tf
 outputs.tf
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
