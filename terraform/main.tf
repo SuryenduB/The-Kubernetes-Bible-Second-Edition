@@ -72,7 +72,6 @@ resource "kubernetes_deployment" "ollama" {
           image           = local.ollama_image
           image_pull_policy = "Always"
           tty             = true
-          restart_policy  = "UnlessStopped"
           port {
             container_port = local.ollama_port
           }
