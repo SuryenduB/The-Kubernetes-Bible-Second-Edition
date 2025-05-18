@@ -1,57 +1,60 @@
 provider "kubernetes" {
-  config_path = "~/.kube/config"
+  config_path = "~/.kube/config" # Update path if needed
 }
 
-# Environment Variables
-locals {
-  ollama_image       = "ollama/ollama:latest"
-  openwebui_image    = "ghcr.io/open-webui/open-webui:main"
-  ollama_port        = 11434
-  openwebui_port     = 8080
-  exposed_webui_port = 3000
+
+resource "kubernetes_namespace" "example" {
+  metadata {
+    name = "ai"
+  }
 }
 
 # PVC for Ollama
 resource "kubernetes_persistent_volume_claim" "ollama_pvc" {
   metadata {
     name      = "ollama-pvc"
-    namespace = "default"
+    namespace = kubernetes_namespace.example.metadata[0].name
   }
   spec {
-    access_modes = ["ReadWriteOnce"]
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = "local-path"
     resources {
       requests = {
         storage = "1Gi"
       }
     }
-    storage_class_name = "local-path"
   }
   wait_until_bound = false
+
 }
 
-# PVC for OpenWebUI
-resource "kubernetes_persistent_volume_claim" "openwebui_pvc" {
+# PVC for WebUI
+resource "kubernetes_persistent_volume_claim" "webui_pvc" {
   metadata {
-    name      = "openwebui-pvc"
-    namespace = "default"
+    name      = "webui-pvc"
+    namespace = kubernetes_namespace.example.metadata[0].name
   }
   spec {
-    access_modes = ["ReadWriteOnce"]
+    storage_class_name = "local-path"
+    access_modes       = ["ReadWriteOnce"]
     resources {
       requests = {
         storage = "1Gi"
       }
     }
-    storage_class_name = "local-path"
   }
   wait_until_bound = false
+
 }
 
 # Deployment: Ollama
 resource "kubernetes_deployment" "ollama" {
   metadata {
-    name      = "ollama"
-    namespace = "default"
+    name = "ollama"
+    labels = {
+      "app" = "ollama"
+    }
+    namespace = kubernetes_namespace.example.metadata[0].name
   }
   spec {
     replicas = 1
@@ -68,26 +71,22 @@ resource "kubernetes_deployment" "ollama" {
       }
       spec {
         container {
-          name            = "ollama"
-          image           = local.ollama_image
-          image_pull_policy = "Always"
-          tty             = true
+          name  = "ollama"
+          image = "ollama/ollama"
           port {
-            container_port = local.ollama_port
+            container_port = 11434
           }
           volume_mount {
             name       = "ollama-storage"
             mount_path = "/root/.ollama"
           }
-          resources {
-            limits = {
-              cpu    = "2"
-              memory = "4Gi"
+          liveness_probe {
+            http_get {
+              path = "/v1/models"
+              port = 11434
             }
-            requests = {
-              cpu    = "500m"
-              memory = "1Gi"
-            }
+            initial_delay_seconds = 10
+            period_seconds        = 10
           }
         }
         volume {
@@ -105,15 +104,16 @@ resource "kubernetes_deployment" "ollama" {
 resource "kubernetes_service" "ollama" {
   metadata {
     name      = "ollama"
-    namespace = "default"
+    namespace = kubernetes_namespace.example.metadata[0].name
   }
   spec {
     selector = {
-      app = "ollama"
+      app = kubernetes_deployment.ollama.metadata[0].labels["app"]
     }
+    session_affinity = "ClientIP"
     port {
-      port        = local.ollama_port
-      target_port = local.ollama_port
+      port        = 11434
+      target_port = 11434
     }
     type = "ClusterIP"
   }
@@ -123,7 +123,7 @@ resource "kubernetes_service" "ollama" {
 resource "kubernetes_deployment" "openwebui" {
   metadata {
     name      = "openwebui"
-    namespace = "default"
+    namespace = kubernetes_namespace.example.metadata[0].name
   }
   spec {
     replicas = 1
@@ -135,46 +135,31 @@ resource "kubernetes_deployment" "openwebui" {
     template {
       metadata {
         labels = {
-          app = "openwebui"
+          app       = "openwebui"
+          namespace = kubernetes_namespace.example.metadata[0].name
         }
       }
       spec {
         container {
-          name            = "openwebui"
-          image           = local.openwebui_image
-          image_pull_policy = "Always"
-          tty             = true
-          
+          name  = "openwebui"
+          image = "ghcr.io/open-webui/open-webui"
           port {
-            container_port = local.openwebui_port
+            container_port = 8080
           }
           env {
             name  = "OLLAMA_BASE_URL"
-            value = "http://ollama.default.svc.cluster.local:11434"
+            value = "http://ollama:11434"
           }
-          env {
-            name  = "WEBUI_SECRET_KEY"
-            value = ""
-          }
+          
           volume_mount {
             name       = "webui-storage"
-            mount_path = "/app/backend/data"
-          }
-          resources {
-            limits = {
-              cpu    = "1"
-              memory = "2Gi"
-            }
-            requests = {
-              cpu    = "250m"
-              memory = "512Mi"
-            }
+            mount_path = "/app/data"
           }
         }
         volume {
           name = "webui-storage"
           persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.openwebui_pvc.metadata[0].name
+            claim_name = kubernetes_persistent_volume_claim.webui_pvc.metadata[0].name
           }
         }
       }
@@ -186,17 +171,56 @@ resource "kubernetes_deployment" "openwebui" {
 resource "kubernetes_service" "openwebui" {
   metadata {
     name      = "openwebui"
-    namespace = "default"
+    namespace = kubernetes_namespace.example.metadata[0].name
   }
   spec {
     selector = {
       app = "openwebui"
     }
     port {
-      name        = "http"
-      port        = local.exposed_webui_port
-      target_port = local.openwebui_port
+      port        = 8080
+      target_port = 8080
     }
-    type = "LoadBalancer"
+    type = "ClusterIP"
   }
 }
+
+# Ingress: OpenWebUI
+resource "kubernetes_ingress_v1" "openwebui_ingress" {
+  metadata {
+    name      = "openwebui-ingress"
+    namespace = kubernetes_namespace.example.metadata[0].name
+    annotations = {
+      "kubernetes.io/ingress.class"                      = "traefik"
+      "traefik.ingress.kubernetes.io/router.entrypoints" = "web"
+      #"traefik.ingress.kubernetes.io/router.middlewares" = "ai-strip-ai-prefix@kubernetescrd"
+    }
+  }
+
+  spec {
+    ingress_class_name = "traefik"
+
+
+    rule {
+      host = "openwebui.local" # Update with your domain or IP`
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service.openwebui.metadata[0].name
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+
+    }
+  }
+}
+
+
+
