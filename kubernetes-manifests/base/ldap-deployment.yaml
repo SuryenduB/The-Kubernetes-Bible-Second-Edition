@@ -1,3 +1,31 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ldap-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ldap-config-pvc
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -27,3 +55,24 @@ spec:
               value: "Sailpoint Demo"
             - name: LDAP_ADMIN_PASSWORD
               value: "spadmin"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: ldap-persistent-storage
+              mountPath: /var/lib/ldap # This is where OpenLDAP stores its data
+            - name: ldap-config-storage # Mount for LDAP configuration files
+              mountPath: /etc/ldap/slapd.d
+      volumes:
+        - name: ldap-persistent-storage
+          persistentVolumeClaim:
+            claimName: ldap-pvc # Reference the PVC we created earlier
+        - name: ldap-config-storage
+          persistentVolumeClaim:
+            claimName: ldap-config-pvc
+
+
