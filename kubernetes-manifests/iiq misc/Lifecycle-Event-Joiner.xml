@@ -150,14 +150,12 @@
                 import java.text.*;
                 import sailpoint.server.Auditor;
 
-                System.out.println("New user was entered the system: " +
-                event.getObject().getDisplayableName());
+                System.out.println("New user was entered the system: " + event.getObject().getDisplayableName());
 
                 String newUID = getNewUID(context);
 
                 if (Auditor.isEnabled("JoinerEvent")) {
-                Auditor.logAs("Joiner-WF-AssignUID", "JoinerEvent", identityName, newUID, "", "",
-                "");
+                Auditor.logAs("Joiner-WF-AssignUID", "JoinerEvent", identityName, newUID, "", "", "");
                 context.commitTransaction();
                 }
 
@@ -242,8 +240,7 @@
                 import java.util.Map;
                 import java.util.Arrays;
 
-                System.out.println("New user was entered the system: " +
-                event.getObject().getDisplayableName());
+                System.out.println("New user was entered the system: " + event.getObject().getDisplayableName());
 
                 Identity identity = context.getObjectByName(Identity.class, identityName);
 
