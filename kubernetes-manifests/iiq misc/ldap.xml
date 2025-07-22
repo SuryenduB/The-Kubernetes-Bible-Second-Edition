@@ -1,9 +1,29 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Application connector="sailpoint.connector.LDAPConnector" featuresString="AUTHENTICATE, MANAGER_LOOKUP, SEARCH, PROVISIONING, SYNC_PROVISIONING" icon="directory2Icon" name="OpenLDAP" profileClass="" type="LDAP">
+<Application connector="sailpoint.connector.LDAPConnector" created="1752938427740" featuresString="AUTHENTICATE, MANAGER_LOOKUP, SEARCH, PROVISIONING, SYNC_PROVISIONING, ADDITIONAL_ACCOUNT_REQUEST, ACCOUNT_ONLY_REQUEST" icon="directory2Icon" id="0a2a010698231daf81982345b55c008e" modified="1753130884599" name="OpenLDAP" profileClass="" significantModified="1753130884599" type="LDAP">
+  <AccountCorrelationConfig>
+    <Reference class="sailpoint.object.CorrelationConfig" id="0a2a01f8980a1a5281980a968aa90432" name="Account Correlation"/>
+  </AccountCorrelationConfig>
   <Attributes>
     <Map>
+      <entry key="acctAggregationEnd">
+        <value>
+          <Date>1753128998825</Date>
+        </value>
+      </entry>
+      <entry key="acctAggregationStart">
+        <value>
+          <Date>1753128997778</Date>
+        </value>
+      </entry>
       <entry key="afterProvisioningRule"/>
+      <entry key="aggregationPartitioned">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="aggregationType" value="account"/>
+      <entry key="attrValueOnAdminReset"/>
       <entry key="authSearchAttributes">
         <value>
           <List>
@@ -14,14 +34,33 @@
         </value>
       </entry>
       <entry key="authorizationType" value="simple"/>
-      <entry key="beforeProvisioningRule"/>
+      <entry key="beforeProvisioningRule" value="before_provisioning_ldap"/>
       <entry key="compositeDefinition"/>
-      <entry key="group.filterString"/>
-      <entry key="group.iterateSearchFilter"/>
-      <entry key="group.searchDN" value="ou=people,dc=sailpoint,dc=demo"/>
+      <entry key="deletedObjectsContainer"/>
+      <entry key="deltaAggregation">
+        <value>
+          <Map>
+            <entry key="modify_time_account" value="20250721201637.0Z"/>
+            <entry key="modify_time_group" value="20250720212217.0Z"/>
+          </Map>
+        </value>
+      </entry>
+      <entry key="deltaIterationMode" value="MODIFY_TIMESTAMP"/>
+      <entry key="group.searchDNs">
+        <value>
+          <List>
+            <Map>
+              <entry key="iterateSearchFilter"/>
+              <entry key="searchDN" value="ou=groups,dc=sailpoint,dc=demo"/>
+              <entry key="searchScope"/>
+            </Map>
+          </List>
+        </value>
+      </entry>
       <entry key="group.searchScope" value="SUBTREE"/>
       <entry key="groupEntitlementAttr" value="groups"/>
       <entry key="host" value="ldap"/>
+      <entry key="lockAttr"/>
       <entry key="nativeChangeDetectionAttributeScope" value="entitlements"/>
       <entry key="nativeChangeDetectionAttributes"/>
       <entry key="nativeChangeDetectionEnabled">
@@ -31,10 +70,30 @@
       </entry>
       <entry key="nativeChangeDetectionOperations"/>
       <entry key="pageSize" value="100"/>
-      <entry key="password" value="1:ACP:/Jn9jKbyEttJ3SqGdW5Mb7R3xRYRH8UyVtka6yxzSlE="/>
+      <entry key="password" value="1:ACP:6hOfmzaw8KF9E/YnQWJSRFMsfjpg3W2juw+c+7Ns1R0="/>
       <entry key="passwordAttr" value="userPassword"/>
       <entry key="port" value="389"/>
-      <entry key="searchDN" value="ou=people,dc=sailpoint,dc=demo"/>
+      <entry key="pwdExpiryAttrName"/>
+      <entry key="restoreAction"/>
+      <entry key="restoreAttr"/>
+      <entry key="restoreVal"/>
+      <entry key="revokeAction"/>
+      <entry key="revokeAttr"/>
+      <entry key="revokeVal"/>
+      <entry key="searchDNs">
+        <value>
+          <List>
+            <Map>
+              <entry key="groupMemberFilterString"/>
+              <entry key="groupMembershipSearchDN"/>
+              <entry key="iterateSearchFilter"/>
+              <entry key="primaryGroupSearchDN"/>
+              <entry key="searchDN" value="ou=people,dc=sailpoint,dc=demo"/>
+              <entry key="searchScope" value="SUBTREE"/>
+            </Map>
+          </List>
+        </value>
+      </entry>
       <entry key="searchScope" value="SUBTREE"/>
       <entry key="sysDescriptions">
         <value>
@@ -44,6 +103,10 @@
         </value>
       </entry>
       <entry key="templateApplication" value="LDAP Template"/>
+      <entry key="uniqueAccountAttribute"/>
+      <entry key="unlockAction"/>
+      <entry key="unlockAttr"/>
+      <entry key="unlockVal"/>
       <entry key="useSSL">
         <value>
           <Boolean></Boolean>
@@ -53,7 +116,7 @@
     </Map>
   </Attributes>
   <Owner>
-    <Reference class="sailpoint.object.Identity" name="spadmin"/>
+    <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
   </Owner>
   <ProvisioningForms>
     <Form name="Account" objectType="account" type="Create">
@@ -64,55 +127,36 @@
       </Attributes>
       <Section>
         <Field displayName="con_prov_policy_ldap_user_DN" helpKey="help_con_prov_policy_ldap_user_DN" name="dn" required="true" type="string">
-		<Script>
-          <Source>return "uid=" + identity.getAttribute("uid").toLowerCase() +",ou=people,dc=sailpoint,dc=demo";</Source>
-        </Script>
-		</Field>
-        <Field displayName="con_prov_policy_ldap_password" helpKey="help_con_prov_policy_ldap_password" name="password" required="true" type="secret">
-		<Script>
-          <Source>return "Iiq12345";</Source>
-        </Script>
-		</Field>
+          <Script>
+            <Source>return "cn=" + identity.getEmail().toLowerCase() +",ou=people,dc=sailpoint,dc=demo";</Source>
+          </Script>
+        </Field>
+        <Field displayName="con_prov_policy_ldap_password" helpKey="help_con_prov_policy_ldap_password" name="password" required="true" type="secret" value="12345"/>
         <Field displayName="con_prov_policy_ldap_full_name" helpKey="help_con_prov_policy_ldap_full_name" name="CN" required="true" type="string">
-		<Script>
-          <Source>return identity.getLastname().toLowerCase() + "," + identity.getFirstname().toLowerCase(); </Source>
-        </Script>
-		</Field>
+          <Script>
+            <Source>return identity.getLastname().toLowerCase() + "," + identity.getFirstname().toLowerCase(); </Source>
+          </Script>
+        </Field>
         <Field displayName="con_prov_policy_ldap_first_name" helpKey="help_con_prov_policy_ldap_first_name" name="givenName" required="true" type="string">
-		<Script>
-          <Source>return identity.getFirstname().toLowerCase();</Source>
-        </Script>
-		</Field>
+          <Script>
+            <Source>return identity.getFirstname().toLowerCase();</Source>
+          </Script>
+        </Field>
         <Field displayName="con_prov_policy_ldap_last_name" helpKey="help_con_prov_policy_ldap_last_name" name="SN" required="true" type="string">
-		<Script>
-          <Source>return identity.getLastname().toLowerCase();</Source>
-        </Script>
-		</Field>
-		<Field displayName="employeeNumber" name="employeeNumber" required="true" type="string">
-		<Script>
-          <Source>return identity.getAttribute("employeenumber");</Source>
-        </Script>
-		</Field>
-		<Field displayName="employeeType" name="employeeType" required="true" type="string">
-		<Script>
-          <Source>return identity.getAttribute("employeeType");</Source>
-        </Script>
-		</Field>
-		<Field displayName="title" name="title" required="true" type="string">
-		<Script>
-          <Source>return identity.getAttribute("title");</Source>
-        </Script>
-		</Field>
-		<Field displayName="uid" name="uid" required="true" type="string">
-		<Script>
-          <Source>return identity.getAttribute("uid");</Source>
-        </Script>
-		</Field>
-		<Field displayName="mail" name="mail" required="true" type="string">
-		<Script>
-          <Source>return identity.getAttribute("email");</Source>
-        </Script>
-		</Field>
+          <Script>
+            <Source>return identity.getLastname().toLowerCase();</Source>
+          </Script>
+        </Field>
+        <Field displayName="mail" name="mail" required="true" type="string">
+          <Script>
+            <Source>return identity.getAttribute("email");</Source>
+          </Script>
+        </Field>
+        <Field displayName="Employee ID" name="employeeNumber" type="string">
+          <Script>
+            <Source>return identity.getAttribute("Employee ID");</Source>
+          </Script>
+        </Field>
       </Section>
     </Form>
     <Form name="Create Group" objectType="group" type="Create">
@@ -141,7 +185,7 @@
     </Form>
   </ProvisioningForms>
   <Schemas>
-    <Schema displayAttribute="cn" identityAttribute="dn" instanceAttribute="" nativeObjectType="inetOrgPerson" objectType="account">
+    <Schema created="1752938427741" displayAttribute="cn" id="0a2a010698231daf81982345b55d0090" identityAttribute="dn" instanceAttribute="" modified="1753130884279" nativeObjectType="inetOrgPerson" objectType="account" significantModified="1753130884279">
       <AttributeDefinition name="cn" type="string">
         <Description>common name(s) for which the entity is known by</Description>
       </AttributeDefinition>
@@ -160,7 +204,7 @@
       <AttributeDefinition name="givenName" type="string">
         <Description>first name(s) for which the entity is known by</Description>
       </AttributeDefinition>
-      <AttributeDefinition entitlement="true" managed="true" multi="true" name="groups" schemaObjectType="group" type="string">
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="posixGroup" schemaObjectType="group" type="string">
         <Description>List of groups a user is a member</Description>
       </AttributeDefinition>
       <AttributeDefinition name="mail" type="string">
@@ -185,7 +229,7 @@
         <Description>object classes of the entity</Description>
       </AttributeDefinition>
     </Schema>
-    <Schema displayAttribute="cn" featuresString="PROVISIONING" identityAttribute="dn" instanceAttribute="" nativeObjectType="groupOfUniqueNames" objectType="group">
+    <Schema created="1752938427741" descriptionAttribute="" displayAttribute="cn" featuresString="PROVISIONING" id="0a2a010698231daf81982345b55d0091" identityAttribute="dn" instanceAttribute="" modified="1753130884279" nativeObjectType="posixGroup" objectType="group" significantModified="1753130884279">
       <AttributeDefinition name="cn" type="string">
         <Description>common name(s) for which the entity is known by</Description>
       </AttributeDefinition>
@@ -204,6 +248,9 @@
       <AttributeDefinition name="description" type="string">
         <Description>descriptive information</Description>
       </AttributeDefinition>
+      <AttributeDefinition entitlement="true" multi="true" name="memberUid" type="string">
+        <Description>Group Member</Description>
+      </AttributeDefinition>
       <Attributes>
         <Map>
           <entry key="groupMemberAttribute" value="uniqueMember"/>
@@ -211,5 +258,5 @@
       </Attributes>
     </Schema>
   </Schemas>
-  <ApplicationScorecard/>
+  <ApplicationScorecard created="1752938427740" id="0a2a010698231daf81982345b55c008f" modified="1753130884279" significantModified="1753130884279"/>
 </Application>

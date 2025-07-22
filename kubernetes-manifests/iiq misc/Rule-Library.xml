@@ -89,11 +89,23 @@
 	***/
 	public static String getNewUID(SailPointContext context)
 	{
+		System.out.println(Generating new uid for " + identityName + " UID: " + newUID);
 		Custom custom = (Custom) ObjectUtil.lockObject(context, Custom.class, null, "UID Custom Object", PersistenceManager.LOCK_TYPE_TRANSACTION);
-		
+		if ( custom == null ) {
+
+  			custom = new Custom();
+
+  			custom.setName( "UID Custom Object" );
+
+		}
 		String prefix = custom.getString("prefix");
 		String suffix = custom.getString("suffix");
-		
+		if(prefix == null || prefix.isEmpty()){
+			prefix = "a";
+		}
+		if(suffix == null || suffix.isEmpty()){
+			suffix = "0001";
+		}
 		Integer suf = Integer.valueOf(suffix);
 		
 		if(suf == 9999){
@@ -108,7 +120,7 @@
 		custom.put("suffix", suffix);
 		
 		context.saveObject(custom);
-		context.commitTransaction();
+		
 		
 		return prefix + suffix;
 	}
