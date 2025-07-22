@@ -100,11 +100,6 @@
         <Reference class="sailpoint.object.Application" id="0a2a02d598041e9a819804b04ff90016" name="HR"/>
       </ApplicationRef>
     </AttributeSource>
-    <AttributeSource name="first_name">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
   </ObjectAttribute>
   <ObjectAttribute displayName="att_inactive" editMode="ReadOnly" name="inactive" standard="true" type="boolean">
     <AttributeSource name="Inactive">
@@ -124,11 +119,6 @@
     <AttributeSource name="Last Name">
       <ApplicationRef>
         <Reference class="sailpoint.object.Application" id="0a2a02d598041e9a819804b04ff90016" name="HR"/>
-      </ApplicationRef>
-    </AttributeSource>
-    <AttributeSource name="last_name">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
       </ApplicationRef>
     </AttributeSource>
   </ObjectAttribute>
@@ -191,146 +181,6 @@
       </ApplicationRef>
     </AttributeSource>
     <AttributeSource name="email">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_middle_initial" editMode="ReadOnly" name="middle_initial" type="string">
-    <AttributeSource name="middle_initial">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_preferred_first_name" editMode="ReadOnly" name="preferred_first_name" type="string">
-    <AttributeSource name="preferred_first_name">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_full_part_time" editMode="ReadOnly" name="full_part_time" type="string">
-    <AttributeSource name="full_part_time">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_employee_number" editMode="ReadOnly" name="employee_number" type="string">
-    <AttributeSource name="employee_number">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_manager_number" editMode="ReadOnly" name="manager_number" type="string">
-    <AttributeSource name="manager_number">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_location_name" editMode="ReadOnly" name="location_name" type="string">
-    <AttributeSource name="location_name">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_adress" editMode="ReadOnly" name="office_adress" type="string">
-    <AttributeSource name="office_adress">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_address2" editMode="ReadOnly" name="office_address2" type="string">
-    <AttributeSource name="office_address2">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_city" editMode="ReadOnly" name="office_city" type="string">
-    <AttributeSource name="office_city">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_state" editMode="ReadOnly" name="office_state" type="string">
-    <AttributeSource name="office_state">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_zip" editMode="ReadOnly" name="office_zip" type="string">
-    <AttributeSource name="office_zip">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_country" editMode="ReadOnly" name="office_country" type="string">
-    <AttributeSource name="office_country">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_home_address" editMode="ReadOnly" name="home_address" type="string">
-    <AttributeSource name="home_address">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_home_city" editMode="ReadOnly" name="home_city" type="string">
-    <AttributeSource name="home_city">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_home_state" editMode="ReadOnly" name="home_state" type="string">
-    <AttributeSource name="home_state">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_home_zip" editMode="ReadOnly" name="home_zip" type="string">
-    <AttributeSource name="home_zip">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_home_country" editMode="ReadOnly" name="home_country" type="string">
-    <AttributeSource name="home_country">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_office_phone" editMode="ReadOnly" name="office_phone" type="string">
-    <AttributeSource name="office_phone">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_home_phone" editMode="ReadOnly" name="home_phone" type="string">
-    <AttributeSource name="home_phone">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
-      </A pplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
-  <ObjectAttribute displayName="att_department" editMode="ReadOnly" name="department" type="string">
-    <AttributeSource name="department">
       <ApplicationRef>
         <Reference class="sailpoint.object.Application" id="0a2a013b9833119a81983376ea940109" name="HR_People"/>
       </ApplicationRef>
