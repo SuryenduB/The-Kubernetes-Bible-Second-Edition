@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Application connector="sailpoint.connector.LDAPConnector" created="1752938427740" featuresString="AUTHENTICATE, MANAGER_LOOKUP, SEARCH, PROVISIONING, SYNC_PROVISIONING, ADDITIONAL_ACCOUNT_REQUEST, ACCOUNT_ONLY_REQUEST" icon="directory2Icon" id="0a2a010698231daf81982345b55c008e" modified="1753130884599" name="OpenLDAP" profileClass="" significantModified="1753130884599" type="LDAP">
+<Application connector="sailpoint.connector.LDAPConnector" created="1752938427740" featuresString="AUTHENTICATE, MANAGER_LOOKUP, SEARCH, PROVISIONING, SYNC_PROVISIONING, ADDITIONAL_ACCOUNT_REQUEST, ACCOUNT_ONLY_REQUEST" icon="directory2Icon" id="0a2a010698231daf81982345b55c008e" modified="1753474843513" name="OpenLDAP" profileClass="" significantModified="1753474843513" type="LDAP">
   <AccountCorrelationConfig>
     <Reference class="sailpoint.object.CorrelationConfig" id="0a2a01f8980a1a5281980a968aa90432" name="Account Correlation"/>
   </AccountCorrelationConfig>
@@ -8,12 +8,12 @@
     <Map>
       <entry key="acctAggregationEnd">
         <value>
-          <Date>1753128998825</Date>
+          <Date>1753463700711</Date>
         </value>
       </entry>
       <entry key="acctAggregationStart">
         <value>
-          <Date>1753128997778</Date>
+          <Date>1753462514755</Date>
         </value>
       </entry>
       <entry key="afterProvisioningRule"/>
@@ -40,7 +40,7 @@
       <entry key="deltaAggregation">
         <value>
           <Map>
-            <entry key="modify_time_account" value="20250721201637.0Z"/>
+            <entry key="modify_time_account" value="20250725165514.0Z"/>
             <entry key="modify_time_group" value="20250720212217.0Z"/>
           </Map>
         </value>
@@ -52,13 +52,18 @@
             <Map>
               <entry key="iterateSearchFilter"/>
               <entry key="searchDN" value="ou=groups,dc=sailpoint,dc=demo"/>
-              <entry key="searchScope"/>
+              <entry key="searchScope" value="SUBTREE"/>
             </Map>
           </List>
         </value>
       </entry>
       <entry key="group.searchScope" value="SUBTREE"/>
       <entry key="groupEntitlementAttr" value="groups"/>
+      <entry key="groupProvisioning">
+        <value>
+          <Boolean>true</Boolean>
+        </value>
+      </entry>
       <entry key="host" value="ldap"/>
       <entry key="lockAttr"/>
       <entry key="nativeChangeDetectionAttributeScope" value="entitlements"/>
@@ -69,8 +74,21 @@
         </value>
       </entry>
       <entry key="nativeChangeDetectionOperations"/>
+      <entry key="noGroupPermissions">
+        <value>
+          <Map>
+            <entry key="group">
+              <value>
+                <Boolean>true</Boolean>
+              </value>
+            </entry>
+          </Map>
+        </value>
+      </entry>
+      <entry key="noPermissions" value="true"/>
+      <entry key="operations" value="Create, Modify, Delete"/>
       <entry key="pageSize" value="100"/>
-      <entry key="password" value="1:ACP:6hOfmzaw8KF9E/YnQWJSRFMsfjpg3W2juw+c+7Ns1R0="/>
+      <entry key="password" value="1:ACP:H1JLljvvfYPxW2/jC+jul9myyObt757y8qK+RDQsnFE="/>
       <entry key="passwordAttr" value="userPassword"/>
       <entry key="port" value="389"/>
       <entry key="pwdExpiryAttrName"/>
@@ -80,6 +98,17 @@
       <entry key="revokeAction"/>
       <entry key="revokeAttr"/>
       <entry key="revokeVal"/>
+      <entry key="schemaProvisioningMap">
+        <value>
+          <Map>
+            <entry key="group">
+              <value>
+                <Boolean>true</Boolean>
+              </value>
+            </entry>
+          </Map>
+        </value>
+      </entry>
       <entry key="searchDNs">
         <value>
           <List>
@@ -168,6 +197,7 @@
       <Section>
         <Field displayName="con_prov_policy_ldap_group_DN" helpKey="help_con_prov_policy_ldap_group_DN" name="dn" required="true" reviewRequired="true" type="string"/>
         <Field displayName="con_prov_policy_ldap_description" helpKey="help_con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+        <Field name="gidNumber" required="true" type="string"/>
       </Section>
     </Form>
     <Form name="Update Group" objectType="group" type="Update">
@@ -185,7 +215,7 @@
     </Form>
   </ProvisioningForms>
   <Schemas>
-    <Schema created="1752938427741" displayAttribute="cn" id="0a2a010698231daf81982345b55d0090" identityAttribute="dn" instanceAttribute="" modified="1753130884279" nativeObjectType="inetOrgPerson" objectType="account" significantModified="1753130884279">
+    <Schema created="1752938427741" displayAttribute="cn" id="0a2a010698231daf81982345b55d0090" identityAttribute="dn" instanceAttribute="" modified="1753474843513" nativeObjectType="inetOrgPerson" objectType="account" significantModified="1753474843513">
       <AttributeDefinition name="cn" type="string">
         <Description>common name(s) for which the entity is known by</Description>
       </AttributeDefinition>
@@ -203,9 +233,6 @@
       </AttributeDefinition>
       <AttributeDefinition name="givenName" type="string">
         <Description>first name(s) for which the entity is known by</Description>
-      </AttributeDefinition>
-      <AttributeDefinition entitlement="true" managed="true" multi="true" name="posixGroup" schemaObjectType="group" type="string">
-        <Description>List of groups a user is a member</Description>
       </AttributeDefinition>
       <AttributeDefinition name="mail" type="string">
         <Description>RFC822 Mailbox</Description>
@@ -229,21 +256,12 @@
         <Description>object classes of the entity</Description>
       </AttributeDefinition>
     </Schema>
-    <Schema created="1752938427741" descriptionAttribute="" displayAttribute="cn" featuresString="PROVISIONING" id="0a2a010698231daf81982345b55d0091" identityAttribute="dn" instanceAttribute="" modified="1753130884279" nativeObjectType="posixGroup" objectType="group" significantModified="1753130884279">
+    <Schema created="1752938427741" descriptionAttribute="" displayAttribute="cn" featuresString="PROVISIONING" id="0a2a010698231daf81982345b55d0091" identityAttribute="dn" instanceAttribute="" modified="1753474843513" nativeObjectType="posixGroup" objectType="group" significantModified="1753474843513">
       <AttributeDefinition name="cn" type="string">
         <Description>common name(s) for which the entity is known by</Description>
       </AttributeDefinition>
       <AttributeDefinition name="dn" type="string">
         <Description>Directory Path</Description>
-      </AttributeDefinition>
-      <AttributeDefinition name="o" type="string">
-        <Description>organization this object belongs to</Description>
-      </AttributeDefinition>
-      <AttributeDefinition name="ou" type="string">
-        <Description>organizational unit this object belongs to</Description>
-      </AttributeDefinition>
-      <AttributeDefinition name="owner" type="string">
-        <Description>owner (of the object)</Description>
       </AttributeDefinition>
       <AttributeDefinition name="description" type="string">
         <Description>descriptive information</Description>
@@ -251,12 +269,15 @@
       <AttributeDefinition entitlement="true" multi="true" name="memberUid" type="string">
         <Description>Group Member</Description>
       </AttributeDefinition>
+      <AttributeDefinition name="gidNumber" type="string">
+        <Description>Group Unique Number</Description>
+      </AttributeDefinition>
       <Attributes>
         <Map>
-          <entry key="groupMemberAttribute" value="uniqueMember"/>
+          <entry key="groupMemberAttribute" value="memberUid"/>
         </Map>
       </Attributes>
     </Schema>
   </Schemas>
-  <ApplicationScorecard created="1752938427740" id="0a2a010698231daf81982345b55c008f" modified="1753130884279" significantModified="1753130884279"/>
+  <ApplicationScorecard created="1752938427740" id="0a2a010698231daf81982345b55c008f" modified="1753474843513" significantModified="1753474843513"/>
 </Application>
