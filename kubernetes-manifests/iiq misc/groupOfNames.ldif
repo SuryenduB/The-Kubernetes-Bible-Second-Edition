@@ -1,0 +1,7 @@
+dn: cn=developers,ou=Groups,dc=sailpoint,dc=demo
+objectClass: top
+objectClass: groupOfNames
+cn: developers
+description: Development Team Group
+member: cn=abby.imes@primarygrocers.corp,ou=people,dc=sailpoint,dc=demo
+

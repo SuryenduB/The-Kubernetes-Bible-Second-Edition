@@ -149,45 +149,62 @@
   </Owner>
   <ProvisioningForms>
     <Form name="Account" objectType="account" type="Create">
-      <Attributes>
+    <Attributes>
         <Map>
-          <entry key="pageTitle" value="Account"/>
+            <entry key="pageTitle" value="Account"/>
         </Map>
-      </Attributes>
-      <Section>
+    </Attributes>
+    <Section>
         <Field displayName="con_prov_policy_ldap_user_DN" helpKey="help_con_prov_policy_ldap_user_DN" name="dn" required="true" type="string">
-          <Script>
-            <Source>return "cn=" + identity.getEmail().toLowerCase() +",ou=people,dc=sailpoint,dc=demo";</Source>
-          </Script>
+            <Script>
+                <Source>return "cn=" + identity.getFirstname().toLowerCase() + " " + identity.getLastname().toLowerCase() + ",ou=people2,ou=people,dc=sailpoint,dc=demo";</Source>
+            </Script>
         </Field>
-        <Field displayName="con_prov_policy_ldap_password" helpKey="help_con_prov_policy_ldap_password" name="password" required="true" type="secret" value="12345"/>
-        <Field displayName="con_prov_policy_ldap_full_name" helpKey="help_con_prov_policy_ldap_full_name" name="CN" required="true" type="string">
-          <Script>
-            <Source>return identity.getLastname().toLowerCase() + "," + identity.getFirstname().toLowerCase(); </Source>
-          </Script>
-        </Field>
+        <Field displayName="con_prov_policy_ldap_password" helpKey="help_con_prov_policy_ldap_password" name="userPassword" required="true" type="secret" value="12345"/>
         <Field displayName="con_prov_policy_ldap_first_name" helpKey="help_con_prov_policy_ldap_first_name" name="givenName" required="true" type="string">
-          <Script>
-            <Source>return identity.getFirstname().toLowerCase();</Source>
-          </Script>
+            <Script>
+                <Source>return identity.getFirstname();</Source>
+            </Script>
         </Field>
-        <Field displayName="con_prov_policy_ldap_last_name" helpKey="help_con_prov_policy_ldap_last_name" name="SN" required="true" type="string">
-          <Script>
-            <Source>return identity.getLastname().toLowerCase();</Source>
-          </Script>
+        <Field displayName="con_prov_policy_ldap_last_name" helpKey="help_con_prov_policy_ldap_last_name" name="sn" required="true" type="string">
+            <Script>
+                <Source>return identity.getLastname();</Source>
+            </Script>
         </Field>
-        <Field displayName="mail" name="mail" required="true" type="string">
-          <Script>
-            <Source>return identity.getAttribute("email");</Source>
-          </Script>
+        <Field displayName="Common Name" name="cn" required="true" type="string">
+            <Script>
+                <Source>return identity.getFirstname() + " " + identity.getLastname();</Source>
+            </Script>
         </Field>
-        <Field displayName="Employee ID" name="employeeNumber" type="string">
-          <Script>
-            <Source>return identity.getAttribute("Employee ID");</Source>
-          </Script>
+        <Field displayName="User ID" name="uid" required="true" type="string">
+            <Script>
+                <Source>return identity.getFirstname().toLowerCase() + identity.getLastname().toLowerCase();</Source>
+            </Script>
         </Field>
-      </Section>
-    </Form>
+        <Field displayName="UID Number" name="uidNumber" required="true" type="string">
+            <Script>
+                <Source>return identity.getAttribute("Employee ID");</Source>
+            </Script>
+        </Field>
+        <Field displayName="GID Number" name="gidNumber" required="true" type="string">
+            <Script>
+                <Source>return "500";</Source>
+            </Script>
+        </Field>
+        <Field displayName="Home directory" name="homeDirectory" required="true" type="string">
+            <Script>
+                <Source>return "/home/users/" + identity.getFirstname().toLowerCase() + identity.getLastname().toLowerCase();</Source>
+            </Script>
+        </Field>
+        <Field displayName="Object Class" name="objectClass" required="true" type="string">
+            <Script>
+                <Source>return "inetOrgPerson posixAccount";</Source>
+            </Script>
+        </Field>
+    </Section>
+</Form>
+
+
     <Form name="Create Group" objectType="group" type="Create">
       <Attributes>
         <Map>
