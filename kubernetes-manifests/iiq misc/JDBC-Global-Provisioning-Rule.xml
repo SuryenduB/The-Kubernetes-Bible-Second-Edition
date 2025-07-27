@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule language="beanshell" name="JDBC Global Provisioning Rule" type="JDBCOperationProvisioning">
+  <Description>This rule is used by the JDBC connector to do provisioning of the data .</Description>
+  <Signature returnType="ProvisioningResult"/>
+  <Source>
+	import sailpoint.object.Identity;
+import java.sql.PreparedStatement;
+import java.util.Date;
+import sailpoint.object.ProvisioningPlan;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningPlan.AttributeRequest;
+import sailpoint.object.ProvisioningPlan.Operation;
+import sailpoint.object.ProvisioningPlan.AccountRequest.Operation;
+import sailpoint.object.ProvisioningProject;
+import sailpoint.object.ProvisioningResult;
+
+ProvisioningResult result = new ProvisioningResult();
+Identity identity = plan.getIdentity();
+List<AccountRequest> accountRequests = plan.getAccountRequests();
+
+if (accountRequests != null && accountRequests.size() > 0) {
+    for (AccountRequest accountRequest : accountRequests) {
+        
+        // Create operation
+        if (ProvisioningPlan.AccountRequest.Operation.Create.equals(accountRequest.getOperation())) {
+            String sql = "INSERT INTO Employee (EmployeeID, FirstName, LastName, Email, Email, HireDate, JobTitle) "
+                       + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+            String employeeID = identity.getAttribute("Employee ID");
+            String firstName = identity.getFirstname();
+            String lastName = identity.getLastname();
+            String email = identity.getEmail();
+
+            String fullName = "";
+            if (identity.getAttribute("displayName") != null) {
+                fullName = identity.getAttribute("displayName").toString();
+            }
+
+            String jobTitle = "";
+            if (identity.getAttribute("Job Title") != null) {
+                jobTitle = identity.getAttribute("Job Title").toString();
+            }
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, employeeID);
+            ps.setString(2, firstName);
+            ps.setString(3, lastName);
+            ps.setString(4, email);
+            ps.setString(5, fullName);
+            ps.setString(6, hireDate);
+            ps.setString(7, jobTitle);
+
+            int updateStatus = 0;
+            try {
+                updateStatus = ps.executeUpdate();
+            } catch (SQLException e) {
+                // If the user account exists in the target system and the account does not exist in IIQ, update existing account.
+                log.debug(".........Error...." + e);
+                result.setStatus(ProvisioningResult.STATUS_FAILED);
+            }
+
+            log.debug(".........request...." + updateStatus);
+            if (updateStatus > 0) {
+                result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+                plan.setResult(result);
+            }
+        }
+
+        // Modify operation (currently empty)
+        if (ProvisioningPlan.AccountRequest.Operation.Modify.equals(accountRequest.getOperation())) {
+            // TODO: Implement Modify logic
+        }
+
+        // Delete operation
+        if (ProvisioningPlan.AccountRequest.Operation.Delete.equals(accountRequest.getOperation())) {
+            String sql = "DELETE FROM Employee WHERE EmployeeID = ?";
+            String employeeID = identity.getAttribute("Employee ID");
+
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setString(1, employeeID);
+
+            int updateStatus = 0;
+            try {
+                updateStatus = ps.executeUpdate();
+            } catch (SQLException e) {
+                log.debug(".........Error...." + e);
+                result.setStatus(ProvisioningResult.STATUS_FAILED);
+            }
+
+            log.debug(".........request...." + updateStatus);
+            if (updateStatus > 0) {
+                result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+                plan.setResult(result);
+            }
+        }
+    }
+}
+
+	
+</Source>
+</Rule>

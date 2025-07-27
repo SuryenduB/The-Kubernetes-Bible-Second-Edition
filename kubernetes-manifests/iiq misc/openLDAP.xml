@@ -1,0 +1,326 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Application connector="sailpoint.connector.LDAPConnector" created="1753619567969" featuresString="AUTHENTICATE, PROVISIONING, SYNC_PROVISIONING, PASSWORD, MANAGER_LOOKUP, SEARCH" icon="directory2Icon" id="0a2a015e984b110f81984bdf15613cbf" modified="1753619927932" name="OpenLDAP" profileClass="" significantModified="1753619927932" type="OpenLDAP - Direct">
+  <Attributes>
+    <Map>
+      <entry key="LDAPApplicationVersion" value="2.0"/>
+      <entry key="afterProvisioningRule"/>
+      <entry key="authSearchAttributes">
+        <value>
+          <List>
+            <String>cn</String>
+            <String>uid</String>
+            <String>mail</String>
+          </List>
+        </value>
+      </entry>
+      <entry key="authorizationType" value="simple"/>
+      <entry key="beforeProvisioningRule"/>
+      <entry key="charsToEscapeAtEndInDN" value=" "/>
+      <entry key="charsToEscapeAtStartInDN" value=" #"/>
+      <entry key="charsToEscapeInDN" value=",+\&quot;&lt;>;"/>
+      <entry key="charsToEscapeWhileProvisioning" value="/"/>
+      <entry key="compositeDefinition"/>
+      <entry key="convertHexToCharacter" value="true"/>
+      <entry key="group.searchDNs">
+        <value>
+          <List>
+            <Map>
+              <entry key="iterateSearchFilter"/>
+              <entry key="searchDN" value="ou=groups,dc=sailpoint,dc=demo"/>
+              <entry key="searchScope" value="SUBTREE"/>
+            </Map>
+          </List>
+        </value>
+      </entry>
+      <entry key="host" value="ldap"/>
+      <entry key="nativeChangeDetectionAttributeScope" value="entitlements"/>
+      <entry key="nativeChangeDetectionAttributes"/>
+      <entry key="nativeChangeDetectionEnabled">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="nativeChangeDetectionOperations"/>
+      <entry key="pageSize" value="100"/>
+      <entry key="password" value="1:ACP:W1uzLRpt4fiJAupXzRznGhzXtKBFSqnO4/IgB4VZLE8="/>
+      <entry key="passwordAttr" value="userPassword"/>
+      <entry key="port" value="389"/>
+      <entry key="searchDNs">
+        <value>
+          <List>
+            <Map>
+              <entry key="groupMembershipSearchScope"/>
+              <entry key="iterateSearchFilter"/>
+              <entry key="searchDN" value="ou=people,dc=sailpoint,dc=demo"/>
+              <entry key="searchScope" value="SUBTREE"/>
+            </Map>
+          </List>
+        </value>
+      </entry>
+      <entry key="skipBackslashInFilter" value="true"/>
+      <entry key="sysDescriptions">
+        <value>
+          <Map>
+            <entry key="en_US"/>
+          </Map>
+        </value>
+      </entry>
+      <entry key="templateApplication" value="OpenLDAP Template"/>
+      <entry key="useSSL">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="user" value="cn=Admin,dc=sailpoint,dc=demo"/>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
+  </Owner>
+  <ProvisioningForms>
+    <ProvisioningForms>
+    <Form name="Account" objectType="account" type="Create">
+    <Attributes>
+        <Map>
+            <entry key="pageTitle" value="Account"/>
+        </Map>
+    </Attributes>
+    <Section>
+        <Field displayName="con_prov_policy_ldap_user_DN" helpKey="help_con_prov_policy_ldap_user_DN" name="dn" required="true" type="string">
+            <Script>
+                <Source>return "cn=" + identity.getFirstname().toLowerCase() + " " + identity.getLastname().toLowerCase() + ",ou=people2,ou=people,dc=sailpoint,dc=demo";</Source>
+            </Script>
+        </Field>
+        <Field displayName="con_prov_policy_ldap_password" helpKey="help_con_prov_policy_ldap_password" name="userPassword" required="true" type="secret" value="12345"/>
+        <Field displayName="con_prov_policy_ldap_first_name" helpKey="help_con_prov_policy_ldap_first_name" name="givenName" required="true" type="string">
+            <Script>
+                <Source>return identity.getFirstname();</Source>
+            </Script>
+        </Field>
+        <Field displayName="con_prov_policy_ldap_last_name" helpKey="help_con_prov_policy_ldap_last_name" name="sn" required="true" type="string">
+            <Script>
+                <Source>return identity.getLastname();</Source>
+            </Script>
+        </Field>
+        <Field displayName="Common Name" name="cn" required="true" type="string">
+            <Script>
+                <Source>return identity.getFirstname() + " " + identity.getLastname();</Source>
+            </Script>
+        </Field>
+        <Field displayName="User ID" name="uid" required="true" type="string">
+            <Script>
+                <Source>return identity.getFirstname().toLowerCase() + identity.getLastname().toLowerCase();</Source>
+            </Script>
+        </Field>
+        <Field displayName="UID Number" name="uidNumber" required="true" type="string">
+            <Script>
+                <Source>return identity.getAttribute("Employee ID");</Source>
+            </Script>
+        </Field>
+        <Field displayName="GID Number" name="gidNumber" required="true" type="string">
+            <Script>
+                <Source>return "500";</Source>
+            </Script>
+        </Field>
+        <Field displayName="Home directory" name="homeDirectory" required="true" type="string">
+            <Script>
+                <Source>return "/home/users/" + identity.getFirstname().toLowerCase() + identity.getLastname().toLowerCase();</Source>
+            </Script>
+        </Field>
+        <Field displayName="Object Class" name="objectClass" required="true" type="string">
+            <Script>
+                <Source>return "inetOrgPerson posixAccount";</Source>
+            </Script>
+        </Field>
+    </Section>
+</Form>
+    <Form name="group create" objectType="group" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="group create"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_ldap_group_DN" helpKey="help_con_prov_policy_ldap_group_DN" name="dn" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_ldap_description" helpKey="help_con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_ldap_member" helpKey="help_con_prov_policy_ldap_member" name="uniqueMember" required="true" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+    <Form name="group create" objectType="posixgroup" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="group create"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_ldap_group_DN" helpKey="help_con_prov_policy_ldap_group_DN" name="dn" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_ldap_GID" helpKey="help_con_prov_policy_ldap_GID" name="gidNumber" required="true" reviewRequired="true" type="int"/>
+        <Field displayName="con_prov_policy_ldap_description" helpKey="help_con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+    <Form name="group create" objectType="nisNetgroup" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="group create"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_ldap_group_DN" helpKey="help_con_prov_policy_ldap_group_DN" name="dn" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_ldap_description" helpKey="help_con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+    <Form name="edit group" objectType="group" type="Update">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="edit group"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+    <Form name="edit group" objectType="posixgroup" type="Update">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="edit group"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+    <Form name="edit group" objectType="nisNetgroup" type="Update">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="edit group"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_ldap_description" name="description" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+  </ProvisioningForms>
+  <Schemas>
+    <Schema created="1753619567970" displayAttribute="cn" id="0a2a015e984b110f81984bdf15623cc1" identityAttribute="dn" instanceAttribute="" modified="1753619927932" nativeObjectType="inetOrgPerson" objectType="account" significantModified="1753619927932">
+      <AttributeDefinition name="cn" type="string">
+        <Description>common name(s) for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="dn" type="string">
+        <Description>distinguished name for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="displayName" type="string">
+        <Description>preferred name to be used when displaying entries</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="employeeNumber" type="string">
+        <Description>numerically identifies an employee within an organization</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="employeeType" type="string">
+        <Description>type of employment for a person</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="givenName" type="string">
+        <Description>first name(s) for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mail" type="string">
+        <Description>RFC822 Mailbox</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="manager" type="string">
+        <Description>DN of manager</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mobile" type="string">
+        <Description>mobile telephone number</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="sn" type="string">
+        <Description>last (family) name(s) for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="title" type="string">
+        <Description>title associated with the entity</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="uid" type="string">
+        <Description>user identifier</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="objectClass" type="string">
+        <Description>object classes of the entity</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1753619567971" descriptionAttribute="" displayAttribute="cn" featuresString="PROVISIONING" id="0a2a015e984b110f81984bdf15633cc2" identityAttribute="dn" instanceAttribute="" modified="1753619927932" nativeObjectType="posixgroup" objectType="posixgroup" significantModified="1753619927932">
+      <AttributeDefinition name="cn" type="string">
+        <Description>common name(s) for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="memberUid" type="string">
+        <Description>unique member of a posixGroup</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="dn" type="string">
+        <Description>Directory Path</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="gidNumber" type="string">
+        <Description>Group ID</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="description" type="string">
+        <Description>descriptive information</Description>
+      </AttributeDefinition>
+      <Attributes>
+        <Map>
+          <entry key="groupMemberAttribute" value="memberUid"/>
+          <entry key="memberAttribute">
+            <value>
+              <List>
+                <String>cn</String>
+                <String>uid</String>
+              </List>
+            </value>
+          </entry>
+        </Map>
+      </Attributes>
+    </Schema>
+    <Schema aggregationType="group" created="1753619567971" descriptionAttribute="" displayAttribute="cn" featuresString="PROVISIONING" id="0a2a015e984b110f81984bdf15633cc3" identityAttribute="dn" instanceAttribute="" modified="1753619927932" nativeObjectType="nisNetgroup" objectType="nisNetgroup" significantModified="1753619927932">
+      <AttributeDefinition name="cn" type="string">
+        <Description>common name(s) for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="nisNetgroupTriple" type="string">
+        <Description>unique member of a nisNetgroup</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="dn" type="string">
+        <Description>Directory Path</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="description" type="string">
+        <Description>descriptive information</Description>
+      </AttributeDefinition>
+      <Attributes>
+        <Map>
+          <entry key="groupMemberAttribute" value="nisNetgroupTriple"/>
+          <entry key="memberAttribute">
+            <value>
+              <List>
+                <String>cn</String>
+                <String>uid</String>
+              </List>
+            </value>
+          </entry>
+          <entry key="memberPrefix" value="{,"/>
+          <entry key="memberSuffix" value=",}"/>
+        </Map>
+      </Attributes>
+    </Schema>
+    <Schema created="1753619567971" descriptionAttribute="description" displayAttribute="cn" featuresString="PROVISIONING" id="0a2a015e984b110f81984bdf15633cc4" identityAttribute="dn" instanceAttribute="" modified="1753619927932" nativeObjectType="groupOfNames" objectType="group" significantModified="1753619927932">
+      <AttributeDefinition name="cn" type="string">
+        <Description>common name(s) for which the entity is known by</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="dn" type="string">
+        <Description>Directory Path</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="description" type="string">
+        <Description>descriptive information</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" multi="true" name="uniqueMember" type="string">
+        <Description>Group Member</Description>
+      </AttributeDefinition>
+      <Attributes>
+        <Map>
+          <entry key="groupMemberAttribute" value="uniqueMember"/>
+        </Map>
+      </Attributes>
+    </Schema>
+  </Schemas>
+  <ApplicationScorecard created="1753619567969" id="0a2a015e984b110f81984bdf15613cc0" modified="1753619927932" significantModified="1753619927932"/>
+</Application>
