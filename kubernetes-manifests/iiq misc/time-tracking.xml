@@ -1,18 +1,34 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Application connector="sailpoint.connector.JDBCConnector" created="1753633013544" featuresString="DISCOVER_SCHEMA, PROVISIONING, SYNC_PROVISIONING, DIRECT_PERMISSIONS, SEARCH, ENABLE, UNLOCK" icon="databaseIcon" id="0a2a0319984c113881984cac3f280020" modified="1753633072633" name="TimeTracking" profileClass="" significantModified="1753633072633" type="JDBC">
+<Application connector="sailpoint.connector.JDBCConnector" created="1753633013544" featuresString="DISCOVER_SCHEMA, PROVISIONING, SYNC_PROVISIONING, DIRECT_PERMISSIONS, SEARCH, ENABLE, UNLOCK" icon="databaseIcon" id="0a2a0319984c113881984cac3f280020" modified="1753634697864" name="TimeTracking" profileClass="" significantModified="1753634697864" type="JDBC">
   <AccountCorrelationConfig>
     <Reference class="sailpoint.object.CorrelationConfig" id="0a2a0319984c113881984cac25a4001f" name="EmployeeID Correlation TimeTracking"/>
   </AccountCorrelationConfig>
   <Attributes>
     <Map>
       <entry key="SQL" value="Select * From Employee;"/>
+      <entry key="acctAggregationEnd">
+        <value>
+          <Date>1753633967595</Date>
+        </value>
+      </entry>
+      <entry key="acctAggregationStart">
+        <value>
+          <Date>1753633967594</Date>
+        </value>
+      </entry>
       <entry key="afterProvisioningRule"/>
       <entry key="aggregationMode">
         <value>
           <Boolean></Boolean>
         </value>
       </entry>
+      <entry key="aggregationPartitioned">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="aggregationType" value="account"/>
       <entry key="beforeProvisioningRule"/>
       <entry key="compositeDefinition"/>
       <entry key="connMaxRetry" value="3"/>
@@ -55,7 +71,7 @@
         </value>
       </entry>
       <entry key="partitionStatements"/>
-      <entry key="password" value="1:ACP:bFWgI/Gchgs1C20j+I0DBJpaYnWGqHIFtIcLn6CT1Zc="/>
+      <entry key="password" value="1:ACP:uNpaZuePjr3JU145wEqHfaob3tN1Mwe6KFhICZUEe3U="/>
       <entry key="provisionRule" value="globalRule"/>
       <entry key="sysDescriptions">
         <value>
@@ -108,8 +124,17 @@
   <Owner>
     <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
   </Owner>
+  <ProvisioningForms>
+    <Form name="Account" objectType="account" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="Account"/>
+        </Map>
+      </Attributes>
+    </Form>
+  </ProvisioningForms>
   <Schemas>
-    <Schema created="1753633013548" displayAttribute="Email" id="0a2a0319984c113881984cac3f2c0022" identityAttribute="EmployeeID" instanceAttribute="EmployeeID" modified="1753633072633" nativeObjectType="account" objectType="account" permissionsRemediationModificationType="None" significantModified="1753633072633">
+    <Schema created="1753633013548" displayAttribute="Email" id="0a2a0319984c113881984cac3f2c0022" identityAttribute="EmployeeID" instanceAttribute="EmployeeID" modified="1753634697554" nativeObjectType="account" objectType="account" permissionsRemediationModificationType="None" significantModified="1753634697554">
       <AttributeDefinition name="EmployeeID" type="string">
         <Description></Description>
       </AttributeDefinition>
@@ -127,5 +152,5 @@
       </AttributeDefinition>
     </Schema>
   </Schemas>
-  <ApplicationScorecard created="1753633013544" id="0a2a0319984c113881984cac3f280021" modified="1753633072633" significantModified="1753633072633"/>
+  <ApplicationScorecard created="1753633013544" id="0a2a0319984c113881984cac3f280021" modified="1753634697554" significantModified="1753634697554"/>
 </Application>

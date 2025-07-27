@@ -166,6 +166,12 @@
         if(link.getApplicationName().equalsIgnoreCase("OpenLDAP")){
         ldapLink = link;
         }
+        if(link.getApplicationName().equalsIgnoreCase("TimeTracking")){
+				jdbcLink = link;
+        log.error("TimeTracking link found for identity: " + identity.getName());
+        }
+        
+			
 
 
         }
@@ -184,12 +190,21 @@
         acctReqs.add(ldapAcctReq);
         log.error("No OpenLDAP link found for identity: " + identity.getName() + ". Creating new account request.");
         }
+        if(jdbcLink == null){
+        AccountRequest jdbcAcctReq = new AccountRequest();
+        jdbcAcctReq.setOperation(AccountRequest.Operation.Create);
+        jdbcAcctReq.setApplication("TimeTracking");
+        acctReqs.add(jdbcAcctReq);
+        log.error("No TimeTracking link found for identity: " + identity.getName() + ". Creating new account request.");
+        }
 
 
         plan.setAccountRequests(acctReqs);
 
         workflow.put("plan", plan);
+        
         log.error("Provisioning plan created for identity: " + identity.getName());
+        log.error("Provisioning plan contains " + plan.toXml());
 
         return plan;
             </Source>
