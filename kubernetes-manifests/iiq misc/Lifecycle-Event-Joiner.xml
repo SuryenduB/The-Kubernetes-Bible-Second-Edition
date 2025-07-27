@@ -88,110 +88,110 @@
     <Description>Process the user that joined.</Description>
     <Script>
       <Source>
-                import org.apache.commons.logging.Log;
-                import org.apache.commons.logging.LogFactory;
-                import org.apache.commons.lang.StringUtils;
-                import sailpoint.object.AttributeAssignment;
-                import sailpoint.api.IdentityService;
-                import sailpoint.api.ObjectUtil;
-                import sailpoint.api.SailPointContext;
-                import sailpoint.api.SailPointFactory;
-                import sailpoint.api.Provisioner;
-                import sailpoint.api.*;
-                import java.util.Calendar;
-                import sailpoint.object.IdentityEntitlement;
-                import sailpoint.object.ApprovalItem.ProvisioningState;
-                import sailpoint.object.Application;
-                import sailpoint.object.ApprovalItem;
-                import sailpoint.object.AuditEvent;
-                import sailpoint.object.Attributes;
-                import sailpoint.object.AuthenticationAnswer;
-                import sailpoint.object.AuthenticationQuestion;
-                import sailpoint.object.Bundle;
-                import sailpoint.object.Certification;
-                import sailpoint.object.CertificationEntity;
-                import sailpoint.object.Custom;
-                import sailpoint.object.EmailOptions;
-                import sailpoint.object.EmailTemplate;
-                import sailpoint.object.Filter;
-                import sailpoint.object.Form;
-                import sailpoint.object.Identity;
-                import sailpoint.object.IdentityRequest;
-                import sailpoint.object.IdentityRequestItem;
-                import sailpoint.object.Link;
-                import sailpoint.object.ManagedAttribute;
-                import sailpoint.object.ProvisioningPlan;
-                import sailpoint.object.ProvisioningPlan.AccountRequest;
-                import sailpoint.object.ProvisioningPlan.AttributeRequest;
-                import sailpoint.object.ProvisioningPlan.Operation;
-                import sailpoint.object.ProvisioningPlan.AccountRequest.Operation;
-                import sailpoint.object.ProvisioningProject;
-                import sailpoint.object.ProvisioningResult;
-                import sailpoint.object.QueryOptions;
-                import sailpoint.object.RoleAssignment;
-                import sailpoint.object.Field;
-                import sailpoint.object.Filter;
-                import sailpoint.object.Form;
-                import sailpoint.object.WorkItem;
-                import sailpoint.object.Form.Section;
-                import sailpoint.object.*;
-                import sailpoint.object.Request;
-                import sailpoint.object.Filter.LeafFilter;
-                import sailpoint.object.Filter.CompositeFilter;
-                import sailpoint.object.Profile;
-                import sailpoint.workflow.WorkflowContext;
+        import org.apache.commons.logging.Log;
+        import org.apache.commons.logging.LogFactory;
+        import org.apache.commons.lang.StringUtils;
+        import sailpoint.object.AttributeAssignment;
+        import sailpoint.api.IdentityService;
+        import sailpoint.api.ObjectUtil;
+        import sailpoint.api.SailPointContext;
+        import sailpoint.api.SailPointFactory;
+        import sailpoint.api.Provisioner;
+        import sailpoint.api.*;
+        import java.util.Calendar;
+        import sailpoint.object.IdentityEntitlement;
+        import sailpoint.object.ApprovalItem.ProvisioningState;
+        import sailpoint.object.Application;
+        import sailpoint.object.ApprovalItem;
+        import sailpoint.object.AuditEvent;
+        import sailpoint.object.Attributes;
+        import sailpoint.object.AuthenticationAnswer;
+        import sailpoint.object.AuthenticationQuestion;
+        import sailpoint.object.Bundle;
+        import sailpoint.object.Certification;
+        import sailpoint.object.CertificationEntity;
+        import sailpoint.object.Custom;
+        import sailpoint.object.EmailOptions;
+        import sailpoint.object.EmailTemplate;
+        import sailpoint.object.Filter;
+        import sailpoint.object.Form;
+        import sailpoint.object.Identity;
+        import sailpoint.object.IdentityRequest;
+        import sailpoint.object.IdentityRequestItem;
+        import sailpoint.object.Link;
+        import sailpoint.object.ManagedAttribute;
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningPlan.AccountRequest;
+        import sailpoint.object.ProvisioningPlan.AttributeRequest;
+        import sailpoint.object.ProvisioningPlan.Operation;
+        import sailpoint.object.ProvisioningPlan.AccountRequest.Operation;
+        import sailpoint.object.ProvisioningProject;
+        import sailpoint.object.ProvisioningResult;
+        import sailpoint.object.QueryOptions;
+        import sailpoint.object.RoleAssignment;
+        import sailpoint.object.Field;
+        import sailpoint.object.Filter;
+        import sailpoint.object.Form;
+        import sailpoint.object.WorkItem;
+        import sailpoint.object.Form.Section;
+        import sailpoint.object.*;
+        import sailpoint.object.Request;
+        import sailpoint.object.Filter.LeafFilter;
+        import sailpoint.object.Filter.CompositeFilter;
+        import sailpoint.object.Profile;
+        import sailpoint.workflow.WorkflowContext;
 
 
-                import sailpoint.tools.GeneralException;
-                import sailpoint.tools.Message;
-                import sailpoint.tools.Util;
-                import sailpoint.tools.xml.XMLObjectFactory;
+        import sailpoint.tools.GeneralException;
+        import sailpoint.tools.Message;
+        import sailpoint.tools.Util;
+        import sailpoint.tools.xml.XMLObjectFactory;
 
-                import java.util.ArrayList;
-                import java.util.HashMap;
-                import java.util.Iterator;
-                import java.util.List;
-                import java.util.Map;
-                import java.util.Arrays;
+        import java.util.ArrayList;
+        import java.util.HashMap;
+        import java.util.Iterator;
+        import java.util.List;
+        import java.util.Map;
+        import java.util.Arrays;
 
-                log.error("New user was entered the system: " + event.getObject().getDisplayableName());
+        log.error("New user was entered the system: " + event.getObject().getDisplayableName());
+        Identity identity = context.getObjectByName(Identity.class, identityName);
 
-                Identity identity = context.getObjectByName(Identity.class, identityName);
-
-                List links = identity.getLinks();
-                Link ldapLink = null;
-                
-
-                for(Iterator iterator = links.iterator(); iterator.hasNext();){
-                Link link = (Link) iterator.next();
-                if(link.getApplicationName().equalsIgnoreCase("OpenLDAP")){
-                ldapLink = link;
-                }
+        List links = identity.getLinks();
+        Link ldapLink = null;
 
 
-                }
+        for(Iterator iterator = links.iterator(); iterator.hasNext();){
+        Link link = (Link) iterator.next();
+        if(link.getApplicationName().equalsIgnoreCase("OpenLDAP")){
+        ldapLink = link;
+        }
 
 
-                ProvisioningPlan plan = new ProvisioningPlan();
-                // Set identity to the plan
-                plan.setIdentity(identity);
+        }
 
-                List acctReqs = new ArrayList();
 
-                if(ldapLink == null){
-                AccountRequest ldapAcctReq = new AccountRequest();
-                ldapAcctReq.setOperation(AccountRequest.Operation.Create);
-                ldapAcctReq.setApplication("OpenLDAP");
-                acctReqs.add(ldapAcctReq);
-                }
+        ProvisioningPlan plan = new ProvisioningPlan();
+        // Set identity to the plan
+        plan.setIdentity(identity);
 
-               
+        List acctReqs = new ArrayList();
 
-                plan.setAccountRequests(acctReqs);
+        if(ldapLink == null){
+        AccountRequest ldapAcctReq = new AccountRequest();
+        ldapAcctReq.setOperation(AccountRequest.Operation.Create);
+        ldapAcctReq.setApplication("OpenLDAP");
+        acctReqs.add(ldapAcctReq);
+        log.error("No OpenLDAP link found for identity: " + identity.getName() + ". Creating new account request.");
+        }
 
-                workflow.put("plan", plan);
 
-                return plan;
+        plan.setAccountRequests(acctReqs);
+
+        workflow.put("plan", plan);
+        log.error("Provisioning plan created for identity: " + identity.getName());
+
+        return plan;
             </Source>
     </Script>
     <Transition to="Initialize"/>

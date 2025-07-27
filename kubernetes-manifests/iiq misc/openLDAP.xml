@@ -80,61 +80,52 @@
   </Owner>
   <ProvisioningForms>
     <ProvisioningForms>
-    <Form name="Account" objectType="account" type="Create">
-    <Attributes>
-        <Map>
-            <entry key="pageTitle" value="Account"/>
-        </Map>
-    </Attributes>
-    <Section>
-        <Field displayName="con_prov_policy_ldap_user_DN" helpKey="help_con_prov_policy_ldap_user_DN" name="dn" required="true" type="string">
-            <Script>
-                <Source>return "cn=" + identity.getFirstname().toLowerCase() + " " + identity.getLastname().toLowerCase() + ",ou=people2,ou=people,dc=sailpoint,dc=demo";</Source>
-            </Script>
-        </Field>
-        <Field displayName="con_prov_policy_ldap_password" helpKey="help_con_prov_policy_ldap_password" name="userPassword" required="true" type="secret" value="12345"/>
-        <Field displayName="con_prov_policy_ldap_first_name" helpKey="help_con_prov_policy_ldap_first_name" name="givenName" required="true" type="string">
-            <Script>
-                <Source>return identity.getFirstname();</Source>
-            </Script>
-        </Field>
-        <Field displayName="con_prov_policy_ldap_last_name" helpKey="help_con_prov_policy_ldap_last_name" name="sn" required="true" type="string">
-            <Script>
-                <Source>return identity.getLastname();</Source>
-            </Script>
-        </Field>
-        <Field displayName="Common Name" name="cn" required="true" type="string">
-            <Script>
-                <Source>return identity.getFirstname() + " " + identity.getLastname();</Source>
-            </Script>
-        </Field>
-        <Field displayName="User ID" name="uid" required="true" type="string">
-            <Script>
-                <Source>return identity.getFirstname().toLowerCase() + identity.getLastname().toLowerCase();</Source>
-            </Script>
-        </Field>
-        <Field displayName="UID Number" name="uidNumber" required="true" type="string">
-            <Script>
-                <Source>return identity.getAttribute("Employee ID");</Source>
-            </Script>
-        </Field>
-        <Field displayName="GID Number" name="gidNumber" required="true" type="string">
-            <Script>
-                <Source>return "500";</Source>
-            </Script>
-        </Field>
-        <Field displayName="Home directory" name="homeDirectory" required="true" type="string">
-            <Script>
-                <Source>return "/home/users/" + identity.getFirstname().toLowerCase() + identity.getLastname().toLowerCase();</Source>
-            </Script>
-        </Field>
-        <Field displayName="Object Class" name="objectClass" required="true" type="string">
-            <Script>
-                <Source>return "inetOrgPerson posixAccount";</Source>
-            </Script>
-        </Field>
-    </Section>
-</Form>
+            <Form name="Account" objectType="account" type="Create">
+                <Attributes>
+                    <Map>
+                        <entry key="pageTitle" value="Account" />
+                    </Map>
+                </Attributes>
+                <Section>
+                    <Field displayName="con_prov_policy_ldap_user_DN"
+                        helpKey="help_con_prov_policy_ldap_user_DN" name="dn" required="true"
+                        type="string">
+                        <Script>
+                            <Source>return "cn=" + identity.getFirstname().toLowerCase() + " " +
+                                identity.getLastname().toLowerCase() +
+                                ",ou=people2,ou=people,dc=sailpoint,dc=demo";</Source>
+                        </Script>
+                    </Field>
+                    <Field displayName="con_prov_policy_ldap_password"
+                        helpKey="help_con_prov_policy_ldap_password" name="userPassword"
+                        required="true" type="secret" value="12345" />
+                    <Field displayName="con_prov_policy_ldap_first_name"
+                        helpKey="help_con_prov_policy_ldap_first_name" name="givenName"
+                        required="true" type="string">
+                        <Script>
+                            <Source>return identity.getFirstname();</Source>
+                        </Script>
+                    </Field>
+                    <Field displayName="con_prov_policy_ldap_last_name"
+                        helpKey="help_con_prov_policy_ldap_last_name" name="sn" required="true"
+                        type="string">
+                        <Script>
+                            <Source>return identity.getLastname();</Source>
+                        </Script>
+                    </Field>
+                    <Field displayName="Common Name" name="cn" required="true" type="string">
+                        <Script>
+                            <Source>return identity.getFirstname() + " " + identity.getLastname();</Source>
+                        </Script>
+                    </Field>
+                    <Field displayName="Object Class" name="objectClass" required="true"
+                        type="string">
+                        <Script>
+                            <Source>return "inetOrgPerson";</Source>
+                        </Script>
+                    </Field>
+                </Section>
+            </Form>
     <Form name="group create" objectType="group" type="Create">
       <Attributes>
         <Map>
