@@ -186,16 +186,13 @@
         ldapAcctReq.setOperation(AccountRequest.Operation.Create);
         ldapAcctReq.setApplication("OpenLDAP");
         acctReqs.add(ldapAcctReq);
-        log.error("No OpenLDAP link found for identity: " + identity.getName() + ". Creating new
-        account request.");
+        
         }
         if(jdbcLink == null){
         AccountRequest jdbcAcctReq = new AccountRequest();
         jdbcAcctReq.setOperation(AccountRequest.Operation.Create);
         jdbcAcctReq.setApplication("TimeTracking");
         acctReqs.add(jdbcAcctReq);
-        log.error("No TimeTracking link found for identity: " + identity.getName() + ". Creating new
-        account request.");
         }
 
 
