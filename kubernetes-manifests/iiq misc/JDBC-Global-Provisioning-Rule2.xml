@@ -1,0 +1,244 @@
+<?xml version=”1.0″ encoding=”UTF-8″?>
+<!DOCTYPE Rule PUBLIC “sailpoint.dtd” “sailpoint.dtd”>
+<Rule language=”beanshell” name=”YNT – Finance – JDBCProvision – Rule” type=”JDBCProvision”>
+<Description>This rule is used by the JDBC connector to do provisioning of the data .</Description>
+<Signature returnType=”ProvisioningResult”>
+<Inputs>
+<Argument name=”log”>
+<Description>
+The log object associated with the SailPointContext.
+</Description>
+</Argument>
+<Argument name=”context”>
+<Description>
+A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+</Description>
+</Argument>
+<Argument name=”application”>
+<Description>
+The application whose data file is being processed.
+</Description>
+</Argument>
+<Argument name=”schema”>
+<Description>
+The Schema currently in use.
+</Description>
+</Argument>
+<Argument name=”connection”>
+<Description>
+A connection object to connect to database.
+</Description>
+</Argument>
+<Argument name=”plan”>
+<Description>
+The ProvisioningPlan created against the JDBC application.
+</Description>
+</Argument>
+</Inputs>
+<Returns>
+<Argument name=”result”>
+<Description>
+A Provisioning Result object is desirable to return the status.IT can be a new object or part of Provisioning Plan
+</Description>
+</Argument>
+</Returns>
+</Signature>
+<Source><![CDATA[import org.apache.log4j.Logger;
+import java.util.List;
+import sailpoint.object.ProvisioningPlan;
+import sailpoint.object.ProvisioningPlan.AccountRequest;
+import sailpoint.object.ProvisioningPlan.AttributeRequest;
+import sailpoint.object.Identity;
+import java.sql.PreparedStatement;
+import sailpoint.api.IdentityService;
+import sailpoint.object.Application;
+
+Privacy Settings
+Logger logger = Logger.getLogger(“YNT.Logger.YNT – Finance – JDBCProvision – Rule”);
+String ruleName=”YNT – Finance – JDBCProvision – Rule”;
+logger.info(“Entering rule : “+ruleName);
+// the ideal way to name a logger is -> project.objectType.descriptive identifier
+//logger.error(“Error Level Run Rule”);
+//logger.warn(“Warn Level Run Rule”);
+//logger.debug(“Debug Level Run Rule”);
+//logger.trace(“Trace Run Rule”);
+logger.debug(“Plan : “+plan.toXml());
+if(plan!=null)
+{
+String nativeIdentity=plan.getNativeIdentity();
+Identity idn=context.getObjectByName(Identity.class,nativeIdentity);
+// String identityNumber=idn.getAttribute(empId);
+// String identityName=nativeIdentity;
+//String identityEmail=idn.getAttribute(empId);
+//String identityLocation=idn.getAttribute(location);
+//String identityStatus=idn.getAttribute(“Active”);
+String identityAccessLevel=null;
+String identityNumber=nativeIdentity+”-Id”;
+String identityName=nativeIdentity;
+String identityEmail=nativeIdentity+”@ynt.com”;
+String identityLocation=”UK”;
+String identityStatus=”Active”;
+String identityAccessLevel=null;
+List accountRequests=plan.getAccountRequests();
+if(accountRequests!=null)
+{
+for(ProvisioningPlan.AccountRequest accReq:accountRequests)
+{
+logger.debug(“accReq.getOperation() : “+accReq.getOperation());
+logger.debug(“accReq.getOp() : “+accReq.getOp());
+List attributeRequests=accReq.getAttributeRequests();
+if(accReq.getOperation().equals(ProvisioningPlan.AccountRequest.Operation.Create)) //Alternate way if(accReq.getOp().equals(ProvisioningPlan.ObjectOperation.Create))
+{
+accReq.setNativeIdentity(identityNumber);
+logger.debug(“accReq.getAttributeRequests() : “+attributeRequests);
+PreparedStatement createAccount = connection.prepareStatement(“INSERT INTO Account_Info (IdNumber, Name, Email,Location, Status)VALUES (?,?,?,?,?)”);
+createAccount.setString(1,identityNumber);
+createAccount.setString(2,identityName);
+createAccount.setString(3,identityEmail);
+createAccount.setString(4,identityLocation);
+createAccount.setString(5,identityStatus);
+// createAccount.setString(1,identityAccessLevel);
+createAccount.executeUpdate();
+logger.debug(“Account Created Successfully”);
+if(attributeRequests!=null)
+{
+// Create Account and provision entitlements
+for(ProvisioningPlan.AttributeRequest attrReq:attributeRequests)
+{
+if(attrReq.getValue() instanceof List)
+{
+logger.debug(“Entering Role Provisioning Scenario – Multiple Entitlements”);
+List atRs=attrReq.getValue();
+for(String atR:atRs)
+{
+logger.debug(“atr : “+atR);
+identityAccessLevel=atR;
+PreparedStatement addEntitlements = connection.prepareStatement(“INSERT INTO Entitlement_Info (IdNumber, AccessLevel)VALUES (?,?)”);
+addEntitlements.setString(1,identityNumber);
+addEntitlements.setString(2,identityAccessLevel);
+addEntitlements.executeUpdate();
+logger.debug(“Role Provisioned Successfully”);
+}
+}
+else if(attrReq.getValue() instanceof String)
+{
+identityAccessLevel=attrReq.getValue();
+logger.debug(“Role – Single Entitlement / Only Entitlement Provisioning Scenario”);
+PreparedStatement addEntitlements = connection.prepareStatement(“INSERT INTO Entitlement_Info (IdNumber, AccessLevel)VALUES (?,?)”);
+addEntitlements.setString(1,identityNumber);
+addEntitlements.setString(2,identityAccessLevel);
+addEntitlements.executeUpdate();
+logger.debug(“Role – Single Entitlement / Only Entitlement Provisioning Scenario”);
+}
+}
+}
+
+Privacy Settings
+}
+/////////////////////REMOVE ROLES AND ENTITLEMENTS
+if(accReq.getOperation().equals(ProvisioningPlan.AccountRequest.Operation.Modify)) //Alternate way if(accReq.getOp().equals(ProvisioningPlan.ObjectOperation.Create))
+{
+String targetApplication=accReq.getApplication();
+Application appObj=context.getObjectByName(Application.class,targetApplication);
+IdentityService idSvc = new IdentityService(context);
+List links = idSvc.getLinks(idn,appObj);
+String idNumber=links.get(0).getAttribute(“IdNumber”);
+logger.debug(“Executing Remove Entitlements Operation for idNumber : “+idNumber);
+if(attributeRequests!=null)
+{
+
+// Remove Accounts
+for(ProvisioningPlan.AttributeRequest attrReq:attributeRequests)
+{
+logger.debug(“attrReq.getOperation() : “+attrReq.getOperation());
+if(attrReq.getOperation().equals(ProvisioningPlan.Operation.Remove))
+{
+if(attrReq.getValue() instanceof List)
+{
+PreparedStatement deleteEntitlements = connection.prepareStatement(“DELETE FROM Entitlement_Info WHERE IdNumber =(?)”);
+deleteEntitlements.setString(1,idNumber);
+deleteEntitlements.executeUpdate();
+logger.debug(“Deletion performed successfully”);
+}
+else if(attrReq.getValue() instanceof String)
+{
+
+Privacy Settings
+PreparedStatement deleteEntitlements = connection.prepareStatement(“DELETE FROM Entitlement_Info WHERE IdNumber =(?)”);
+deleteEntitlements.setString(1,idNumber);
+deleteEntitlements.executeUpdate();
+logger.debug(“Deletion performed successfully 2”);
+}
+}
+// Adding Entitlements again after a complete removal is performed
+if(attrReq.getOperation().equals(ProvisioningPlan.Operation.Add))
+{
+if(attrReq.getValue() instanceof List)
+{
+logger.debug(“Entering Role Provisioning Scenario – Multiple Entitlements”);
+List atRs=attrReq.getValue();
+for(String atR:atRs)
+{
+logger.debug(“atr : “+atR);
+identityAccessLevel=atR;
+PreparedStatement addEntitlements = connection.prepareStatement(“INSERT INTO Entitlement_Info (IdNumber, AccessLevel)VALUES (?,?)”);
+addEntitlements.setString(1,identityNumber);
+addEntitlements.setString(2,identityAccessLevel);
+addEntitlements.executeUpdate();
+logger.debug(“Entitlement Provisioning when the account does not have Entitlements”);
+}
+}
+else if(attrReq.getValue() instanceof String)
+{
+identityAccessLevel=attrReq.getValue();
+logger.debug(“Role – Single Entitlement / Only Entitlement Provisioning Scenario”);
+PreparedStatement addEntitlements = connection.prepareStatement(“INSERT INTO Entitlement_Info (IdNumber, AccessLevel)VALUES (?,?)”);
+addEntitlements.setString(1,identityNumber);
+addEntitlements.setString(2,identityAccessLevel);
+addEntitlements.executeUpdate();
+logger.debug(“Entitlement Provisioning when the account does not have Entitlements”);
+}
+}
+}
+
+Privacy Settings
+}
+
+}
+/////////DISABLE ACCOUNT
+if(accReq.getOperation().equals(ProvisioningPlan.AccountRequest.Operation.Disable)) //Alternate way if(accReq.getOp().equals(ProvisioningPlan.ObjectOperation.Create))
+{
+PreparedStatement disableAccounts = connection.prepareStatement(“UPDATE Account_Info SET Status=? WHERE IdNumber = ?”);
+disableAccounts.setString(1,”Inactive”);
+disableAccounts.setString(2,identityNumber);
+disableAccounts.executeUpdate();
+logger.debug(“Account Disabled Successfully”);
+}
+////////////ENABLE ACCOUNT
+if(accReq.getOperation().equals(ProvisioningPlan.AccountRequest.Operation.Enable)) //Alternate way if(accReq.getOp().equals(ProvisioningPlan.ObjectOperation.Create))
+{
+PreparedStatement enableAccounts = connection.prepareStatement(“UPDATE Account_Info SET Status=? WHERE IdNumber = ?”);
+enableAccounts.setString(1,”Active”);
+enableAccounts.setString(2,identityNumber);
+enableAccounts.executeUpdate();
+logger.debug(“Account Enabled Successfully”);
+}
+
+Privacy Settings
+if(accReq.getOperation().equals(ProvisioningPlan.AccountRequest.Operation.Delete)) //Alternate way if(accReq.getOp().equals(ProvisioningPlan.ObjectOperation.Delete))
+{
+PreparedStatement deleteEntitlements = connection.prepareStatement(“delete from Entitlement_info where IdNumber=?”);
+deleteEntitlements.setString(1,identityNumber);
+deleteEntitlements.executeUpdate();
+logger.debug(“Entitlement Deleted Successfuly”);
+
+PreparedStatement deleteAccounts = connection.prepareStatement(“delete from Account_info where IdNumber=?”);
+deleteAccounts.setString(1,identityNumber);
+deleteAccounts.executeUpdate();
+logger.debug(“Delete Account Successfuly”);
+}
+}
+}
+}
+logger.info(“Exiting rule : “+ruleName);]]></Source>
+</Rule>

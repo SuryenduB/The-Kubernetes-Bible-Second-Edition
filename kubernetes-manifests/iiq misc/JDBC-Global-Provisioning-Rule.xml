@@ -1,105 +1,151 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Rule language="beanshell" name="JDBC Global Provisioning Rule" type="JDBCOperationProvisioning">
+<Rule created="1753635905133" id="0a2a0319984c113881984cd85e6c0070" language="beanshell" name="JDBC Global Provisioning Rule" type="JDBCProvision">
   <Description>This rule is used by the JDBC connector to do provisioning of the data .</Description>
-  <Signature returnType="ProvisioningResult"/>
-  <Source>
-	import sailpoint.object.Identity;
-import java.sql.PreparedStatement;
-import java.util.Date;
-import sailpoint.object.ProvisioningPlan;
-import sailpoint.object.ProvisioningPlan.AccountRequest;
-import sailpoint.object.ProvisioningPlan.AttributeRequest;
-import sailpoint.object.ProvisioningPlan.Operation;
-import sailpoint.object.ProvisioningPlan.AccountRequest.Operation;
-import sailpoint.object.ProvisioningProject;
-import sailpoint.object.ProvisioningResult;
+  <Signature returnType="ProvisioningResult">
+    <Inputs>
+      <Argument name="log" type="org.apache.commons.logging.Log">
+        <Description>
+          The log object associated with the SailPointContext.
+        </Description>
+      </Argument>
+      <Argument name="context" type="sailpoint.api.SailPointContext">
+        <Description>
+          A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+        </Description>
+      </Argument>
+      <Argument name="application">
+        <Description>
+                The application whose data file is being processed.
+                </Description>
+      </Argument>
+      <Argument name="schema">
+        <Description>
+                The Schema currently in use.
+                </Description>
+      </Argument>
+      <Argument name="connection">
+        <Description>
+                A connection object to connect to database.
+                </Description>
+      </Argument>
+      <Argument name="plan">
+        <Description>
+                The ProvisioningPlan created against the JDBC application.
+                </Description>
+      </Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="result">
+        <Description>
+                A Provisioning Result object is desirable to return the status.IT can be a new object or part of  Provisioning Plan
+                </Description>
+      </Argument>
+    </Returns>
+  </Signature>
+  <Source>import sailpoint.object.Identity;
+        import java.sql.PreparedStatement;
+        import java.util.Date;
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningPlan.AccountRequest;
+        import sailpoint.object.ProvisioningPlan.AttributeRequest;
+        import sailpoint.object.ProvisioningPlan.Operation;
+        import sailpoint.object.ProvisioningPlan.AccountRequest.Operation;
+        import sailpoint.object.ProvisioningProject;
+        import sailpoint.object.ProvisioningResult;
 
-ProvisioningResult result = new ProvisioningResult();
-Identity identity = plan.getIdentity();
-List<AccountRequest> accountRequests = plan.getAccountRequests();
+        ProvisioningResult result = new ProvisioningResult();
+        Identity identity = plan.getIdentity();
+        List&lt;AccountRequest> accountRequests = plan.getAccountRequests();
 
-if (accountRequests != null && accountRequests.size() > 0) {
-    for (AccountRequest accountRequest : accountRequests) {
-        
+        if (accountRequests != null &amp;&amp; accountRequests.size() > 0) {
+        for (AccountRequest accountRequest : accountRequests) {
+
         // Create operation
-        if (ProvisioningPlan.AccountRequest.Operation.Create.equals(accountRequest.getOperation())) {
-            String sql = "INSERT INTO Employee (EmployeeID, FirstName, LastName, Email) "
-                       + "VALUES (?, ?, ?, ?)";
+        if (ProvisioningPlan.AccountRequest.Operation.Create.equals(accountRequest.getOperation()))
+        {
+        String sql = "INSERT INTO Employee (EmployeeID, FirstName, LastName, Email) "
+        + "VALUES (?, ?, ?, ?)";
 
-            String employeeID = identity.getAttribute("Employee ID");
-            String firstName = identity.getFirstname();
-            String lastName = identity.getLastname();
-            String email = identity.getEmail();
+        String employeeID = identity.getAttribute("Employee ID");
+        String firstName = identity.getFirstname();
+        String lastName = identity.getLastname();
+        String email = identity.getEmail();
 
 
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, employeeID);
-            ps.setString(2, firstName);
-            ps.setString(3, lastName);
-            ps.setString(4, email);
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, employeeID);
+        ps.setString(2, firstName);
+        ps.setString(3, lastName);
+        ps.setString(4, email);
 
-            int updateStatus = 0;
-            try {
-                updateStatus = ps.executeUpdate();
-            } catch (SQLException e) {
-                // If the user account exists in the target system and the account does not exist in IIQ, update existing account.
-                log.debug(".........Error...." + e);
-                result.setStatus(ProvisioningResult.STATUS_FAILED);
-            }
+        int updateStatus = 0;
+        try {
+        updateStatus = ps.executeUpdate();
+        } catch (SQLException e) {
+        // If the user account exists in the target system and the account does not exist in IIQ,
+        update existing account.
+        log.debug(".........Error...." + e);
+        result.setStatus(ProvisioningResult.STATUS_FAILED);
+        }
 
-            log.debug(".........request...." + updateStatus);
-            if (updateStatus > 0) {
-                result.setStatus(ProvisioningResult.STATUS_COMMITTED);
-                plan.setResult(result);
-            }
+        log.debug(".........request...." + updateStatus);
+        if (updateStatus > 0) {
+        result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+        plan.setResult(result);
+        }
         }
 
         // Modify operation (currently empty)
-        if (ProvisioningPlan.AccountRequest.Operation.Modify.equals(accountRequest.getOperation())) {
-            // TODO: Implement Modify logic
-            log.error("Modify operation to Update Permission Attribute.");
-            if(attrReq.getValue() instanceof String) {
-                String newValue = (String) attrReq.getValue();
-                String employeeID = identity.getAttribute("Employee ID");
-                String sql = "UPDATE Employee SET Permission = ? WHERE EmployeeID = ?";
-                PreparedStatement ps = connection.prepareStatement(sql);
-                ps.setString(1, newValue);
-                ps.setString(2, employeeID);
-                int updateStatus = ps.executeUpdate();
-                if (updateStatus > 0) {
-                    result.setStatus(ProvisioningResult.STATUS_COMMITTED);
-                    plan.setResult(result);
-                }
-            }
+        if (ProvisioningPlan.AccountRequest.Operation.Modify.equals(accountRequest.getOperation()))
+        {
+        // TODO: Implement Modify logic
+        log.error("Modify operation to Update Permission Attribute.");
+        List attributeRequests=accountRequest.getAttributeRequests();
+        AttributeRequest attrReq = (AttributeRequest) attributeRequests.get(0);
+        if(attrReq.getValue() instanceof String) {
+        String newValue = (String) attrReq.getValue();
+        log.error("Updating Permission Attribute to: " + newValue);
+        String employeeID = identity.getAttribute("Employee ID");
+        log.error("Employee ID: " + employeeID);
+        String sql = "UPDATE Employee SET Permissions = ? WHERE EmployeeID = ?";
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, newValue);
+        ps.setString(2, employeeID);
+        log.error("Executing SQL: " + ps.toString());
+        int updateStatus = ps.executeUpdate();
+        if (updateStatus > 0) {
+        result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+        plan.setResult(result);
+        }
 
+
+        }
         }
 
         // Delete operation
-        if (ProvisioningPlan.AccountRequest.Operation.Delete.equals(accountRequest.getOperation())) {
-            String sql = "DELETE FROM Employee WHERE EmployeeID = ?";
-            String employeeID = identity.getAttribute("Employee ID");
+        if (ProvisioningPlan.AccountRequest.Operation.Delete.equals(accountRequest.getOperation()))
+        {
+        String sql = "DELETE FROM Employee WHERE EmployeeID = ?";
+        String employeeID = identity.getAttribute("Employee ID");
 
-            PreparedStatement ps = connection.prepareStatement(sql);
-            ps.setString(1, employeeID);
+        PreparedStatement ps = connection.prepareStatement(sql);
+        ps.setString(1, employeeID);
 
-            int updateStatus = 0;
-            try {
-                updateStatus = ps.executeUpdate();
-            } catch (SQLException e) {
-                log.debug(".........Error...." + e);
-                result.setStatus(ProvisioningResult.STATUS_FAILED);
-            }
-
-            log.debug(".........request...." + updateStatus);
-            if (updateStatus > 0) {
-                result.setStatus(ProvisioningResult.STATUS_COMMITTED);
-                plan.setResult(result);
-            }
+        int updateStatus = 0;
+        try {
+        updateStatus = ps.executeUpdate();
+        } catch (SQLException e) {
+        log.debug(".........Error...." + e);
+        result.setStatus(ProvisioningResult.STATUS_FAILED);
         }
-    }
-}
 
-	
-</Source>
+        log.debug(".........request...." + updateStatus);
+        if (updateStatus > 0) {
+        result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+        plan.setResult(result);
+        }
+        }
+        }
+        }</Source>
 </Rule>
