@@ -156,9 +156,10 @@
 
         log.error("New user was entered the system: " + event.getObject().getDisplayableName());
         Identity identity = context.getObjectByName(Identity.class, identityName);
-
+toLowerCase
         List links = identity.getLinks();
         Link ldapLink = null;
+        Link jdbcLink = null;
 
 
         for(Iterator iterator = links.iterator(); iterator.hasNext();){
@@ -186,6 +187,7 @@
         ldapAcctReq.setOperation(AccountRequest.Operation.Create);
         ldapAcctReq.setApplication("OpenLDAP");
         acctReqs.add(ldapAcctReq);
+        log.error("OpenLDAP link not found for identity: " + identity.getName() + ". Creating new account request.");
         
         }
         if(jdbcLink == null){
@@ -193,6 +195,7 @@
         jdbcAcctReq.setOperation(AccountRequest.Operation.Create);
         jdbcAcctReq.setApplication("TimeTracking");
         acctReqs.add(jdbcAcctReq);
+        log.error("TimeTracking link not found for identity: " + identity.getName() + ". Creating new account request.");
         }
 
 

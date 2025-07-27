@@ -135,7 +135,7 @@
         <Field displayName="EmployeeID" helpKey="EmployeeID" name="EmployeeID" required="true"
           type="string">
           <Script>
-            <Source>return identity.getAttribute("EmployeeID").toLowerCase();
+            <Source>return identity.getAttribute("Employee ID").toLowerCase();
             </Source>
           </Script>
         </Field>

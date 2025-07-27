@@ -58,6 +58,21 @@ if (accountRequests != null && accountRequests.size() > 0) {
         // Modify operation (currently empty)
         if (ProvisioningPlan.AccountRequest.Operation.Modify.equals(accountRequest.getOperation())) {
             // TODO: Implement Modify logic
+            log.error("Modify operation to Update Permission Attribute.");
+            if(attrReq.getValue() instanceof String) {
+                String newValue = (String) attrReq.getValue();
+                String employeeID = identity.getAttribute("Employee ID");
+                String sql = "UPDATE Employee SET Permission = ? WHERE EmployeeID = ?";
+                PreparedStatement ps = connection.prepareStatement(sql);
+                ps.setString(1, newValue);
+                ps.setString(2, employeeID);
+                int updateStatus = ps.executeUpdate();
+                if (updateStatus > 0) {
+                    result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+                    plan.setResult(result);
+                }
+            }
+
         }
 
         // Delete operation
