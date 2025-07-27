@@ -24,32 +24,20 @@ if (accountRequests != null && accountRequests.size() > 0) {
         
         // Create operation
         if (ProvisioningPlan.AccountRequest.Operation.Create.equals(accountRequest.getOperation())) {
-            String sql = "INSERT INTO Employee (EmployeeID, FirstName, LastName, Email, Email, HireDate, JobTitle) "
-                       + "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            String sql = "INSERT INTO Employee (EmployeeID, FirstName, LastName, Email) "
+                       + "VALUES (?, ?, ?, ?)";
 
             String employeeID = identity.getAttribute("Employee ID");
             String firstName = identity.getFirstname();
             String lastName = identity.getLastname();
             String email = identity.getEmail();
 
-            String fullName = "";
-            if (identity.getAttribute("displayName") != null) {
-                fullName = identity.getAttribute("displayName").toString();
-            }
-
-            String jobTitle = "";
-            if (identity.getAttribute("Job Title") != null) {
-                jobTitle = identity.getAttribute("Job Title").toString();
-            }
 
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setString(1, employeeID);
             ps.setString(2, firstName);
             ps.setString(3, lastName);
             ps.setString(4, email);
-            ps.setString(5, fullName);
-            ps.setString(6, hireDate);
-            ps.setString(7, jobTitle);
 
             int updateStatus = 0;
             try {

@@ -127,10 +127,40 @@
   <ProvisioningForms>
     <Form name="Account" objectType="account" type="Create">
       <Attributes>
-        <Map>
-          <entry key="pageTitle" value="Account"/>
-        </Map>
+      <Map>
+        <entry key="pageTitle" value="Account" />
+      </Map>
       </Attributes>
+      <Section>
+        <Field displayName="EmployeeID" helpKey="EmployeeID" name="EmployeeID" required="true"
+          type="string">
+          <Script>
+            <Source>return identity.getAttribute("EmployeeID").toLowerCase();
+            </Source>
+          </Script>
+        </Field>
+        <Field displayName="FirstName" helpKey="FirstName" name="FirstName" required="true"
+          type="string">
+          <Script>
+            <Source>return identity.getFirstname().toLowerCase();
+            </Source>
+          </Script>
+        </Field>
+        <Field displayName="LastName" helpKey="LastName" name="LastName" required="true"
+          type="string">
+          <Script>
+            <Source>return identity.getLastname().toLowerCase();
+            </Source>
+          </Script>
+        </Field>
+        <Field displayName="Email" helpKey="Email" name="Email" required="true"
+          type="string">
+          <Script>
+            <Source>return identity.getEmail().toLowerCase();
+            </Source>
+          </Script>
+        </Field>
+      </Section>
     </Form>
   </ProvisioningForms>
   <Schemas>

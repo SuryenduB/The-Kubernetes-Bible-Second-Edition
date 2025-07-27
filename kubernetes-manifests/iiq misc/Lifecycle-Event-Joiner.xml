@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Workflow created="1747599855297" explicitTransitions="true" id="0a2a037496e5113d8196e5118ec0003a" libraries="Identity" modified="1753127893211" name="Lifecycle Event - Joiner" significantModified="1753127893211" type="IdentityLifecycle">
+<Workflow created="1747599855297" explicitTransitions="true" id="0a2a037496e5113d8196e5118ec0003a" libraries="Identity" modified="1753636085055" name="Lifecycle Event - Joiner" significantModified="1753636085055" type="IdentityLifecycle">
   <Variable input="true" name="trigger">
     <Description>The IdentityTrigger</Description>
   </Variable>
@@ -167,11 +167,9 @@
         ldapLink = link;
         }
         if(link.getApplicationName().equalsIgnoreCase("TimeTracking")){
-				jdbcLink = link;
+        jdbcLink = link;
         log.error("TimeTracking link found for identity: " + identity.getName());
         }
-        
-			
 
 
         }
@@ -188,26 +186,29 @@
         ldapAcctReq.setOperation(AccountRequest.Operation.Create);
         ldapAcctReq.setApplication("OpenLDAP");
         acctReqs.add(ldapAcctReq);
-        log.error("No OpenLDAP link found for identity: " + identity.getName() + ". Creating new account request.");
+        log.error("No OpenLDAP link found for identity: " + identity.getName() + ". Creating new
+        account request.");
         }
         if(jdbcLink == null){
         AccountRequest jdbcAcctReq = new AccountRequest();
         jdbcAcctReq.setOperation(AccountRequest.Operation.Create);
         jdbcAcctReq.setApplication("TimeTracking");
         acctReqs.add(jdbcAcctReq);
-        log.error("No TimeTracking link found for identity: " + identity.getName() + ". Creating new account request.");
+        log.error("No TimeTracking link found for identity: " + identity.getName() + ". Creating new
+        account request.");
         }
 
 
         plan.setAccountRequests(acctReqs);
 
         workflow.put("plan", plan);
-        
+
         log.error("Provisioning plan created for identity: " + identity.getName());
         log.error("Provisioning plan contains " + plan.toXml());
 
         return plan;
-            </Source>
+        
+      </Source>
     </Script>
     <Transition to="Initialize"/>
   </Step>
