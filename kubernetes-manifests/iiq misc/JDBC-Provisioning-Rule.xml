@@ -4,11 +4,6 @@
   <Description>This rule is used by the JDBC connector to do provisioning of the data .</Description>
   <Signature returnType="ProvisioningResult">
     <Inputs>
-      <Argument name="log" type="org.apache.commons.logging.Log">
-        <Description>
-          The log object associated with the SailPointContext.
-        </Description>
-      </Argument>
       <Argument name="context" type="sailpoint.api.SailPointContext">
         <Description>
           A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
@@ -36,13 +31,16 @@
       </Argument>
     </Returns>
   </Signature>
-  <Source>import sailpoint.object.ProvisioningResult;
+  <Source>
+import sailpoint.object.ProvisioningResult;
 import sailpoint.object.ProvisioningPlan;
 import sailpoint.object.Identity;
 import sailpoint.object.ProvisioningPlan.AccountRequest;
 import sailpoint.object.ProvisioningPlan.AttributeRequest;
 import sailpoint.tools.GeneralException;
 import sailpoint.tools.Util;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -50,6 +48,8 @@ import java.sql.Types;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+Logger log = LogManager.getLogger("rule.JDBCProvisioning");
 
 boolean addIndexedParameter(PreparedStatement stmt, AccountRequest accountRequest, String parameterName, int index) throws Exception {
     AttributeRequest attributeRequest = accountRequest.getAttributeRequest(parameterName);
@@ -64,6 +64,7 @@ boolean addIndexedParameter(PreparedStatement stmt, AccountRequest accountReques
 }
 
 try {
+    log.debug("Starting JDBC Provisioning Rule");
     AccountRequest accountRequest = request;
     String username = plan.getNativeIdentity();
     if (Util.isNullOrEmpty(username)) {
@@ -85,6 +86,7 @@ try {
         try {
             if (results.next()) {
                 needsCreate = false;
+                log.debug("User " + username + " already exists.");
             }
         } finally {
             results.close();
@@ -94,6 +96,7 @@ try {
     }
 
     if (needsCreate) {
+        log.debug("User " + username + " does not exist. Creating...");
         PreparedStatement createStatement = connection.prepareStatement(CREATE_SQL);
         try {
             createStatement.setString(1, username);
@@ -105,6 +108,7 @@ try {
             addIndexedParameter(createStatement, accountRequest, "manager_username", 7);
             addIndexedParameter(createStatement, accountRequest, "enabled", 8);
             createStatement.executeUpdate();
+            log.debug("User " + username + " created.");
         } finally {
             createStatement.close();
         }
@@ -125,6 +129,7 @@ try {
     } finally {
         existingRolesStmt.close();
     }
+    log.debug("Existing roles for " + username + ": " + existingRoles);
 
     PreparedStatement insertRole = connection.prepareStatement(INSERT_ROLE_SQL);
     try {
@@ -133,6 +138,7 @@ try {
                 List&lt;String> values = Util.otol(attributeRequest.getValue());
                 for (String value : Util.safeIterable(values)) {
                     if (!existingRoles.contains(value)) {
+                        log.debug("Adding role " + value + " to user " + username);
                         insertRole.setString(1, value);
                         insertRole.setString(2, username);
                         insertRole.executeUpdate();
@@ -146,6 +152,7 @@ try {
     }
 
     result.setStatus(ProvisioningResult.STATUS_COMMITTED);
+    log.debug("JDBC Provisioning Rule finished successfully.");
     return result;
 } catch (Exception e) {
     log.error("Caught an exception provisioning an account", e);
