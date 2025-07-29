@@ -1,0 +1,160 @@
+To enable custom logging for the provided SailPoint IdentityIQ (IIQ) workflow, specifically for the `WorkflowCase Cleanup Workflow`, you need to modify the `log4j2.properties` file to include a custom logger and appender for the logger name used in the workflow: `workflow.DeleteOldWorkflowCases`. This logger is referenced in the workflow’s script in the `Delete and Report` step.
+
+Below, I’ll outline the necessary changes to the default `log4j2.properties` file to support custom logging for this workflow, ensuring logs are written to a dedicated file with rolling capabilities. I’ll assume you’re starting with a typical SailPoint IIQ `log4j2.properties` file (used in IIQ 8.0+ with Log4j2) and focus on adding the custom logger and appender.
+
+### Changes to `log4j2.properties`
+
+1. **Add a Custom RollingFileAppender**:
+   - Create a new appender to write logs to a dedicated file (e.g., `workflow_cleanup.log`) with rolling based on size and time.
+   - Configure the appender to use a specific log pattern and retention policy.
+
+2. **Add a Custom Logger**:
+   - Define a logger named `workflow.DeleteOldWorkflowCases` to match the logger used in the workflow.
+   - Set the log level (e.g., `DEBUG`) and link it to the custom appender.
+   - Disable additivity to prevent logs from propagating to the root logger.
+
+3. **Preserve Default Configuration**:
+   - Ensure the changes integrate with the existing `log4j2.properties` without disrupting other loggers or appenders.
+
+#### Example Modifications to `log4j2.properties`
+
+Here’s how you can modify the default `log4j2.properties` file. The default file typically includes appenders like `Console` and `IIQRFile` (for `sailpoint.log`) and a root logger. We’ll append the new configuration at the end of the file to avoid conflicts.
+
+```properties
+# Existing default configuration (example, do not modify unless necessary)
+status = warn
+name = SailPointLog4j2Config
+
+# Console appender (example from default)
+appender.console.type = Console
+appender.console.name = Console
+appender.console.layout.type = PatternLayout
+appender.console.layout.pattern = %d{DEFAULT} %5p %t %c{4}:%L - %m%n
+
+# Default rolling file appender (example from default)
+appender.rolling.type = RollingFile
+appender.rolling.name = IIQRFile
+appender.rolling.fileName = C:/SailpointLogs/sailpoint.log
+appender.rolling.filePattern = C:/SailpointLogs/sailpoint-%d{yyyy-MM-dd}-%i.log.gz
+appender.rolling.layout.type = PatternLayout
+appender.rolling.layout.pattern = %d{DEFAULT} %5p %t %c{4}:%L - %m%n
+appender.rolling.policies.type = Policies
+appender.rolling.policies.size.type = SizeBasedTriggeringPolicy
+appender.rolling.policies.size.size = 200MB
+appender.rolling.strategy.type = DefaultRolloverStrategy
+appender.rolling.strategy.max = 15
+
+# Root logger (example from default)
+rootLogger.level = warn
+rootLogger.appenderRef.console.ref = Console
+rootLogger.appenderRef.rolling.ref = IIQRFile
+
+# New custom appender for WorkflowCase Cleanup Workflow
+appender.workflowCleanup.type = RollingFile
+appender.workflowCleanup.name = WorkflowCleanupAppender
+appender.workflowCleanup.fileName = C:/SailpointLogs/workflow_cleanup.log
+appender.workflowCleanup.filePattern = C:/SailpointLogs/workflow_cleanup-%d{yyyy-MM-dd}-%i.log.gz
+appender.workflowCleanup.layout.type = PatternLayout
+appender.workflowCleanup.layout.pattern = %d{DEFAULT} %5p %t %c{4}:%L - %m%n
+appender.workflowCleanup.policies.type = Policies
+appender.workflowCleanup.policies.size.type = SizeBasedTriggeringPolicy
+appender.workflowCleanup.policies.size.size = 10MB
+appender.workflowCleanup.strategy.type = DefaultRolloverStrategy
+appender.workflowCleanup.strategy.max = 5
+
+# New custom logger for WorkflowCase Cleanup Workflow
+logger.workflowCleanup.name = workflow.DeleteOldWorkflowCases
+logger.workflowCleanup.level = debug
+logger.workflowCleanup.additivity = false
+logger.workflowCleanup.appenderRef.rolling.ref = WorkflowCleanupAppender
+```
+
+### Explanation of Changes
+
+1. **Custom Appender (`WorkflowCleanupAppender`)**:
+   - `type = RollingFile`: Specifies a rolling file appender.
+   - `name = WorkflowCleanupAppender`: Unique name for the appender.
+   - `fileName = C:/SailpointLogs/workflow_cleanup.log`: Path to the active log file.
+   - `filePattern = C:/SailpointLogs/workflow_cleanup-%d{yyyy-MM-dd}-%i.log.gz`: Pattern for rolled-over files, including date and index with gzip compression.
+   - `layout.pattern`: Matches the default SailPoint log format for consistency (`%d{DEFAULT} %5p %t %c{4}:%L - %m%n`).
+   - `policies.size.size = 10MB`: Triggers rollover when the file reaches 10MB.
+   - `strategy.max = 5`: Retains up to 5 archived log files.
+
+2. **Custom Logger (`workflow.DeleteOldWorkflowCases`)**:
+   - `name = workflow.DeleteOldWorkflowCases`: Matches the logger name used in the workflow’s script (`Logger.getLogger("workflow.DeleteOldWorkflowCases")`).
+   - `level = debug`: Enables `DEBUG` and higher log levels (`INFO`, `WARN`, `ERROR`) as used in the workflow.
+   - `additivity = false`: Prevents logs from this logger from being sent to the root logger (avoids duplication in `sailpoint.log`).
+   - `appenderRef.rolling.ref = WorkflowCleanupAppender`: Links the logger to the custom appender.
+
+3. **Preserving Default Configuration**:
+   - The existing appenders (`Console`, `IIQRFile`) and root logger remain unchanged to ensure default logging behavior is unaffected.
+   - The new appender and logger are added at the end of the file to avoid conflicts.
+
+### Notes on the Workflow’s Logging
+- The workflow uses `org.apache.log4j.Logger` (Log4j 1.x) in the script, which is outdated for IIQ 8.0+ (uses Log4j2). You should update the script to use `org.apache.logging.log4j.Logger`. Here’s the corrected import and logger initialization in the `Delete and Report` step:
+
+   ```java
+   import org.apache.logging.log4j.Logger;
+   import org.apache.logging.log4j.Level;
+
+   Logger logger = Logger.getLogger("workflow.DeleteOldWorkflowCases");
+   ```
+
+- The workflow’s logger calls (`logger.debug`, `logger.error`) will work with Log4j2, but the `Level` import should be updated to `org.apache.logging.log4j.Level`.
+
+### Applying and Testing the Changes
+
+1. **Update `log4j2.properties`**:
+   - Add the new appender and logger sections to `WEB-INF/classes/log4j2.properties` in your IIQ installation.
+   - Ensure the file path (`C:/SailpointLogs/`) exists and is writable by the IIQ application server.
+
+2. **Update the Workflow Script**:
+   - Modify the `Delete and Report` step’s script to use Log4j2 imports:
+     ```java
+     import org.apache.logging.log4j.Logger;
+     import org.apache.logging.log4j.Level;
+     ```
+   - Replace `Logger logger = Logger.getLogger("workflow.DeleteOldWorkflowCases");` with the updated import.
+
+3. **Refresh Logging Configuration**:
+   - Use the IIQ console:
+     ```
+     > logconfig
+     ```
+     This reloads the Log4j2 configuration without restarting the server.
+   - Alternatively, use the IIQ debug pages (`/identityiq/debug`) to refresh logging.
+
+4. **Test the Workflow**:
+   - Execute the `WorkflowCase Cleanup Workflow` (e.g., via QuickLink or a scheduled task).
+   - Verify logs in `C:/SailpointLogs/workflow_cleanup.log`. Expected output:
+     ```
+     2025-07-29 23:13:45,123 DEBUG Thread-1 workflow.DeleteOldWorkflowCases:123 - WorkflowCase Cleanup Workflow Start
+     2025-07-29 23:13:45,125 DEBUG Thread-1 workflow.DeleteOldWorkflowCases:130 - WorkflowCase Cleanup Workflow simString: Simulated
+     2025-07-29 23:13:45,126 DEBUG Thread-1 workflow.DeleteOldWorkflowCases:135 - WorkflowCase Cleanup Workflow daysGapToDelete: 180
+     2025-07-29 23:13:45,127 DEBUG Thread-1 workflow.DeleteOldWorkflowCases:150 - WorkflowCase Cleanup Workflow cutOffDate: [date]
+     ...
+     ```
+
+5. **Verify Rollover**:
+   - If the log file exceeds 10MB, it will roll over to `workflow_cleanup-2025-07-29-1.log.gz`, with up to 5 archived files retained.
+
+### Troubleshooting
+- **Logs Not Appearing**:
+  - Ensure the logger name in the workflow (`workflow.DeleteOldWorkflowCases`) matches the `logger.workflowCleanup.name` in `log4j2.properties`.
+  - Verify the file path (`C:/SailpointLogs/`) is accessible and writable.
+  - Check for typos in the appender or logger configuration.
+- **Appender Errors**:
+  - If you see `Unable to locate appender "WorkflowCleanupAppender"`, ensure the appender is defined before the logger in `log4j2.properties`.
+- **Log4j2 Compatibility**:
+  - The workflow’s use of `org.apache.log4j` indicates a Log4j 1.x dependency. After updating to `org.apache.logging.log4j`, test thoroughly to ensure compatibility.
+- **Rollover Issues**:
+  - Confirm the `filePattern` includes `%d` or `%i` and the `SizeBasedTriggeringPolicy` is set correctly.
+- **Performance**:
+  - The `DEBUG` level is verbose. For production, consider setting `logger.workflowCleanup.level = info` to reduce log volume.
+
+### Additional Recommendations
+- **Secure Log Files**: Ensure `C:/SailpointLogs/` has restricted access, as logs may contain sensitive data (e.g., workflow case IDs or target names).
+- **Monitor Disk Space**: The `max=5` setting limits archived files, but monitor disk usage if the workflow runs frequently.
+- **Test in Sandbox**: Apply these changes in a non-production environment first to avoid disrupting the system.
+
+For further assistance, consult the SailPoint Compass Community or Log4j2 documentation (https://logging.apache.org/log4j/2.x/manual/configuration.html). If you need help with additional customizations or specific issues, let me know!

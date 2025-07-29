@@ -1,4 +1,42 @@
-import sailpoint.object.ProvisioningResult;
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Rule PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Rule created="1753803806033" id="0a2a032298561995819856da55500001" language="beanshell" modified="1753811112811" name="JDBC - Accounting App - Create" significantModified="1753811112811" type="JDBCOperationProvisioning">
+  <Description>This rule is used by the JDBC connector to do provisioning of the data .</Description>
+  <Signature returnType="ProvisioningResult">
+    <Inputs>
+      <Argument name="log" type="org.apache.commons.logging.Log">
+        <Description>
+          The log object associated with the SailPointContext.
+        </Description>
+      </Argument>
+      <Argument name="context" type="sailpoint.api.SailPointContext">
+        <Description>
+          A sailpoint.api.SailPointContext object that can be used to query the database if necessary.
+        </Description>
+      </Argument>
+      <Argument name="application">
+        <Description>The application whose data file is being processed.</Description>
+      </Argument>
+      <Argument name="schema">
+        <Description>The Schema currently in use.</Description>
+      </Argument>
+      <Argument name="connection">
+        <Description>A connection object to connect to database.</Description>
+      </Argument>
+      <Argument name="plan">
+        <Description>The ProvisioningPlan created against the JDBC application.</Description>
+      </Argument>
+      <Argument name="request">
+        <Description>The ProvisioningRequest created against the JDBC application.</Description>
+      </Argument>
+    </Inputs>
+    <Returns>
+      <Argument name="result">
+        <Description>A Provisioning Result object is desirable to return the status.IT can be a new object or part of  Provisioning Plan</Description>
+      </Argument>
+    </Returns>
+  </Signature>
+  <Source>import sailpoint.object.ProvisioningResult;
 import sailpoint.object.ProvisioningPlan;
 import sailpoint.object.Identity;
 import sailpoint.object.ProvisioningPlan.AccountRequest;
@@ -72,7 +110,7 @@ try {
         }
     }
 
-    Set<String> existingRoles = new HashSet<>();
+    Set existingRoles = new HashSet();
     PreparedStatement existingRolesStmt = connection.prepareStatement(EXISTING_ROLES_SQL);
     try {
         existingRolesStmt.setString(1, username);
@@ -92,7 +130,7 @@ try {
     try {
         for (AttributeRequest attributeRequest : Util.safeIterable(accountRequest.getAttributeRequests())) {
             if (attributeRequest.getName().equalsIgnoreCase("role_name")) {
-                List<String> values = Util.otol(attributeRequest.getValue());
+                List&lt;String> values = Util.otol(attributeRequest.getValue());
                 for (String value : Util.safeIterable(values)) {
                     if (!existingRoles.contains(value)) {
                         insertRole.setString(1, value);
@@ -112,4 +150,5 @@ try {
 } catch (Exception e) {
     log.error("Caught an exception provisioning an account", e);
     throw e;
-}
+}</Source>
+</Rule>
