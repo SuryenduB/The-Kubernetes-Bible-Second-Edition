@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE ManagedAttribute PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<ManagedAttribute attribute="Permissions" created="1753649172271" displayName="Approve Time Tracking" hash="127e31898bc3fd8a3f36c05f1da2bc6ac524070e" id="0a2a0319984c113881984da2cf2e02b4" requestable="true" type="Entitlement" value="Approve">
+  <ApplicationRef>
+    <Reference class="sailpoint.object.Application" id="0a2a0319984c113881984cac3f280020" name="TimeTracking"/>
+  </ApplicationRef>
+  <Attributes>
+    <Map>
+      <entry key="sysDescriptions">
+        <value>
+          <Map>
+            <entry key="en_US"/>
+          </Map>
+        </value>
+      </entry>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
+  </Owner>
+</ManagedAttribute>

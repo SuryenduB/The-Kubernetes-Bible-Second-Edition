@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Bundle PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Bundle created="1753648753626" displayName="Accountant Role" id="0a2a0319984c113881984d9c6bd902a2" modified="1753649497598" name="Accountant Role" significantModified="1753649497598" type="business">
+  <Attributes>
+    <Map>
+      <entry key="accountSelectorRules"/>
+      <entry key="allowDuplicateAccounts" value="false"/>
+      <entry key="allowMultipleAssignments" value="false"/>
+      <entry key="mergeTemplates" value="false"/>
+      <entry key="sysDescriptions">
+        <value>
+          <Map>
+            <entry key="en_US"/>
+          </Map>
+        </value>
+      </entry>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
+  </Owner>
+  <Requirements>
+    <Reference class="sailpoint.object.Bundle" id="0a2a0319984c113881984da7312802c1" name="Approve Time"/>
+  </Requirements>
+  <Selector>
+    <IdentitySelector>
+      <MatchExpression>
+        <MatchTerm name="Job Title" type="IdentityAttribute" value="Accountant"/>
+      </MatchExpression>
+    </IdentitySelector>
+  </Selector>
+</Bundle>

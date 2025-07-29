@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Bundle PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Bundle created="1753649459496" displayName="Approve Time" id="0a2a0319984c113881984da7312802c1" modified="1753650487910" name="Approve Time" significantModified="1753650487910" type="it">
+  <Attributes>
+    <Map>
+      <entry key="accountSelectorRules"/>
+      <entry key="allowDuplicateAccounts" value="false"/>
+      <entry key="allowMultipleAssignments" value="false"/>
+      <entry key="mergeTemplates" value="false"/>
+      <entry key="sysDescriptions">
+        <value>
+          <Map>
+            <entry key="en_US"/>
+          </Map>
+        </value>
+      </entry>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
+  </Owner>
+  <Profiles>
+    <Profile created="1753649723513" id="0a2a0319984c113881984dab387902c6" modified="1753650487911" significantModified="1753650487911">
+      <ApplicationRef>
+        <Reference class="sailpoint.object.Application" id="0a2a0319984c113881984cac3f280020" name="TimeTracking"/>
+      </ApplicationRef>
+      <Constraints>
+        <Filter operation="EQ" property="Permissions" value="Approve"/>
+      </Constraints>
+    </Profile>
+  </Profiles>
+</Bundle>

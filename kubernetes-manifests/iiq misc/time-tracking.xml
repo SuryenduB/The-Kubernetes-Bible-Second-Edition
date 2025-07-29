@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Application connector="sailpoint.connector.JDBCConnector" created="1753633013544" featuresString="DISCOVER_SCHEMA, PROVISIONING, SYNC_PROVISIONING, DIRECT_PERMISSIONS, SEARCH, ENABLE, UNLOCK" icon="databaseIcon" id="0a2a0319984c113881984cac3f280020" modified="1753634697864" name="TimeTracking" profileClass="" significantModified="1753634697864" type="JDBC">
+<Application connector="sailpoint.connector.JDBCConnector" created="1753633013544" featuresString="DISCOVER_SCHEMA, PROVISIONING, SYNC_PROVISIONING, DIRECT_PERMISSIONS, SEARCH, ENABLE, UNLOCK" icon="databaseIcon" id="0a2a0319984c113881984cac3f280020" modified="1753649806752" name="TimeTracking" profileClass="" significantModified="1753649806752" type="JDBC">
   <AccountCorrelationConfig>
     <Reference class="sailpoint.object.CorrelationConfig" id="0a2a0319984c113881984cac25a4001f" name="EmployeeID Correlation TimeTracking"/>
   </AccountCorrelationConfig>
@@ -9,12 +9,12 @@
       <entry key="SQL" value="Select * From Employee;"/>
       <entry key="acctAggregationEnd">
         <value>
-          <Date>1753633967595</Date>
+          <Date>1753649806711</Date>
         </value>
       </entry>
       <entry key="acctAggregationStart">
         <value>
-          <Date>1753633967594</Date>
+          <Date>1753649806395</Date>
         </value>
       </entry>
       <entry key="afterProvisioningRule"/>
@@ -29,7 +29,7 @@
         </value>
       </entry>
       <entry key="aggregationType" value="account"/>
-      <entry key="beforeProvisioningRule"/>
+      <entry key="beforeProvisioningRule" value="before_provisioning_ldap"/>
       <entry key="compositeDefinition"/>
       <entry key="connMaxRetry" value="3"/>
       <entry key="connRetryEnable">
@@ -52,6 +52,7 @@
           <Boolean>true</Boolean>
         </value>
       </entry>
+      <entry key="jdbcProvisionRule" value="JDBC Global Provisioning Rule"/>
       <entry key="mergeRows">
         <value>
           <Boolean></Boolean>
@@ -71,7 +72,7 @@
         </value>
       </entry>
       <entry key="partitionStatements"/>
-      <entry key="password" value="1:ACP:uNpaZuePjr3JU145wEqHfaob3tN1Mwe6KFhICZUEe3U="/>
+      <entry key="password" value="1:ACP:v+XAi+m4lsnQCI9OcVLQVWzYgyO6SpyinciYv4qN6GI="/>
       <entry key="provisionRule" value="globalRule"/>
       <entry key="sysDescriptions">
         <value>
@@ -127,34 +128,30 @@
   <ProvisioningForms>
     <Form name="Account" objectType="account" type="Create">
       <Attributes>
-      <Map>
-        <entry key="pageTitle" value="Account" />
-      </Map>
+        <Map>
+          <entry key="pageTitle"/>
+        </Map>
       </Attributes>
       <Section>
-        <Field displayName="EmployeeID" helpKey="EmployeeID" name="EmployeeID" required="true"
-          type="string">
+        <Field displayName="EmployeeID" helpKey="EmployeeID" name="EmployeeID" required="true" type="string">
           <Script>
             <Source>return identity.getAttribute("Employee ID").toLowerCase();
             </Source>
           </Script>
         </Field>
-        <Field displayName="FirstName" helpKey="FirstName" name="FirstName" required="true"
-          type="string">
+        <Field displayName="FirstName" helpKey="FirstName" name="FirstName" required="true" type="string">
           <Script>
             <Source>return identity.getFirstname().toLowerCase();
             </Source>
           </Script>
         </Field>
-        <Field displayName="LastName" helpKey="LastName" name="LastName" required="true"
-          type="string">
+        <Field displayName="LastName" helpKey="LastName" name="LastName" required="true" type="string">
           <Script>
             <Source>return identity.getLastname().toLowerCase();
             </Source>
           </Script>
         </Field>
-        <Field displayName="Email" helpKey="Email" name="Email" required="true"
-          type="string">
+        <Field displayName="Email" helpKey="Email" name="Email" required="true" type="string">
           <Script>
             <Source>return identity.getEmail().toLowerCase();
             </Source>
@@ -164,7 +161,7 @@
     </Form>
   </ProvisioningForms>
   <Schemas>
-    <Schema created="1753633013548" displayAttribute="Email" id="0a2a0319984c113881984cac3f2c0022" identityAttribute="EmployeeID" instanceAttribute="EmployeeID" modified="1753634697554" nativeObjectType="account" objectType="account" permissionsRemediationModificationType="None" significantModified="1753634697554">
+    <Schema created="1753633013548" displayAttribute="Email" id="0a2a0319984c113881984cac3f2c0022" identityAttribute="EmployeeID" instanceAttribute="" modified="1753648522571" nativeObjectType="account" objectType="account" permissionsRemediationModificationType="None" significantModified="1753648522571">
       <AttributeDefinition name="EmployeeID" type="string">
         <Description></Description>
       </AttributeDefinition>
@@ -177,10 +174,10 @@
       <AttributeDefinition name="Email" type="string">
         <Description></Description>
       </AttributeDefinition>
-      <AttributeDefinition entitlement="true" managed="true" multi="true" name="Permissions" type="string">
+      <AttributeDefinition entitlement="true" name="Permissions" type="string">
         <Description></Description>
       </AttributeDefinition>
     </Schema>
   </Schemas>
-  <ApplicationScorecard created="1753633013544" id="0a2a0319984c113881984cac3f280021" modified="1753634697554" significantModified="1753634697554"/>
+  <ApplicationScorecard created="1753633013544" id="0a2a0319984c113881984cac3f280021" modified="1753648522571" significantModified="1753648522571"/>
 </Application>
