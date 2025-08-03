@@ -1,0 +1,41 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE QuickLink PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<QuickLink action="manageAccounts" category="Access" created="1747599849034" cssClass="quicklink-manage-accounts" id="0a2a037496e5113d8196e511764a0014" messageKey="quicklink_manage_accounts" name="Manage Accounts" ordering="1">
+  <Description>quicklink_manage_accounts_desc</Description>
+  <QuickLinkOptions allowSelf="true" created="1747599849034" id="0a2a037496e5113d8196e511764a0015">
+    <DynamicScopeRef>
+      <Reference class="sailpoint.object.DynamicScope" id="0a2a037496e5113d8196e511758f000d" name="Self Service"/>
+    </DynamicScopeRef>
+    <Attributes>
+      <Map>
+        <entry key="allowAccountOnlyRequests" value="false"/>
+        <entry key="allowManageAccountsAdditionalAccountRequests" value="false"/>
+        <entry key="allowManageExistingAccounts" value="true"/>
+      </Map>
+    </Attributes>
+  </QuickLinkOptions>
+  <QuickLinkOptions allowOther="true" created="1747599849034" id="0a2a037496e5113d8196e511764a0016">
+    <DynamicScopeRef>
+      <Reference class="sailpoint.object.DynamicScope" id="0a2a037496e5113d8196e51175ae000e" name="Manager"/>
+    </DynamicScopeRef>
+    <Attributes>
+      <Map>
+        <entry key="allowAccountOnlyRequests" value="false"/>
+        <entry key="allowManageAccountsAdditionalAccountRequests" value="false"/>
+        <entry key="allowManageExistingAccounts" value="true"/>
+      </Map>
+    </Attributes>
+  </QuickLinkOptions>
+  <QuickLinkOptions allowOther="true" created="1747599849034" id="0a2a037496e5113d8196e511764a0017">
+    <DynamicScopeRef>
+      <Reference class="sailpoint.object.DynamicScope" id="0a2a037496e5113d8196e51175cb000f" name="Help Desk"/>
+    </DynamicScopeRef>
+    <Attributes>
+      <Map>
+        <entry key="allowAccountOnlyRequests" value="false"/>
+        <entry key="allowManageAccountsAdditionalAccountRequests" value="false"/>
+        <entry key="allowManageExistingAccounts" value="true"/>
+      </Map>
+    </Attributes>
+  </QuickLinkOptions>
+</QuickLink>

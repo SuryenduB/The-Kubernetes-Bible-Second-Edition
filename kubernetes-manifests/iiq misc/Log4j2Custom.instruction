@@ -1,0 +1,100 @@
+
+  1. log4j2.properties - Configuring the "Where" and "How"
+
+  The changes in this file were designed to do two things:
+   1. Create a destination for your logs: We defined a new log file and the rules for managing it.
+   2. Direct specific logs to that destination: We created a specific logger to capture messages from your rule and send
+      them to the new log file.
+
+  Here are the exact code blocks that were added to log4j2.properties:
+
+  A. The Appender - Defining the Log File
+
+  This block of code defines a new RollingFileAppender named jdbc. An appender is a destination for log messages.
+
+    1 # Appender for JDBC Provisioning Rule
+    2 appender.jdbc.type=RollingFile
+    3 appender.jdbc.name=jdbc
+    4 appender.jdbc.fileName=/opt/tomcat/jdbc-provisioning.log
+    5 appender.jdbc.filePattern=/opt/tomcat/jdbc-provisioning-%i.log
+    6 appender.jdbc.layout.type=PatternLayout
+    7 appender.jdbc.layout.pattern=%d{ISO8601} %5p %t %c{4} - %m%n
+    8 appender.jdbc.policies.type=Policies
+    9 appender.jdbc.policies.size.type=SizeBasedTriggeringPolicy
+   10 appender.jdbc.policies.size.size=10MB
+   11 appender.jdbc.strategy.type=DefaultRolloverStrategy
+   12 appender.jdbc.strategy.max=10
+
+   * `appender.jdbc.name=jdbc`:  Gives a unique name to this appender so we can reference it later.
+   * `appender.jdbc.fileName=/opt/tomcat/jdbc-provisioning.log`: This is the crucial line that sets the path and filename
+     for your log file.
+   * `appender.jdbc.type=RollingFile`: This ensures the log file doesn't grow indefinitely. In this case, it will create
+     a new file when the current one reaches 10MB (policies.size.size=10MB), and it will keep up to 10 old log files
+     (strategy.max=10).
+
+  B. The Logger - Directing the Log Messages
+
+  This block of code defines a new logger that is specifically for your JDBC provisioning rule.
+
+   1 # Logger for JDBC Provisioning Rule
+   2 logger.jdbcprovisioning.name=rule.JDBCProvisioning
+   3 logger.jdbcprovisioning.level=debug
+   4 logger.jdbcprovisioning.appenderRef.jdbc.ref=jdbc
+   5 logger.jdbcprovisioning.additivity=false
+
+   * `logger.jdbcprovisioning.name=rule.JDBCProvisioning`: This tells Log4j2 that any time it sees a log message from a
+     logger named "rule.JDBCProvisioning", this configuration should be applied.
+   * `logger.jdbcprovisioning.level=debug`: This sets the minimum level of messages to be logged. debug is a good choice
+     for development and troubleshooting as it's quite verbose.
+   * `logger.jdbcprovisioning.appenderRef.jdbc.ref=jdbc`: This is the key that connects the logger to the appender. It
+     tells Log4j2 to send all messages from the "rule.JDBCProvisioning" logger to the jdbc appender we defined above.
+   * `logger.jdbcprovisioning.additivity=false`: This is an important setting that prevents log messages from being sent
+     to the appenders of the rootLogger. Without this, your log messages would appear in both jdbc-provisioning.log and
+     the main application server log file (e.g., catalina.out), causing duplicate entries.
+
+  2. JDBC-Provisioning-Rule.xml - Generating the Log Messages
+
+  The changes in your rule file were to instantiate and use the custom logger we defined in log4j2.properties.
+
+  Here is the relevant code from your rule:
+
+    1 import org.apache.logging.log4j.Logger;
+    2 import org.apache.logging.log4j.LogManager;
+    3
+    4 // ... other imports
+    5
+    6 // This line gets an instance of the custom logger
+    7 Logger log = LogManager.getLogger("rule.JDBCProvisioning");
+    8
+    9 try {
+   10     // Now you can use the 'log' object to write messages
+   11     log.debug("Starting JDBC Provisioning Rule");
+   12
+   13     // ... your provisioning logic ...
+   14
+   15     if (needsCreate) {
+   16         log.debug("User " + username + " does not exist. Creating...");
+   17         // ...
+   18     }
+   19
+   20     // ... more logic ...
+   21
+   22     log.debug("JDBC Provisioning Rule finished successfully.");
+   23     return result;
+   24 } catch (Exception e) {
+   25     // This will log the error message and the stack trace
+   26     log.error("Caught an exception provisioning an account", e);
+   27     throw e;
+   28 }
+
+   * `import org.apache.logging.log4j.Logger;` and `import org.apache.logging.log4j.LogManager;`: These lines import the
+     necessary Log4j2 classes.
+   * `Logger log = LogManager.getLogger("rule.JDBCProvisioning");`: This is the most important line. It gets a logger
+     instance with the exact same name as the one we defined in log4j2.properties. This is how the rule's log messages
+     are linked to the configuration.
+   * `log.debug(...)` and `log.error(...)`: These are examples of how you use the logger to write messages at different
+     severity levels. Because we set the level to debug in the properties file, both of these types of messages will be
+     captured in your log file.
+
+  By making these changes, you've created a clean, isolated logging setup for your JDBC provisioning rule, which makes
+  debugging and monitoring much easier.

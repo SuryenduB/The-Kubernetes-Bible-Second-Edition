@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE QuickLink PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<QuickLink action="external" category="Access" messageKey="Go to Google" name="GoogleSearch" ordering="8">
+   <Attributes>
+     <Map>
+       <entry key="url" value="http://www.google.com"/>
+     </Map>
+   </Attributes>
+   <Description>QuickLink to open Google search engine.</Description>
+   <QuickLinkOptions allowSelf="true">
+     <DynamicScopeRef>
+       <Reference class="sailpoint.object.DynamicScope" name="Everyone"/>
+     </DynamicScopeRef>
+   </QuickLinkOptions>
+</QuickLink>
