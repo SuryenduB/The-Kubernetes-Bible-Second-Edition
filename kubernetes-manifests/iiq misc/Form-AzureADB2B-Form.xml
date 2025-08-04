@@ -1,0 +1,22 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Form PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Form created="1754253089066" id="0a2a018f9870150e819871a1d92a0202"
+    name="Azure AD B2B Account Request Form" type="Workflow">
+    <Attributes>
+        <Map>
+            <entry key="pageTitle" value="Azure AD B2B Account Request Form" />
+        </Map>
+    </Attributes>
+    <Description>B2B Request Form</Description>
+    <Section columns="2" name="Some Fields">
+        <Field columnSpan="2" displayName="Email Address" name="EmailAddress" type="string" />
+        <Field columnSpan="2" displayName="Redirect URL" name="RedirectURL" type="string" />
+        <Field columnSpan="2" displayName="Display Name" name="DisplayName" type="string" />
+        <Field columnSpan="2" displayName="Usage Location" name="UsageLocation" type="string" />
+        <Field columnSpan="2" name="SendCustomInvitationMessage" postBack="true" type="boolean" />
+        <Field columnSpan="2" displayName="Custom Invitation Message" name="CustomInvitationMessage"
+            type="string" />
+
+    </Section>
+
+</Form>

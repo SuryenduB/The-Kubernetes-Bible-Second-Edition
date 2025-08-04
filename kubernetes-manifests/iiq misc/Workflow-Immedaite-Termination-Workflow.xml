@@ -68,6 +68,10 @@
       will be sent to stdout.
     </Description>
   </Variable>
+  
+  <RuleLibraries>
+    <Reference class="sailpoint.object.Rule" name="LCM Workflow Library"/>
+  </RuleLibraries>
   <Variable name="project">
     <Description>
       ProvisioningProject which is just a compiled version of the ProvisioningPlan.
@@ -96,9 +100,7 @@
     </Description>
   </Variable>
   <Description>Disable all accounts when an employee leaves the company.</Description>
-  <RuleLibraries>
-    <Reference class="sailpoint.object.Rule" name="LCM Workflow Library"/>
-  </RuleLibraries>
+  
   <Step icon="Start" name="Start" posX="28" posY="10">
 	<Transition to="Get Identity Model"/>
   </Step>

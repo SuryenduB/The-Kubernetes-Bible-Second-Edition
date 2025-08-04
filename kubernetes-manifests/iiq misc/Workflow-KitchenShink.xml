@@ -8,13 +8,21 @@
       <Source>
                 
         import sailpoint.object.Identity;
+        import org.apache.logging.log4j.LogManager;
+        import org.apache.logging.log4j.Logger;
+        Logger kitchenSinkLogger = LogManager.getLogger("rule.KitchenSink");
+        kitchenSinkLogger.debug("In the identityName script with quickLinkIdentityId: " + quickLinkIdentityId);
 
         Identity id = null;
         if (quickLinkIdentityId != null) {
             id = context.getObject(Identity.class, quickLinkIdentityId);
+            kitchenSinkLogger.debug("Found identity: " + id);
+            kitchenSinkLogger.debug("Identity XML Object: " + id.toXml());
+
         }
 
         if (id != null) {
+            kitchenSinkLogger.debug("Returning identity name: " + id.getName());
             return id.getName();
         }
         return "";
@@ -26,10 +34,20 @@
     <Script>
       <Source>
                 
+        
+        import org.apache.logging.log4j.LogManager;
+        import org.apache.logging.log4j.Logger;
+        import java.util.HashMap;
+        Logger kitchenSinkLogger = LogManager.getLogger("rule.KitchenSink");
+        kitchenSinkLogger.debug("Creating modelMap");
         Map theMap = new HashMap();
         theMap.put("transformerClass", "sailpoint.transformer.IdentityTransformer");
         theMap.put("transformerOptions", new HashMap());
         theMap.put("identityName", identityName);
+        if (kitchenSinkLogger.isDebugEnabled()) {
+            kitchenSinkLogger.debug("modelMap: " + theMap);
+        }
+        
         return theMap;
                 
             </Source>
@@ -83,15 +101,23 @@
             <Script>
               <Source>
                                 
-System.out.println("In the value script = " + field.getValue());
-return field.getValue()
+								import org.apache.logging.log4j.LogManager;
+								import org.apache.logging.log4j.Logger;
+
+								Logger log = LogManager.getLogger("rule.KitchenSink");
+								log.debug("In the value script = " + field.getValue());
+								return field.getValue();
                                 
                             </Source>
             </Script>
             <ValidationScript>
               <Source>
                                 
-System.out.println("In the validation script = " + field.getValue());
+								import org.apache.logging.log4j.LogManager;
+								import org.apache.logging.log4j.Logger;
+
+								Logger log = LogManager.getLogger("rule.KitchenSink");
+								log.debug("In the validation script = " + field.getValue());
                                 
                             </Source>
             </ValidationScript>

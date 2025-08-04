@@ -1,0 +1,87 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Workflow created="1754235989328" explicitTransitions="true" id="0a2a018d986f17cc8198709ced50023a" modified="1754237795886" name="Azure AD B2B Account Request" significantModified="1754237795886" type="LCMProvisioning">
+  <Variable input="true" name="launcher"/>
+  <Variable input="true" name="identityName"/>
+  <Variable name="plan"/>
+  <Variable name="project"/>
+  <Variable name="identityRequestId" output="true"/>
+  <Variable name="cart" output="true"/>
+  <Variable initializer="Normal" input="true" name="workItemPriority"/>
+  <Variable name="modelMap" output="true">
+    <Script>
+      <Source>
+        import java.util.HashMap;
+        Map theMap = new HashMap();
+        return theMap;
+      </Source>
+    </Script>
+  </Variable>
+  <Step icon="Start" name="Start">
+    <Transition to="Show Form"/>
+  </Step>
+  <Step name="Show Form">
+    <Approval name="Azure AD B2B Account Request Form" owner="ref:launcher" return="modelMap" send="modelMap">
+      <Form name="Azure AD B2B Account Request Form">
+        <Attributes>
+          <Map>
+            <entry key="pageTitle" value="Azure AD B2B Account Request"/>
+          </Map>
+        </Attributes>
+        <Section columns="1" name="User Information">
+          <Field displayName="Email Address" name="emailAddress" required="true" type="string"/>
+          <Field displayName="Redirect URL" name="redirectUrl" required="true" type="string"/>
+          <Field displayName="Display Name" name="displayName" required="true" type="string"/>
+          <Field displayName="Send Invitation Message" name="sendInvitationMessage" postBack="true" type="boolean" value="true"/>
+          <Field displayName="Customized Message Body" name="customizedMessageBody" type="string"/>
+          <Field displayName="Usage Location" name="usageLocation" required="true" type="string"/>
+        </Section>
+        <Button action="next" label="Submit"/>
+        <Button action="cancel" label="Cancel"/>
+      </Form>
+    </Approval>
+    <Transition to="Build Plan"/>
+  </Step>
+  <Step name="Build Plan" resultVariable="plan">
+    <Script>
+      <Source>
+        import sailpoint.object.ProvisioningPlan;
+        import sailpoint.object.ProvisioningPlan.AccountRequest;
+        import sailpoint.object.ProvisioningPlan.AttributeRequest;
+        import sailpoint.object.ProvisioningPlan.Operation;
+        import org.apache.logging.log4j.LogManager;
+        import org.apache.logging.log4j.Logger;
+
+        Logger log = LogManager.getLogger("workflow.AzureADB2B");
+        log.debug("Building provisioning plan with modelMap: " + modelMap);
+
+        ProvisioningPlan plan = new ProvisioningPlan();
+        AccountRequest acctReq = new AccountRequest();
+        acctReq.setOperation(AccountRequest.Operation.Create);
+        acctReq.setApplication("Test Tenant Guest User");
+
+        acctReq.add(new AttributeRequest("invitedUserEmailAddress", ProvisioningPlan.Operation.Set, modelMap.get("emailAddress")));
+        acctReq.add(new AttributeRequest("inviteRedirectUrl", ProvisioningPlan.Operation.Set, modelMap.get("redirectUrl")));
+        acctReq.add(new AttributeRequest("displayName", ProvisioningPlan.Operation.Set, modelMap.get("displayName")));
+        acctReq.add(new AttributeRequest("sendInvitationMessage", ProvisioningPlan.Operation.Set, modelMap.get("sendInvitationMessage")));
+        acctReq.add(new AttributeRequest("customizedMessageBody", ProvisioningPlan.Operation.Set, modelMap.get("customizedMessageBody")));
+        acctReq.add(new AttributeRequest("usageLocation", ProvisioningPlan.Operation.Set, modelMap.get("usageLocation")));
+
+        plan.add(acctReq);
+        log.debug("Generated plan: " + plan.toXml());
+        return plan;
+      </Source>
+    </Script>
+    <Transition to="Provision"/>
+  </Step>
+  <Step name="Provision">
+    <Arg name="plan" value="ref:plan"/>
+    <Arg name="launcher" value="ref:launcher"/>
+    <Arg name="identityName" value="ref:identityName"/>
+    <WorkflowRef>
+      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e5118a740032" name="Identity Request Provision"/>
+    </WorkflowRef>
+    <Transition to="Stop"/>
+  </Step>
+  <Step icon="Stop" name="Stop"/>
+</Workflow>
