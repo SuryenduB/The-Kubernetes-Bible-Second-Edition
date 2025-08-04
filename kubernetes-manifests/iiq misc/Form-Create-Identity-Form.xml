@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Form PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Form name="Identity Create Policy" type="CreateIdentity">
+    <Description>This is the provisioning policy used when creating a new identity thru LCM.</Description>
+
+    <Section columns="2">
+        <Field displayName="First Name" name="firstname" required="true" reviewRequired="true" type="string" />
+        
+        <Field displayName="Last Name" name="lastname" postBack="true" required="true" type="string" />
+        
+        <Field columnSpan="2" displayName="Username" dynamic="true" helpKey="cube name" name="name" required="true" type="string">
+            <Script>
+                <Source>
+                    if ((null != firstname) &amp;&amp; (null != lastname)) {
+                        return (firstname + "." + lastname);
+                    }
+                    return null;
+                </Source>
+            </Script>
+            <ValidationScript>
+                <Source>
+                    // validation variable comes in as "value"; messages value returned
+                    // is displayed on screen below field on validation; success should return
+                    // empty messages list
+                    import sailpoint.tools.Message;
+                    import sailpoint.object.Identity;
+                    List messages = new ArrayList();
+                    Identity existing = (Identity)context.getObjectByName(Identity.class, value);
+                    if (existing == null) {
+                        // No Identity found with that name, so return empty messages -
+                        // validation successful
+                        return messages;
+                    } else {
+                        Message msg = new Message();
+                        msg.setKey("Username: " + value + " already exists. Modify this name to make it unique.");
+                        messages.add(msg);
+                        return messages;
+                    }
+                </Source>
+            </ValidationScript>
+        </Field>
+
+        <Field displayName="Password" name="password" reviewRequired="true" type="secret" />
+        <Field displayName="Password Confirmation" name="passwordConfirm" reviewRequired="true" type="secret" />
+
+        <Field displayName="Employment Type" displayType="combobox" name="status" postBack="true" type="string">
+            <AllowedValues>
+                <String>Employee</String>
+                <String>Contractor</String>
+            </AllowedValues>
+        </Field>
+    </Section>
+
+    <Section label="Employee Only Fields">
+        <Attributes>
+            <Map>
+                <entry key="hidden">
+                    <value>
+                        <Script>
+                            <Source>
+                                if ("Employee".equals(status)) {
+                                    return false;
+                                } else {
+                                    return true;
+                                }
+                            </Source>
+                        </Script>
+                    </value>
+                </entry>
+            </Map>
+        </Attributes>
+
+        <Field displayName="Manager" filterString="managerStatus == true" name="manager" type="sailpoint.object.Identity" />
+
+        <Field displayName="att_email" dynamic="true" name="email" reviewRequired="true" type="string">
+            <Script>
+                <Source>
+                    if (("Employee".equals(status)) &amp;&amp; (null != firstname) &amp;&amp; (null != lastname)) {
+                        return (firstname + "." + lastname + "@demoexample.com");
+                    }
+                    return null;
+                </Source>
+            </Script>
+        </Field>
+
+        <Field displayName="Location" name="location" reviewRequired="true" type="string" value="Austin">
+            <AllowedValues>
+                <String>Austin</String>
+                <String>Brazil</String>
+                <String>Munich</String>
+                <String>London</String>
+                <String>Brussels</String>
+                <String>San Jose</String>
+                <String>Chicago</String>
+                <String>Taipei</String>
+                <String>Tokyo</String>
+            </AllowedValues>
+        </Field>
+    </Section>
+
+    // Section For Entra ID Guest Users Only Fields
+    <Section label="Entra ID Guest User Only Fields">
+        <Attributes>
+            <Map>
+                <entry key="hidden">
+                    <value>
+                        <Script>
+                            <Source>
+                                if ("Contractor".equals(status)) {
+                                    return false;
+                                } else {
+                                    return true;
+                                }
+                            </Source>
+                        </Script>
+                    </value>
+                </entry>
+            </Map>
+        </Attributes>
+
+        <Field displayName="Entra ID Guest User" name="entraIdGuestUser" type="boolean" value="true" />
+</Form>
