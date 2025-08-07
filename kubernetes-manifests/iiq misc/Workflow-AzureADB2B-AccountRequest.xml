@@ -1,12 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Workflow created="1754252269539" explicitTransitions="true" id="0a2a018f9870150e8198719557e201e9" modified="1754316596722" name="Azure AD B2B Provisioning" significantModified="1754316596722" type="IdentityLifecycle">
+<Workflow created="1754252269539" explicitTransitions="true" id="0a2a018f9870150e8198719557e201e9"
+  modified="1754599556735" name="Azure AD B2B Provisioning" significantModified="1754599556735"
+  type="IdentityLifecycle">
   <Variable input="true" name="trigger">
     <Description>The IdentityTrigger</Description>
   </Variable>
   <Variable input="true" name="event" transient="true">
     <Description>
-      The IdentityChangeEvent.  It can be used to build
+      The IdentityChangeEvent. It can be used to build
       the provisioning plan, but does not need to be
       persisted with the case, so marked as transient.
     </Description>
@@ -28,8 +30,8 @@
   </Variable>
   <Variable editable="true" initializer="false" name="optimisticProvisioning">
     <Description>
-      Set to true to enable optimistic provisioning.  This will cause
-      changes to the entitlements compiled from role assignments to be 
+      Set to true to enable optimistic provisioning. This will cause
+      changes to the entitlements compiled from role assignments to be
       applied immediately to the identity cube rather than waiting
       for the next refresh/reaggregation after the provisioning system
       completes the request.
@@ -39,29 +41,29 @@
     <Description>
       Normally provisioning is done in a step that uses the "background"
       option to force the workflow to be suspend and be resumed in a
-      background task thread.  This prevents the browser session from
-      hanging since provision can sometimes take a long time.  For demos
+      background task thread. This prevents the browser session from
+      hanging since provision can sometimes take a long time. For demos
       and testing it can be better to do this in the foreground so that
       provisioning will have been performed when control is returned to the
-      user.  This prevents having to run the Perform Maintenance task to 
+      user. This prevents having to run the Perform Maintenance task to
       see the results of the request.
     </Description>
   </Variable>
   <Variable initializer="spadmin" input="true" name="fallbackApprover">
     <Description>
-      A String that specifies the name of the Identity that will 
-      be assigned any approvals where the owner of the approver 
-      can't be resolved. Example if the scheme is "owner" and the 
+      A String that specifies the name of the Identity that will
+      be assigned any approvals where the owner of the approver
+      can't be resolved. Example if the scheme is "owner" and the
       application doesn't specify and owner.
     </Description>
   </Variable>
   <Variable initializer="LCM" input="true" name="source">
     <Description>
       String version of sailpoint.object.Source to indicate
-      where the request originated.  Defaults to LCM.
+      where the request originated. Defaults to LCM.
     </Description>
   </Variable>
-  <Variable initializer="false" input="true" name="trace">
+  <Variable initializer="true" input="true" name="trace">
     <Description>
       Used for debugging this workflow and when set to true trace
       will be sent to stdout.
@@ -72,24 +74,31 @@
       ProvisioningProject which is just a compiled version of the ProvisioningPlan.
     </Description>
   </Variable>
+  <Variable name="identity" type="object">
+    <Description>
+      Identity object we're refreshing. This is a transient object
+      that will only be used by finishRefresh if the workflow runs to
+      completion without suspending.
+    </Description>
+  </Variable>
   <Variable name="identityRequestId" output="true">
     <Description>
-      The sequence id of the Identity request object which is stored in 
+      The sequence id of the Identity request object which is stored in
       the name field of the identity request.
     </Description>
   </Variable>
   <Variable name="cart" output="true">
     <Description>
-      This variable includes all ApprovalItems that are part of 
+      This variable includes all ApprovalItems that are part of
       the request process and is updated during the AfterScript
-      of the approval process by assimilating the decisions 
+      of the approval process by assimilating the decisions
       and comments from the Approvals copy of the ApprovalItem.
     </Description>
   </Variable>
   <Variable initializer="Normal" input="true" name="workItemPriority">
     <Description>
-      The String version of a WorkItem.Priority. This variable is 
-      used to set the priority on all of the workitems generated 
+      The String version of a WorkItem.Priority. This variable is
+      used to set the priority on all of the workitems generated
       as part of this workflow and also set on the IdentityRequest
       object.
     </Description>
@@ -121,236 +130,114 @@
   </Variable>
   <Description>Provision Entra ID B2B Guest Account.</Description>
   <RuleLibraries>
-    <Reference class="sailpoint.object.Rule" id="0a2a037496e5102c8196e510a3a1019b" name="LCM Workflow Library"/>
+    <Reference class="sailpoint.object.Rule" id="0a2a037496e5102c8196e510a3a1019b"
+      name="LCM Workflow Library" />
   </RuleLibraries>
   <Step icon="Start" name="Start" posX="28" posY="10">
-    <Transition to="Azure AD B2B Request"/>
+    <Transition to="Initialize" />
   </Step>
-  <Step icon="Default" name="Azure AD B2B Request" posX="135" posY="9">
-    <Approval name="Azure AD B2B Account Request Form" owner="ref:launcher" return="EmailAddress,RedirectURL,DisplayName,UsageLocation,CustomInvitationMessage" send="">
-      <Form name="Azure AD B2B Account Request Form">
-        <Attributes>
-          <Map>
-            <entry key="pageTitle" value="Azure AD B2B Account Request Form"/>
-          </Map>
-        </Attributes>
-        <Description>B2B Request Form</Description>
-        <FormRef id="0a2a018f9870150e819871a1d92a0202" name="Azure AD B2B Account Request Form"/>
-      </Form>
+  <Step action="call:getIdentityModel" name="Initialize" posX="15" posY="115"
+    resultVariable="identityModel">
+    <Description>
+      Initialize the data for the identity that we are creating.
+    </Description>
+    <Transition to="Seed identityName" />
+  </Step>
+  <Step name="Seed identityName">
+    <Script>
+      <Source>
+        Object email = identityModel.get("email");
+        if (email != null) {
+        identityModel.put("identityName", email.toString().trim());
+        }
+        return null;
+      </Source>
+    </Script>
+    <Transition to="Azure AD B2B Request" />
+  </Step>
+  <Step icon="Approval" name="Azure AD B2B Request" posX="135" posY="9">
+    <Approval mode="serial" owner="ref:launcher" return="identityModel">
+      <Arg name="workItemType" value="Form" />
+      <Arg name="workItemDescription" value="Azure AD B2B Account Request Form" />
+      <Arg name="workItemForm" value="Azure AD B2B Account Request Form" />
+      <Arg name="workItemFormBasePath" value="identityModel" />
     </Approval>
-    <Transition to="Debug"/>
+    <Transition to="Set identity name" />
   </Step>
-  <Step icon="Default" name="Debug" posX="241" posY="10">
+  <Step name="Set identity name" posX="507" posY="6" resultVariable="identityName">
+    <Description>
+      Set the identityName workflow variable based on the form input.
+    </Description>
     <Script>
       <Source>
-        System.out.println("Logging: Transitioning to Stop "+EmailAddress);
-        System.out.println("Logging: Redirect URL "+RedirectURL);
-        System.out.println("Logging: Display Name "+DisplayName);
-        System.out.println("Logging: Usage Location "+UsageLocation);
-        System.out.println("Logging: Custom Invitation Message "+CustomInvitationMessage);
+        String email = (String)identityModel.get("EmailAddress");
+        System.out.println("Setting the identityName from EmailAddress: " + email);
 
+        if (email != null) {
+        email = email.trim();
+        }else {
+        // If email is null, we can set a default
+        email = "default@example.com";
+        System.out.println("Email is null, setting default: " + email);
+        }
+        // Set the identityName variable
+        identityModel.put("identityName", email);
+
+        return email;
       </Source>
     </Script>
-    <Transition to="Build Plan"/>
+    <Transition to="Debug identityModel contents" />
   </Step>
-  <Step icon="Message" name="Build Plan" posX="339" posY="12" resultVariable="plan">
-    <Description>Process the user that joined.</Description>
+  <Step name="Debug identityModel contents">
     <Script>
       <Source>
-        import org.apache.commons.logging.Log;
-        import org.apache.commons.logging.LogFactory;
-        import org.apache.commons.lang.StringUtils;
-        import sailpoint.object.AttributeAssignment;
-        import sailpoint.api.IdentityService;
-        import sailpoint.api.ObjectUtil;
-        import sailpoint.api.SailPointContext;
-        import sailpoint.api.SailPointFactory;
-        import sailpoint.api.Provisioner;
-        import sailpoint.api.*;
-        import java.util.Calendar;
-        import sailpoint.object.IdentityEntitlement;
-        import sailpoint.object.ApprovalItem.ProvisioningState;
-        import sailpoint.object.Application;
-        import sailpoint.object.ApprovalItem;
-        import sailpoint.object.AuditEvent;
-        import sailpoint.object.Attributes;
-        import sailpoint.object.AuthenticationAnswer;
-        import sailpoint.object.AuthenticationQuestion;
-        import sailpoint.object.Bundle;
-        import sailpoint.object.Certification;
-        import sailpoint.object.CertificationEntity;
-        import sailpoint.object.Custom;
-        import sailpoint.object.EmailOptions;
-        import sailpoint.object.EmailTemplate;
-        import sailpoint.object.Filter;
-        import sailpoint.object.Form;
-        import sailpoint.object.Identity;
-        import sailpoint.object.IdentityRequest;
-        import sailpoint.object.IdentityRequestItem;
-        import sailpoint.object.Link;
-        import sailpoint.object.ManagedAttribute;
-        import sailpoint.object.ProvisioningPlan;
-        import sailpoint.object.ProvisioningPlan.AccountRequest;
-        import sailpoint.object.ProvisioningPlan.AttributeRequest;
-        import sailpoint.object.ProvisioningPlan.Operation;
-        import sailpoint.object.ProvisioningPlan.AccountRequest.Operation;
-        import sailpoint.object.ProvisioningProject;
-        import sailpoint.object.ProvisioningResult;
-        import sailpoint.object.QueryOptions;
-        import sailpoint.object.RoleAssignment;
-        import sailpoint.object.Field;
-        import sailpoint.object.Filter;
-        import sailpoint.object.Form;
-        import sailpoint.object.WorkItem;
-        import sailpoint.object.Form.Section;
-        import sailpoint.object.*;
-        import sailpoint.object.Request;
-        import sailpoint.object.Filter.LeafFilter;
-        import sailpoint.object.Filter.CompositeFilter;
-        import sailpoint.object.Profile;
-        import sailpoint.workflow.WorkflowContext;
-
-
-        import sailpoint.tools.GeneralException;
-        import sailpoint.tools.Message;
-        import sailpoint.tools.Util;
-        import sailpoint.tools.xml.XMLObjectFactory;
-
-        import java.util.ArrayList;
-        import java.util.HashMap;
-        import java.util.Iterator;
-        import java.util.List;
-        import java.util.Map;
-        import java.util.Arrays;
-
-        //System.out.println("User getting terminated from the system: " + identityName);
-
-
-
-        ProvisioningPlan plan = new ProvisioningPlan();
-        // Set identity to the plan
-        //plan.setIdentity(identity);
-        ProvisioningPlan plan = new ProvisioningPlan();
-        // Set identity to the plan
-        //plan.setIdentity(identity);
-        System.out.println("Provisioning plan placeholder created for identity:"+EmailAddress);
-
-
-        List acctReqs = new ArrayList();
-        AccountRequest EntraGuestAcctReq = new AccountRequest();
-        EntraGuestAcctReq.setOperation(AccountRequest.Operation.Create);
-        EntraGuestAcctReq.setNativeIdentity(EmailAddress);
-        EntraGuestAcctReq.setApplication("Test Tenant Guest User");
-        acctReqs.add(EntraGuestAcctReq);
-        EntraGuestAcctReq.add(new AttributeRequest("invitedUserEmailAddress", ProvisioningPlan.Operation.Set, EmailAddress));
-        EntraGuestAcctReq.add(new AttributeRequest("inviteRedirectUrl", ProvisioningPlan.Operation.Set, RedirectURL));
-        EntraGuestAcctReq.add(new AttributeRequest("invitedUserDisplayName", ProvisioningPlan.Operation.Set, DisplayName));
-        EntraGuestAcctReq.add(new AttributeRequest("invitedUserUsageLocation", ProvisioningPlan.Operation.Set, UsageLocation));
-        EntraGuestAcctReq.add(new AttributeRequest("customizedMessageBody", ProvisioningPlan.Operation.Set, CustomInvitationMessage));
-        acctReqs.add(EntraGuestAcctReq);
-
-
-        plan.setAccountRequests(acctReqs);
-
-        workflow.put("plan", plan);
-        System.out.println("Provisioning plan created with plan: " + plan.toXml());
-
-        return plan;
+        System.out.println("identityModel: " + identityModel.toString());
+        return null;
       </Source>
     </Script>
-    <Transition to="Initialize"/>
+    <Transition to="Build Provisioning Plan" />
   </Step>
-  <Step icon="Task" name="Initialize" posX="428" posY="16">
-    <Arg name="formTemplate" value="Identity Update"/>
-    <Arg name="identityName" />
-    <Arg name="enableRetryRequest"/>
-    <Arg name="allowRequestsWithViolations"/>
-    <Arg name="endOnManualWorkItems"/>
-    <Arg name="policiesToCheck"/>
-    <Arg name="workItemPriority"/>
-    <Arg name="workItemComments"/>
-    <Arg name="source" value="ref:source"/>
-    <Arg name="violationReviewDecision"/>
-    <Arg name="policyScheme" value="none"/>
-    <Arg name="priority" value="ref:workItemPriority"/>
-    <Arg name="identityDisplayName" />
-    <Arg name="requireViolationReviewComments"/>
-    <Arg name="identityRequest"/>
-    <Arg name="trace" value="ref:trace"/>
-    <Arg name="enableApprovalRecommendations"/>
-    <Arg name="asyncCacheRefresh"/>
-    <Arg name="endOnProvisioningForms"/>
-    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning"/>
-    <Arg name="plan" value="ref:plan"/>
-    <Arg name="flow" value="Lifecycle"/>
-    <Arg name="launcher" value="ref:launcher"/>
+  <Step action="call:buildPlanFromIdentityModel" name="Build Provisioning Plan" posX="646" posY="6"
+    resultVariable="plan">
+    <Arg name="identityModel" value="ref:identityModel" />
     <Description>
-      Call the standard subprocess to initialize the request, this includes
-      auditing, building the approvalset, compiling the plan into 
-       project and checking policy violations.
+      Convert the registration request into a provisioning plan.
     </Description>
-    <Return name="project" to="project"/>
-    <Return name="approvalSet" to="cart"/>
-    <Return name="identityRequestId" to="identityRequestId"/>
-    <Return name="policyViolations" to="policyViolations"/>
-    <WorkflowRef>
-      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e51189d1002f" name="Identity Request Initialize"/>
-    </WorkflowRef>
-    <Transition to="Provision"/>
+    <Transition to="Submit Registration Request" />
   </Step>
-  <Step icon="Task" name="Provision" posX="543" posY="16">
-    <Arg name="formTemplate" value="Identity Update"/>
-    <Arg name="approvalScheme" value="ref:approvalScheme"/>
-    <Arg name="identityName" />
-    <Arg name="fallbackApprover" value="ref:fallbackApprover"/>
-    <Arg name="approvalSet"/>
-    <Arg name="manualActionsEmailTemplate" value="Pending Manual Changes"/>
-    <Arg name="workItemComments"/>
-    <Arg name="workItemPriority"/>
-    <Arg name="project" value="ref:project"/>
-    <Arg name="identityRequestId" value="ref:identityRequestId"/>
-    <Arg name="priority" value="ref:workItemPriority"/>
-    <Arg name="policyScheme" value="none"/>
-    <Arg name="splitProvisioning"/>
-    <Arg name="saveUnmanagedPlan"/>
-    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning"/>
-    <Arg name="noTriggers"/>
-    <Arg name="identityDisplayName" />
-    <Arg name="trace" value="ref:trace"/>
-    <Arg name="saveUnmanagedPlan_WithProjectArgument"/>
-    <Arg name="recompile"/>
-    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning"/>
-    <Arg name="plan"/>
-    <Arg name="launcher" value="ref:launcher"/>
+  <Step icon="Task" name="Submit Registration Request" posX="646" posY="110">
+    <Arg name="identityName" value="ref:identityName" />
+    <Arg name="identityDisplayName" value="ref:identityDisplayName" />
+    <Arg name="plan" value="ref:plan" />
+    <Arg name="flow" value="ref:flow" />
+    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning" />
+    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning" />
+    <Arg name="doRefresh" value="ref:doRefresh" />
+    <Arg name="securityOfficerName" value="ref:securityOfficerName" />
+    <Arg name="notificationScheme" value="ref:notificationScheme" />
+    <Arg name="approvalMode" value="ref:approvalMode" />
+    <Arg name="approvalScheme" value="ref:approvalScheme" />
+    <Arg name="approvingIdentities" value="ref:approvingIdentities" />
+    <Arg name="fallbackApprover" value="ref:fallbackApprover" />
+    <Arg name="approverElectronicSignature" value="ref:approverElectronicSignature" />
+    <Arg name="approvalEmailTemplate" value="ref:approvalEmailTemplate" />
+    <Arg name="userEmailTemplate" value="ref:userEmailTemplate" />
+    <Arg name="managerEmailTemplate" value="ref:managerEmailTemplate" />
+    <Arg name="securityOfficerEmailTemplate" value="ref:securityOfficerEmailTemplate" />
+    <Arg name="policyScheme" value="ref:policyScheme" />
+    <Arg name="policiesToCheck" value="ref:policiesToCheck" />
+    <Arg name="workItemPriority" value="ref:workItemPriority" />
+    <Arg name="ticketManagementApplication" value="ref:ticketManagementApplication" />
+    <Arg name="source" value="ref:source" />
+    <Arg name="trace" value="ref:trace" />
     <Description>
-      Call the standard subprocess that will process the 
-      approval decisions and do provisioning.  This
-      includes calling any configured provisioning 
-      connectors and building manual actions.
-    </Description>
-    <Return name="project" to="project"/>
-    <WorkflowRef>
-      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e5118a740032" name="Identity Request Provision"/>
-    </WorkflowRef>
-    <Transition to="Finalize"/>
-  </Step>
-  <Step catches="complete" icon="Task" name="Finalize" posX="678" posY="17">
-    <Arg name="trace" value="ref:trace"/>
-    <Arg name="autoVerifyIdentityRequest"/>
-    <Arg name="approvalSet" value="ref:cart"/>
-    <Arg name="ticketManagementApplication"/>
-    <Arg name="project" value="ref:project"/>
-    <Arg name="workItemPriority"/>
-    <Arg name="identityRequestId" value="ref:identityRequestId"/>
-    <Arg name="priority" value="ref:workItemPriority"/>
-    <Arg name="ticketDataGenerationRule"/>
-    <Description>
-      Call the standard subprocess that can audit/finalize the request.
+      Call the LCM Create and Update workflow with the plan that was created.
     </Description>
     <WorkflowRef>
-      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e5118ab30033" name="Identity Request Finalize"/>
+      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e5118d520037"
+        name="LCM Create and Update" />
     </WorkflowRef>
-    <Transition to="Stop"/>
+    <Transition to="end" />
   </Step>
-  <Step icon="Stop" name="Stop" posX="853" posY="15"/>
+  <Step icon="Stop" name="end" posX="646" posY="217" />
 </Workflow>
