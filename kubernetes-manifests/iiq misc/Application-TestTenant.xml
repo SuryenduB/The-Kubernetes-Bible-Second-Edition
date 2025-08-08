@@ -237,17 +237,17 @@
         </Field>
       </Section>
       <Section label="User" name="User">
-        <Field displayName="con_prov_policy_azure_ad_userPrincipalName" helpKey="help_con_prov_policy_azure_ad_userPrincipalName" name="userPrincipalName" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_password" helpKey="help_con_prov_policy_azure_ad_password" name="password" reviewRequired="true" section="User" type="secret"/>
-        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_displayName" name="displayName" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_mailNickname" name="mailNickname" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_accountEnabled" helpKey="help_con_prov_policy_azure_ad_accountEnabled" name="accountEnabled" reviewRequired="true" section="User" type="boolean" value="true"/>
-        <Field displayName="con_prov_policy_azure_ad_forceChangePassword" helpKey="help_con_prov_policy_azure_ad_forceChangePassword" name="forceChangePasswordNextLogin" reviewRequired="true" section="User" type="boolean" value="true"/>
-        <Field displayName="con_prov_policy_azure_ad_department" helpKey="help_con_prov_policy_azure_ad_department" name="department" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_jobTitle" helpKey="help_con_prov_policy_azure_ad_jobTitle" name="jobTitle" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_isFederatedDomain" helpKey="help_con_prov_policy_azure_ad_isFederatedDomain" name="isFederatedDomain" reviewRequired="true" section="User" type="boolean"/>
-        <Field displayName="con_prov_policy_azure_ad_immutableId" helpKey="help_con_prov_policy_azure_ad_immutableId" name="immutableId" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_passwordPolicies" helpKey="help_con_prov_policy_azure_ad_passwordPolicies" name="passwordPolicies" reviewRequired="true" section="User" type="string">
+        <Field displayName="con_prov_policy_azure_ad_userPrincipalName" helpKey="help_con_prov_policy_azure_ad_userPrincipalName" name="userPrincipalName"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_password" helpKey="help_con_prov_policy_azure_ad_password" name="password"  section="User" type="secret"/>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_displayName" name="displayName"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_mailNickname" name="mailNickname"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_accountEnabled" helpKey="help_con_prov_policy_azure_ad_accountEnabled" name="accountEnabled"  section="User" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_forceChangePassword" helpKey="help_con_prov_policy_azure_ad_forceChangePassword" name="forceChangePasswordNextLogin"  section="User" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_department" helpKey="help_con_prov_policy_azure_ad_department" name="department"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_jobTitle" helpKey="help_con_prov_policy_azure_ad_jobTitle" name="jobTitle"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_isFederatedDomain" helpKey="help_con_prov_policy_azure_ad_isFederatedDomain" name="isFederatedDomain"  section="User" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_immutableId" helpKey="help_con_prov_policy_azure_ad_immutableId" name="immutableId"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_passwordPolicies" helpKey="help_con_prov_policy_azure_ad_passwordPolicies" name="passwordPolicies"  section="User" type="string">
           <AllowedValuesDefinition>
             <Value>
               <List>
@@ -258,10 +258,10 @@
             </Value>
           </AllowedValuesDefinition>
         </Field>
-        <Field displayName="con_prov_policy_azure_ad_otherMails" helpKey="help_con_prov_policy_azure_ad_otherMails" multi="true" name="otherMails" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_givenName" helpKey="help_con_prov_policy_azure_ad_givenName" name="givenName" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_surname" helpKey="help_con_prov_policy_azure_ad_surname" name="surname" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_usageLocation" helpKey="help_con_prov_policy_azure_ad_usageLocation" name="usageLocation" reviewRequired="true" section="User" type="string" value="United States;US">
+        <Field displayName="con_prov_policy_azure_ad_otherMails" helpKey="help_con_prov_policy_azure_ad_otherMails" multi="true" name="otherMails"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_givenName" helpKey="help_con_prov_policy_azure_ad_givenName" name="givenName"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_surname" helpKey="help_con_prov_policy_azure_ad_surname" name="surname"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_usageLocation" helpKey="help_con_prov_policy_azure_ad_usageLocation" name="usageLocation"  section="User" type="string" value="United States;US">
           <AllowedValuesDefinition>
             <Value>
               <List>
@@ -291,16 +291,16 @@
             </Value>
           </AllowedValuesDefinition>
         </Field>
-        <Field displayName="con_prov_policy_azure_ad_country" helpKey="help_con_prov_policy_azure_ad_country" name="country" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_state" helpKey="help_con_prov_policy_azure_ad_state" name="state" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_city" helpKey="help_con_prov_policy_azure_ad_city" name="city" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_streetAddress" helpKey="help_con_prov_policy_azure_ad_streetAddress" name="streetAddress" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_postalCode" helpKey="help_con_prov_policy_azure_ad_postalCode" name="postalCode" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_physicalDeliveryOfficeName" helpKey="help_con_prov_policy_azure_ad_physicalDeliveryOfficeName" name="physicalDeliveryOfficeName" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_preferredLanguage" helpKey="help_con_prov_policy_azure_ad_preferredLanguage" name="preferredLanguage" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_telephoneNumber" helpKey="help_con_prov_policy_azure_ad_telephoneNumber" name="telephoneNumber" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_mobile" helpKey="help_con_prov_policy_azure_ad_mobile" name="mobile" reviewRequired="true" section="User" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_faxNumber" helpKey="help_con_prov_policy_azure_ad_faxNumber" name="facsimileTelephoneNumber" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_country" helpKey="help_con_prov_policy_azure_ad_country" name="country"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_state" helpKey="help_con_prov_policy_azure_ad_state" name="state"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_city" helpKey="help_con_prov_policy_azure_ad_city" name="city"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_streetAddress" helpKey="help_con_prov_policy_azure_ad_streetAddress" name="streetAddress"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_postalCode" helpKey="help_con_prov_policy_azure_ad_postalCode" name="postalCode"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_physicalDeliveryOfficeName" helpKey="help_con_prov_policy_azure_ad_physicalDeliveryOfficeName" name="physicalDeliveryOfficeName"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_preferredLanguage" helpKey="help_con_prov_policy_azure_ad_preferredLanguage" name="preferredLanguage"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_telephoneNumber" helpKey="help_con_prov_policy_azure_ad_telephoneNumber" name="telephoneNumber"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mobile" helpKey="help_con_prov_policy_azure_ad_mobile" name="mobile"  section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_faxNumber" helpKey="help_con_prov_policy_azure_ad_faxNumber" name="facsimileTelephoneNumber"  section="User" type="string"/>
       </Section>
       <Section label="Guest User B2B" name="Guest User B2B">
         <Field displayName="con_prov_policy_azure_ad_invitedUserEmailAddress" helpKey="help_con_prov_policy_azure_ad_invitedUserEmailAddress" name="invitedUserEmailAddress" section="Guest User B2B" type="string"/>
@@ -340,12 +340,12 @@
         </Field>
       </Section>
       <Section label="Local User B2C" name="Local User B2C">
-        <Field displayName="con_prov_policy_azure_ad_signInNameType" helpKey="help_con_prov_policy_azure_ad_signInNameType" name="signInNameType" reviewRequired="true" section="Local User B2C" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_signInNameValue" helpKey="help_con_prov_policy_azure_ad_signInNameValue" name="signInNameValue" reviewRequired="true" section="Local User B2C" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_displayName" name="localAccountDisplayName" reviewRequired="true" section="Local User B2C" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_accountEnabled" helpKey="help_con_prov_policy_azure_ad_accountEnabled" name="enableLocalAccount" reviewRequired="true" section="Local User B2C" type="boolean"/>
-        <Field displayName="con_prov_policy_azure_ad_password" helpKey="help_con_prov_policy_azure_ad_password" name="b2cPassword" reviewRequired="true" section="Local User B2C" type="secret"/>
-        <Field displayName="con_prov_policy_azure_ad_forceChangePassword" helpKey="help_con_prov_policy_azure_ad_forceChangePassword" name="b2cForceChangePasswordNextLogin" reviewRequired="true" section="Local User B2C" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_signInNameType" helpKey="help_con_prov_policy_azure_ad_signInNameType" name="signInNameType"  section="Local User B2C" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_signInNameValue" helpKey="help_con_prov_policy_azure_ad_signInNameValue" name="signInNameValue"  section="Local User B2C" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_displayName" name="localAccountDisplayName"  section="Local User B2C" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_accountEnabled" helpKey="help_con_prov_policy_azure_ad_accountEnabled" name="enableLocalAccount"  section="Local User B2C" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_password" helpKey="help_con_prov_policy_azure_ad_password" name="b2cPassword"  section="Local User B2C" type="secret"/>
+        <Field displayName="con_prov_policy_azure_ad_forceChangePassword" helpKey="help_con_prov_policy_azure_ad_forceChangePassword" name="b2cForceChangePasswordNextLogin"  section="Local User B2C" type="boolean"/>
       </Section>
     </Form>
     <Form name="Create group" objectType="group" type="Create">
@@ -355,10 +355,10 @@
         </Map>
       </Attributes>
       <Section>
-        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_groupDisplayName" name="displayName" required="true" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_groupMailNickname" name="mailNickname" required="true" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_description" helpKey="help_con_prov_policy_azure_ad_description" name="description" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_groupType" helpKey="help_con_prov_policy_azure_ad_groupType" name="groupTypes" required="true" reviewRequired="true" type="string">
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_groupDisplayName" name="displayName" required="true"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_groupMailNickname" name="mailNickname" required="true"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_description" helpKey="help_con_prov_policy_azure_ad_description" name="description"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_groupType" helpKey="help_con_prov_policy_azure_ad_groupType" name="groupTypes" required="true"  type="string">
           <AllowedValuesDefinition>
             <Value>
               <List>
@@ -371,7 +371,7 @@
           </AllowedValuesDefinition>
         </Field>
         <Field displayName="con_prov_policy_azure_ad_teamsEnabled" helpKey="help_con_prov_policy_azure_ad_teamsEnabled" name="teamsEnabled" type="boolean"/>
-        <Field displayName="con_prov_policy_azure_ad_addOwnerAsMember" helpKey="help_con_prov_policy_azure_ad_addOwnerAsMember" name="addOwnerAsMember" reviewRequired="true" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_addOwnerAsMember" helpKey="help_con_prov_policy_azure_ad_addOwnerAsMember" name="addOwnerAsMember"  type="boolean" value="true"/>
         <Field displayName="con_prov_policy_azure_ad_groupOwners" helpKey="help_con_prov_policy_azure_ad_groupOwners" multi="true" name="owners" type="string"/>
       </Section>
     </Form>
@@ -382,9 +382,9 @@
         </Map>
       </Attributes>
       <Section>
-        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_groupDisplayName" name="displayName" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_groupMailNickname" name="mailNickname" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_description" helpKey="help_con_prov_policy_azure_ad_description" name="description" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_groupDisplayName" name="displayName"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_groupMailNickname" name="mailNickname"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_description" helpKey="help_con_prov_policy_azure_ad_description" name="description"  type="string"/>
         <Field displayName="con_prov_policy_azure_ad_groupType" helpKey="help_con_prov_policy_azure_ad_groupType" multi="true" name="groupTypes" type="string">
           <Attributes>
             <Map>
@@ -408,7 +408,7 @@
           </Attributes>
         </Field>
         <Field displayName="con_prov_policy_azure_ad_teamsEnabled" helpKey="help_con_prov_policy_azure_ad_teamsEnabled" name="teamsEnabled" type="boolean"/>
-        <Field displayName="con_prov_policy_azure_ad_addOwnerAsMember" helpKey="help_con_prov_policy_azure_ad_addOwnerAsMember" name="addOwnerAsMember" reviewRequired="true" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_addOwnerAsMember" helpKey="help_con_prov_policy_azure_ad_addOwnerAsMember" name="addOwnerAsMember"  type="boolean" value="true"/>
       </Section>
     </Form>
     <Form name="Create Channel" objectType="channel" type="Create">
@@ -418,10 +418,10 @@
         </Map>
       </Attributes>
       <Section>
-        <Field displayName="con_prov_policy_azure_ad_channel_team_email" helpKey="help_con_prov_policy_azure_ad_channel_team_email" name="teamEmail" required="true" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_channel_displayname" helpKey="help_con_prov_policy_azure_ad_channel_displayname" name="displayName" required="true" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_channel_description" helpKey="help_con_prov_policy_azure_ad_channel_description" name="description" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_channel_membership_type" helpKey="help_con_prov_policy_azure_ad_channel_membership_type" name="membershipType" reviewRequired="true" type="string">
+        <Field displayName="con_prov_policy_azure_ad_channel_team_email" helpKey="help_con_prov_policy_azure_ad_channel_team_email" name="teamEmail" required="true"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_displayname" helpKey="help_con_prov_policy_azure_ad_channel_displayname" name="displayName" required="true"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_description" helpKey="help_con_prov_policy_azure_ad_channel_description" name="description"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_membership_type" helpKey="help_con_prov_policy_azure_ad_channel_membership_type" name="membershipType"  type="string">
           <AllowedValuesDefinition>
             <Value>
               <List>
@@ -431,7 +431,7 @@
             </Value>
           </AllowedValuesDefinition>
         </Field>
-        <Field displayName="con_prov_policy_azure_ad_channel_owners" helpKey="help_con_prov_policy_azure_ad_channel_owners" multi="true" name="owners" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_owners" helpKey="help_con_prov_policy_azure_ad_channel_owners" multi="true" name="owners"  type="string"/>
       </Section>
     </Form>
     <Form name="Create Role" objectType="role" type="Create">
@@ -441,9 +441,9 @@
         </Map>
       </Attributes>
       <Section>
-        <Field displayName="con_prov_policy_azure_ad_role_displayName" helpKey="help_con_prov_policy_azure_ad_role_displayName" name="displayName" required="true" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_role_description" helpKey="help_con_prov_policy_azure_ad_role_description" name="description" reviewRequired="true" type="string"/>
-        <Field displayName="con_prov_policy_azure_ad_rolePermissions" helpKey="help_con_prov_policy_azure_ad_rolePermissions" multi="true" name="rolePermissions" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_role_displayName" helpKey="help_con_prov_policy_azure_ad_role_displayName" name="displayName" required="true"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_role_description" helpKey="help_con_prov_policy_azure_ad_role_description" name="description"  type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_rolePermissions" helpKey="help_con_prov_policy_azure_ad_rolePermissions" multi="true" name="rolePermissions" required="true"  type="string"/>
         <Field displayName="con_prov_policy_azure_ad_role_isEnabled" helpKey="help_con_prov_policy_azure_ad_role_isEnabled" name="isEnabled" type="boolean" value="true"/>
       </Section>
     </Form>
