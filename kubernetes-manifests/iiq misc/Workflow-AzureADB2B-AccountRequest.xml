@@ -80,7 +80,7 @@
         identityModel.put("firstname", firstName);
         identityModel.put("lastname", lastName);
         identityModel.put("name", email);
-        identityModel.put("type", "Contractor");
+        identityModel.put("employeeType", "Contractor");
         workflow.put("identityName", email);
 
         return identityModel;

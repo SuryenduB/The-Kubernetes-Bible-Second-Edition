@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Workflow created="1754583236634" explicitTransitions="true" id="0a2a036a988412618198854f801a0281" modified="1754656874954" name="LCM Create Contractor" significantModified="1754656874954" type="IdentityLifecycle">
+  <Step icon="Default" name="Generic Step" posX="228" posY="24">
+    <Transition to="Stop"/>
+  </Step>
+  <Step icon="Start" name="Start" posX="61" posY="30">
+    <Transition to="Generic Step"/>
+  </Step>
+  <Step icon="Stop" name="Stop" posX="413" posY="30"/>
+</Workflow>
