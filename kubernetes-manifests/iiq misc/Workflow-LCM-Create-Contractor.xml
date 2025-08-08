@@ -51,7 +51,7 @@
                 </Source>
             </Script>
         </Variable>
-        <Variable editable="true" initializer="false" name="optimisticProvisioning">
+        <Variable editable="true" initializer="true" name="optimisticProvisioning">
             <Description>Set to true to enable optimistic provisioning. This will
                 cause
                 changes to the entitlements compiled from role assignments to be
@@ -205,7 +205,7 @@
             <Transition to="Initialize" />
         </Step>
 
-        <Step icon="Task" name="Initialize" posX="428" posY="16">
+        <Step icon="Task" name="Initialize" posX="428" posY="16" wait="-1">
             <Arg name="formTemplate" value="Identity Update" />
             <Arg name="identityName" />
             <Arg name="enableRetryRequest" />
