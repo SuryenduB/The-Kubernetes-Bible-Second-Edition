@@ -4,7 +4,6 @@
   <Variable name="plan"/>
   <Variable name="identityRequestId"/>
   <Variable name="identityModel"/>
-  <Variable name="launcher"/>
   <Variable name="identityName"/>
   <Variable initializer="string:true" name="transient"/>
   <Variable initializer="true" name="trace"/>
@@ -57,7 +56,11 @@
     <Script>
       <Source>
         String email = (String)identityModel.get("EmailAddress");
+        String displayName = (String)identityModel.get("displayName");
+
         System.out.println("Setting the identityName from EmailAddress: " + email);
+        System.out.println("Setting the identityName from DisplayName: " + displayName);
+
 
         if (email != null) {
         email = email.trim();
@@ -71,14 +74,13 @@
         System.out.println("Email was null or empty, setting default: " + email);
         }
 
-        // Set the identityName variable
-        //identityModel.put("identityName", email);
-        //identityModel.put("identityDisplayName", email);
-        firstName = DisplayName.split(" ")[0];
-        lastName = DisplayName.split(" ")[1];
+        
+        firstName = displayName.split(" ")[0];
+        lastName = displayName.split(" ")[1];
         identityModel.put("firstname", firstName);
         identityModel.put("lastname", lastName);
         identityModel.put("name", email);
+        identityModel.put("type", "Contractor");
         workflow.put("identityName", email);
 
         return identityModel;
