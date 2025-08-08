@@ -17,13 +17,14 @@
           </Script>
         </value>
       </entry>
-      <entry key="workflowName" value="Azure AD B2B Provisioning"/>
-      <entry key="workflowSuccess" value="Workflow Successfully launched"/>
+      <entry key="workflowName" value="Azure AD B2B Provisioning" />
+      <entry key="workflowSuccess" value="Workflow Successfully launched" />
     </Map>
   </Attributes>
-  <QuickLinkOptions allowOther="true" created="1754236398388" id="0a2a018d986f17cc819870a32b340245">
+  <QuickLinkOptions allowSelf="true" created="1754236398388" id="0a2a018d986f17cc819870a32b340245">
     <DynamicScopeRef>
-      <Reference class="sailpoint.object.DynamicScope" id="0a2a037496e5102c8196e510953c0148" name="Everyone"/>
+      <Reference class="sailpoint.object.DynamicScope" id="0a2a037496e5102c8196e510953c0148"
+        name="Everyone" />
     </DynamicScopeRef>
   </QuickLinkOptions>
 </QuickLink>
