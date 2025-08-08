@@ -1,0 +1,845 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE Application PUBLIC "sailpoint.dtd" "sailpoint.dtd">
+<Application connector="sailpoint.connector.AzureADConnector" created="1754223975134" featuresString="AUTHENTICATE, PROVISIONING, SYNC_PROVISIONING, PASSWORD, ENABLE, SEARCH" icon="internetIcon" id="0a2a018d986f17cc81986fe59add00c5" modified="1754666635761" name="Test Tenant Guest User" profileClass="" significantModified="1754666635761" type="Azure Active Directory">
+  <Attributes>
+    <Map>
+      <entry key="IQServiceConfiguration">
+        <value>
+          <List>
+            <Map>
+              <entry key="IQServiceHost"/>
+              <entry key="IQServicePassword"/>
+              <entry key="IQServicePort"/>
+              <entry key="IQServiceUser"/>
+              <entry key="useTLSForIQService">
+                <value>
+                  <Boolean></Boolean>
+                </value>
+              </entry>
+            </Map>
+          </List>
+        </value>
+      </entry>
+      <entry key="afterProvisioningRule"/>
+      <entry key="aggregateHiddenAccessPackages">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="authSearchAttributes">
+        <value>
+          <List>
+            <String>userPrincipalName</String>
+          </List>
+        </value>
+      </entry>
+      <entry key="authURL"/>
+      <entry key="azureADRolesFilter"/>
+      <entry key="azureRolesFilter"/>
+      <entry key="beforeProvisioningRule"/>
+      <entry key="channelFilter"/>
+      <entry key="clientCertAuthEnabled" value="true"/>
+      <entry key="clientID" value="1874f9c3-38d0-437f-815e-8aecfde1d169"/>
+      <entry key="clientSecret" value="1:ACP:Af1F7k2+9D7MEGwiyn9nUStCpWKCbFIBvy9Db3wJtHFh/8C9gQ+2dgNIklucz8HohAConkmPYAGjnfRnMMYmtA=="/>
+      <entry key="compositeDefinition"/>
+      <entry key="directoryRolesFilter"/>
+      <entry key="domainName" value="swisskronotest.onmicrosoft.com"/>
+      <entry key="enableAccessPackageManagement">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="enableMailContactGovernance">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="enablePIM">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="enableTeamsGovernance">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="enableTeamsNotifications">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="encrypted" value="clientSecret,refresh_token,clientCertificate,private_key,privateKeyPassword,exchangeUserPassword,teamsBotSecret,IQServiceConfiguration.IQServicePassword,oauth_token_info"/>
+      <entry key="exchangeUserName"/>
+      <entry key="exchangeUserPassword" value="1:ACP:WhRn6vCoZMHJ+NohJ3yV4Yvqf1MJIyg+wuMR/1f7OdQ="/>
+      <entry key="exoAuthenticationType" value="CERTIFICATE_BASED_AUTHENTICATION"/>
+      <entry key="exoCertificateThumbprint"/>
+      <entry key="grantType" value="CLIENT_CREDENTIALS"/>
+      <entry key="groupFilters"/>
+      <entry key="isB2CTenant">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="isCaeEnabled">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="mailContactFilter"/>
+      <entry key="manageExchangeOnline">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="manageO365Groups">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="nativeChangeDetectionAttributeScope" value="entitlements"/>
+      <entry key="nativeChangeDetectionAttributes"/>
+      <entry key="nativeChangeDetectionEnabled">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="nativeChangeDetectionOperations"/>
+      <entry key="pageSize"/>
+      <entry key="password" value="1:ACP:v8enrAlTkWbIBIMNDXuk9XFq4vMabIL9HEFUgkKJx4U="/>
+      <entry key="privateKeyPassword" value="1:ACP:Vhpw57P4tWkTcVKO7JAE12JM0S18ftpbtNv0EofBsjc="/>
+      <entry key="private_key_to_update"/>
+      <entry key="refresh_token" value="1:ACP:T8m45jo91E4ijXgSCVnUufgmRgZKfssqBmT/PoMQbAs="/>
+      <entry key="samlRequestBody"/>
+      <entry key="supportsAdvancedAccountFilter">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="supportsAdvancedGroupFilter">
+        <value>
+          <Boolean></Boolean>
+        </value>
+      </entry>
+      <entry key="sysDescriptions">
+        <value>
+          <Map>
+            <entry key="en_US"/>
+          </Map>
+        </value>
+      </entry>
+      <entry key="teamsBotSecret" value="1:ACP:DmeclFjfzr0BgCTq6eVdPXEnzoclZzEz+09bZnxDe4U="/>
+      <entry key="teamsBotUrl"/>
+      <entry key="templateApplication" value="Azure Active Directory"/>
+      <entry key="tenantId"/>
+      <entry key="useMSGraphAPI">
+        <value>
+          <Boolean>true</Boolean>
+        </value>
+      </entry>
+      <entry key="userFilters" value="UserType eq &apos;Guest&apos;"/>
+      <entry key="username"/>
+    </Map>
+  </Attributes>
+  <Owner>
+    <Reference class="sailpoint.object.Identity" id="0a2a037496e5102c8196e5108a3f00fd" name="spadmin"/>
+  </Owner>
+  <ProvisioningForms>
+    <Form name="Create account" objectType="account" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="Create account"/>
+        </Map>
+      </Attributes>
+      <Section label="Account" name="Account">
+        <Field displayName="con_prov_policy_azure_ad_accounttype" name="accountType" section="Account" type="string">
+          <AllowedValuesDefinition>
+            <Value>
+              <List>
+                <String>User</String>
+                <String>Guest User B2B</String>
+                <String>Local User B2C</String>
+              </List>
+            </Value>
+          </AllowedValuesDefinition>
+          <Attributes>
+            <Map>
+              <entry key="hidden">
+                <value>
+                  <Script>
+                    <Source>
+                                   import sailpoint.object.Form;
+                      
+                                   Object objType = field.getValue();
+                                   
+                                   String requiredAttribute = "|userPrincipalName|displayName|mailNickname|password|";
+                                   String booleanAttr = "|sendInvitationMessage|forceChangePasswordNextLogin|accountEnabled|enableLocalAccount|b2cForceChangePasswordNextLogin|enableSocialAccount|";
+                                   String locationAttr = "|invitedUserUsageLocation|usageLocation|";
+                                   
+                                   Form.Section section = null ;
+                                   
+                                   for(Form.Section s : form.getSections()) {
+                               
+                                      if (s != null &amp;&amp; !(objType.equals(s.getName()) ) &amp;&amp; !("Account".equals(s.getName())) ) {
+                                        form.remove(s);
+                                     
+                                      }
+                                   }
+                                   
+                                   
+                                   switch(objType) {
+                                   
+                                      case "Guest User B2B"   : section = form.getSection("Guest User B2B");
+                                                                requiredAttribute = "|invitedUserEmailAddress|inviteRedirectUrl|sendInvitationMessage|";
+                                                                break;
+                                      case "User"             : section = form.getSection("User");
+                                                                requiredAttribute = "|userPrincipalName|displayName|mailNickname|password|";
+                                                                break;
+                                      case "Local User B2C"   : section = form.getSection("Local User B2C");
+                                                                requiredAttribute = "|signInNameType|signInNameValue|localAccountDisplayName|b2cPassword|";
+                                   }
+                                   
+                                   
+                                   if (section != null &amp;&amp; section.getFields() != null ) {
+                                        
+                                        for (Object field : section.getFields()) {
+                                             String name = field.getName();
+                                             if (name != null &amp;&amp; name.indexOf(":") > 0 ) {
+                                                 String[] nameKeys = name.split(":");
+                                                 
+                                                 if( !(nameKeys.length > 2) ) {
+                                                    continue;
+                                                 }
+                                                 
+                                                 if ( requiredAttribute.contains("|" + nameKeys[2] + "|") ) {
+                                                     field.setRequired(true);
+                                                 }
+                                                 
+                                                 if ( booleanAttr.contains("|" + nameKeys[2] + "|") ) {
+                                                     field.setValue("true");
+                                                 }
+                                                 
+                                                 if ( locationAttr.contains("|" + nameKeys[2] + "|") ) {
+                                                     field.setValue("United States;US");
+                                                 }
+                                             }              
+                                          }
+                                   
+                                   }
+                                   
+                                   return false;
+                               </Source>
+                  </Script>
+                </value>
+              </entry>
+            </Map>
+          </Attributes>
+        </Field>
+      </Section>
+      <Section label="User" name="User">
+        <Field displayName="con_prov_policy_azure_ad_userPrincipalName" helpKey="help_con_prov_policy_azure_ad_userPrincipalName" name="userPrincipalName" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_password" helpKey="help_con_prov_policy_azure_ad_password" name="password" reviewRequired="true" section="User" type="secret"/>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_displayName" name="displayName" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_mailNickname" name="mailNickname" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_accountEnabled" helpKey="help_con_prov_policy_azure_ad_accountEnabled" name="accountEnabled" reviewRequired="true" section="User" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_forceChangePassword" helpKey="help_con_prov_policy_azure_ad_forceChangePassword" name="forceChangePasswordNextLogin" reviewRequired="true" section="User" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_department" helpKey="help_con_prov_policy_azure_ad_department" name="department" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_jobTitle" helpKey="help_con_prov_policy_azure_ad_jobTitle" name="jobTitle" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_isFederatedDomain" helpKey="help_con_prov_policy_azure_ad_isFederatedDomain" name="isFederatedDomain" reviewRequired="true" section="User" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_immutableId" helpKey="help_con_prov_policy_azure_ad_immutableId" name="immutableId" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_passwordPolicies" helpKey="help_con_prov_policy_azure_ad_passwordPolicies" name="passwordPolicies" reviewRequired="true" section="User" type="string">
+          <AllowedValuesDefinition>
+            <Value>
+              <List>
+                <String>DisablePasswordExpiration</String>
+                <String>DisableStrongPassword</String>
+                <String>DisablePasswordExpiration, DisableStrongPassword</String>
+              </List>
+            </Value>
+          </AllowedValuesDefinition>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_otherMails" helpKey="help_con_prov_policy_azure_ad_otherMails" multi="true" name="otherMails" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_givenName" helpKey="help_con_prov_policy_azure_ad_givenName" name="givenName" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_surname" helpKey="help_con_prov_policy_azure_ad_surname" name="surname" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_usageLocation" helpKey="help_con_prov_policy_azure_ad_usageLocation" name="usageLocation" reviewRequired="true" section="User" type="string" value="United States;US">
+          <AllowedValuesDefinition>
+            <Value>
+              <List>
+                <String>Australia;AU</String>
+                <String>Canada;CA</String>
+                <String>France;FR</String>
+                <String>Germany;DE</String>
+                <String>Greece;GR</String>
+                <String>Hong Kong;HK</String>
+                <String>Hungary;HU</String>
+                <String>Iceland;IS</String>
+                <String>India;IN</String>
+                <String>Israel;IL</String>
+                <String>Italy;IT</String>
+                <String>NetherLands;NL</String>
+                <String>New Zealand;NZ</String>
+                <String>Peru;PE</String>
+                <String>Philippines;PH</String>
+                <String>Poland;PL</String>
+                <String>Russian federation;RU</String>
+                <String>South Africa;ZA</String>
+                <String>Switzerland;CH</String>
+                <String>Ukrain;UA</String>
+                <String>United Kingdom;GB</String>
+                <String>United States;US</String>
+              </List>
+            </Value>
+          </AllowedValuesDefinition>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_country" helpKey="help_con_prov_policy_azure_ad_country" name="country" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_state" helpKey="help_con_prov_policy_azure_ad_state" name="state" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_city" helpKey="help_con_prov_policy_azure_ad_city" name="city" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_streetAddress" helpKey="help_con_prov_policy_azure_ad_streetAddress" name="streetAddress" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_postalCode" helpKey="help_con_prov_policy_azure_ad_postalCode" name="postalCode" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_physicalDeliveryOfficeName" helpKey="help_con_prov_policy_azure_ad_physicalDeliveryOfficeName" name="physicalDeliveryOfficeName" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_preferredLanguage" helpKey="help_con_prov_policy_azure_ad_preferredLanguage" name="preferredLanguage" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_telephoneNumber" helpKey="help_con_prov_policy_azure_ad_telephoneNumber" name="telephoneNumber" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mobile" helpKey="help_con_prov_policy_azure_ad_mobile" name="mobile" reviewRequired="true" section="User" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_faxNumber" helpKey="help_con_prov_policy_azure_ad_faxNumber" name="facsimileTelephoneNumber" reviewRequired="true" section="User" type="string"/>
+      </Section>
+      <Section label="Guest User B2B" name="Guest User B2B">
+        <Field displayName="con_prov_policy_azure_ad_invitedUserEmailAddress" helpKey="help_con_prov_policy_azure_ad_invitedUserEmailAddress" name="invitedUserEmailAddress" section="Guest User B2B" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_inviteRedirectUrl" helpKey="help_con_prov_policy_azure_ad_inviteRedirectUrl" name="inviteRedirectUrl" section="Guest User B2B" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_invitedUserDisplayName" name="invitedUserDisplayName" section="Guest User B2B" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_sendInvitationMessage" helpKey="help_con_prov_policy_azure_ad_sendInvitationMessage" name="sendInvitationMessage" section="Guest User B2B" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_customizedMessageBody" helpKey="help_con_prov_policy_azure_ad_customizedMessageBody" name="customizedMessageBody" section="Guest User B2B" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_usageLocation" helpKey="help_con_prov_policy_azure_ad_invitedUserUsageLocation" name="invitedUserUsageLocation" section="Guest User B2B" type="string" value="United States;US">
+          <AllowedValuesDefinition>
+            <Value>
+              <List>
+                <String>Australia;AU</String>
+                <String>Canada;CA</String>
+                <String>France;FR</String>
+                <String>Germany;DE</String>
+                <String>Greece;GR</String>
+                <String>Hong Kong;HK</String>
+                <String>Hungary;HU</String>
+                <String>Iceland;IS</String>
+                <String>India;IN</String>
+                <String>Israel;IL</String>
+                <String>Italy;IT</String>
+                <String>NetherLands;NL</String>
+                <String>New Zealand;NZ</String>
+                <String>Peru;PE</String>
+                <String>Philippines;PH</String>
+                <String>Poland;PL</String>
+                <String>Russian federation;RU</String>
+                <String>South Africa;ZA</String>
+                <String>Switzerland;CH</String>
+                <String>Ukrain;UA</String>
+                <String>United Kingdom;GB</String>
+                <String>United States;US</String>
+              </List>
+            </Value>
+          </AllowedValuesDefinition>
+        </Field>
+      </Section>
+      <Section label="Local User B2C" name="Local User B2C">
+        <Field displayName="con_prov_policy_azure_ad_signInNameType" helpKey="help_con_prov_policy_azure_ad_signInNameType" name="signInNameType" reviewRequired="true" section="Local User B2C" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_signInNameValue" helpKey="help_con_prov_policy_azure_ad_signInNameValue" name="signInNameValue" reviewRequired="true" section="Local User B2C" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_displayName" name="localAccountDisplayName" reviewRequired="true" section="Local User B2C" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_accountEnabled" helpKey="help_con_prov_policy_azure_ad_accountEnabled" name="enableLocalAccount" reviewRequired="true" section="Local User B2C" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_password" helpKey="help_con_prov_policy_azure_ad_password" name="b2cPassword" reviewRequired="true" section="Local User B2C" type="secret"/>
+        <Field displayName="con_prov_policy_azure_ad_forceChangePassword" helpKey="help_con_prov_policy_azure_ad_forceChangePassword" name="b2cForceChangePasswordNextLogin" reviewRequired="true" section="Local User B2C" type="boolean"/>
+      </Section>
+    </Form>
+    <Form name="Create group" objectType="group" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="Create group"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_groupDisplayName" name="displayName" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_groupMailNickname" name="mailNickname" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_description" helpKey="help_con_prov_policy_azure_ad_description" name="description" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_groupType" helpKey="help_con_prov_policy_azure_ad_groupType" name="groupTypes" required="true" reviewRequired="true" type="string">
+          <AllowedValuesDefinition>
+            <Value>
+              <List>
+                <String>Security</String>
+                <String>Office365</String>
+                <String>DistributionList</String>
+                <String>MailEnabledSecurity</String>
+              </List>
+            </Value>
+          </AllowedValuesDefinition>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_teamsEnabled" helpKey="help_con_prov_policy_azure_ad_teamsEnabled" name="teamsEnabled" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_addOwnerAsMember" helpKey="help_con_prov_policy_azure_ad_addOwnerAsMember" name="addOwnerAsMember" reviewRequired="true" type="boolean" value="true"/>
+        <Field displayName="con_prov_policy_azure_ad_groupOwners" helpKey="help_con_prov_policy_azure_ad_groupOwners" multi="true" name="owners" type="string"/>
+      </Section>
+    </Form>
+    <Form name="Update group" objectType="group" type="Update">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="Update group"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_azure_ad_displayName" helpKey="help_con_prov_policy_azure_ad_groupDisplayName" name="displayName" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailNickname" helpKey="help_con_prov_policy_azure_ad_groupMailNickname" name="mailNickname" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_description" helpKey="help_con_prov_policy_azure_ad_description" name="description" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_groupType" helpKey="help_con_prov_policy_azure_ad_groupType" multi="true" name="groupTypes" type="string">
+          <Attributes>
+            <Map>
+              <entry key="readOnly" value="true"/>
+            </Map>
+          </Attributes>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_groupOwners" helpKey="help_con_prov_policy_azure_ad_groupOwners" multi="true" name="owners" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_mailEnabled" helpKey="help_con_prov_policy_azure_ad_mailEnabled" multi="true" name="mailEnabled" type="boolean">
+          <Attributes>
+            <Map>
+              <entry key="readOnly" value="true"/>
+            </Map>
+          </Attributes>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_securityEnabled" helpKey="help_con_prov_policy_azure_ad_securityEnabled" name="securityEnabled" type="boolean">
+          <Attributes>
+            <Map>
+              <entry key="readOnly" value="true"/>
+            </Map>
+          </Attributes>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_teamsEnabled" helpKey="help_con_prov_policy_azure_ad_teamsEnabled" name="teamsEnabled" type="boolean"/>
+        <Field displayName="con_prov_policy_azure_ad_addOwnerAsMember" helpKey="help_con_prov_policy_azure_ad_addOwnerAsMember" name="addOwnerAsMember" reviewRequired="true" type="boolean" value="true"/>
+      </Section>
+    </Form>
+    <Form name="Create Channel" objectType="channel" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="Create Channel"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_azure_ad_channel_team_email" helpKey="help_con_prov_policy_azure_ad_channel_team_email" name="teamEmail" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_displayname" helpKey="help_con_prov_policy_azure_ad_channel_displayname" name="displayName" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_description" helpKey="help_con_prov_policy_azure_ad_channel_description" name="description" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_channel_membership_type" helpKey="help_con_prov_policy_azure_ad_channel_membership_type" name="membershipType" reviewRequired="true" type="string">
+          <AllowedValuesDefinition>
+            <Value>
+              <List>
+                <String>Standard</String>
+                <String>Private</String>
+              </List>
+            </Value>
+          </AllowedValuesDefinition>
+        </Field>
+        <Field displayName="con_prov_policy_azure_ad_channel_owners" helpKey="help_con_prov_policy_azure_ad_channel_owners" multi="true" name="owners" reviewRequired="true" type="string"/>
+      </Section>
+    </Form>
+    <Form name="Create Role" objectType="role" type="Create">
+      <Attributes>
+        <Map>
+          <entry key="pageTitle" value="Create Role"/>
+        </Map>
+      </Attributes>
+      <Section>
+        <Field displayName="con_prov_policy_azure_ad_role_displayName" helpKey="help_con_prov_policy_azure_ad_role_displayName" name="displayName" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_role_description" helpKey="help_con_prov_policy_azure_ad_role_description" name="description" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_rolePermissions" helpKey="help_con_prov_policy_azure_ad_rolePermissions" multi="true" name="rolePermissions" required="true" reviewRequired="true" type="string"/>
+        <Field displayName="con_prov_policy_azure_ad_role_isEnabled" helpKey="help_con_prov_policy_azure_ad_role_isEnabled" name="isEnabled" type="boolean" value="true"/>
+      </Section>
+    </Form>
+  </ProvisioningForms>
+  <Schemas>
+    <Schema created="1754223975137" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae000c7" identityAttribute="objectId" instanceAttribute="" modified="1754666499739" nativeObjectType="account" objectType="account" significantModified="1754666499739">
+      <AttributeDefinition name="accountEnabled" type="boolean">
+        <Description>True if the account is enabled; otherwise, false</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="assignedLicenses" type="string">
+        <Description>The licenses that are assigned to the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="assignedPlans" schemaObjectType="servicePlan" type="string">
+        <Description>The plans that are assigned to the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="city" type="string">
+        <Description>The city in which the user is located</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="country" type="string">
+        <Description>The country/region in which the user is located</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="department" type="string">
+        <Description>The name for the department in which the user works</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="dirSyncEnabled" type="string">
+        <Description>Indicates whether this object was synced from the on-premises directory</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="disabledPlans" type="string">
+        <Description>The plans that are not assigned to user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="displayName" type="string">
+        <Description>The name displayed in the address book for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="facsimileTelephoneNumber" type="string">
+        <Description>The telephone number of the user's business fax machine</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="givenName" type="string">
+        <Description>First name of user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="groups" schemaObjectType="group" type="string">
+        <Description>Groups assigned to a user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="appRoleAssignments" schemaObjectType="applicationRole" type="string">
+        <Description>Application roles assigned to a user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="immutableId" type="string">
+        <Description>This property is used to associate an on-premises ActiveDirectory user account to their Microsoft Entra ID user object</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="jobTitle" type="string">
+        <Description>The user's job title</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="lastDirSyncTime" type="string">
+        <Description>Indicates the last time at which the object was synced with the on-premises directory</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mail" type="string">
+        <Description>The SMTP address for the user, for example, "john@contoso.onmicrosoft.com"</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mailNickname" type="string">
+        <Description>The mail alias for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="signInNames" type="string">
+        <Description>Specifies the collection of sign-in names for a local account in an Azure Active Directory B2C tenant</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="userIdentities" type="string">
+        <Description>Specifies the collection of userIdentities for a social user account in an Azure Active Directory B2C tenant</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="creationType" type="string">
+        <Description>Indicates whether the user account is a local account for an Azure Active Directory B2C tenant</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mobile" type="string">
+        <Description>The primary cellular telephone number for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="objectId" type="string">
+        <Description>The unique identifier for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="onPremisesSecurityIdentifier" type="string">
+        <Description>Contains the on-premises security identifier (SID) for the user that was synchronized from on-premises to the cloud</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="otherMails" type="string">
+        <Description>A list of additional email addresses for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="passwordPolicies" type="string">
+        <Description>Specifies password policies for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="physicalDeliveryOfficeName" type="string">
+        <Description>The office location in the user's place of business</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="postalCode" type="string">
+        <Description>The ZIP OR postal code for the user's postal address</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="preferredLanguage" type="string">
+        <Description>Preferred written or spoken language for a person</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="proxyAddresses" type="string">
+        <Description>Proxy addresses, for example: ["SMTP: bob@contoso.com", "smtp: bob@sales.contoso.com"]</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="roles" schemaObjectType="role" type="string">
+        <Description>Administrator Role assigned to user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="sipProxyAddress" type="string">
+        <Description>Specifies the voice over IP (VOIP) session initiation protocol (SIP) address for the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="state" type="string">
+        <Description>The state or province in the user's address</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="streetAddress" type="string">
+        <Description>The street address of the user's place of business</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="surname" type="string">
+        <Description>Last name of the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="telephoneNumber" type="string">
+        <Description>The primary telephone number of the user's place of business</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="usageLocation" type="string">
+        <Description>A two letter country code indicating usage location</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="userPrincipalName" type="string">
+        <Description>The user principal name (UPN) of the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="userType" type="string">
+        <Description>Type of the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="manager" type="string">
+        <Description>Manager of the user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="riskLevel" type="string">
+        <Description>Level of the detected risky user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="riskState" type="string">
+        <Description>State of the user's risk</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="riskDetail" type="string">
+        <Description>Details of the detected risk</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="riskLastUpdatedDateTime" type="string">
+        <Description>The date and time that the risky user was last updated</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="channels" schemaObjectType="channel" type="string">
+        <Description>List of channel membership of a user</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="azureEligibleRoles" schemaObjectType="azureEligibleRole" type="string">
+        <Description>List of Azure Eligible Roles</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="azureActiveRoles" schemaObjectType="azureActiveRole" type="string">
+        <Description>List of Azure Active Roles</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="azureADEligibleRoles" schemaObjectType="azureADEligibleRole" type="string">
+        <Description>List of Microsoft Entra ID Eligible Roles</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="azureADActiveRoles" schemaObjectType="azureADActiveRole" type="string">
+        <Description>List of Microsoft Entra ID Active Roles</Description>
+      </AttributeDefinition>
+      <AttributeDefinition entitlement="true" managed="true" multi="true" name="accessPackages" schemaObjectType="accessPackage" type="string">
+        <Description>List of Access Packages assigned to the user</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975137" descriptionAttribute="" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae100c8" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="azureADEligibleRole" objectType="azureADEligibleRole" significantModified="1754666499739">
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Eligible Role Display Name</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>Microsoft Entra ID Eligible Role ID</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isBuiltIn" type="string">
+        <Description>Indicates whether role is custom or built-in</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="roleName" type="string">
+        <Description>Name of the role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="scope" type="string">
+        <Description>Scope at which role can be assigned</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975137" descriptionAttribute="displayName" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae100c9" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="applicationRole" objectType="applicationRole" significantModified="1754666499739">
+      <AttributeDefinition name="displayName" type="string">
+        <Description>The display name for the application role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="spn_description" type="string">
+        <Description>Description of service principal</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="appRole_description" type="string">
+        <Description>Description of application role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>The unique identifier for the application role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="allowedMemberTypes" type="string">
+        <Description>Allowed member types for application role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isEnabled" type="string">
+        <Description>States whether the application role is enabled or not</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="value" type="string">
+        <Description>Value of the application role</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975137" descriptionAttribute="" displayAttribute="displayName" featuresString="PROVISIONING" id="0a2a018d986f17cc81986fe59ae100ca" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="role" objectType="role" significantModified="1754666499739">
+      <AttributeDefinition name="description" type="string">
+        <Description>The description for the Microsoft Entra ID role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="displayName" type="string">
+        <Description>The display name for the Microsoft Entra ID role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>The unique identifier for the Microsoft Entra ID role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isBuiltIn" type="boolean">
+        <Description>Flag indicating whether the role is part of the default set included in Microsoft Entra ID or a custom role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isEnabled" type="boolean">
+        <Description>Flag indicating whether the role is enabled for assignment. If false the role is not available for assignment</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="rolePermissions" type="string">
+        <Description>List of permissions included in the role</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975137" descriptionAttribute="displayName" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae100cb" identityAttribute="objectId" instanceAttribute="" modified="1754666499739" nativeObjectType="servicePlan" objectType="servicePlan" significantModified="1754666499739">
+      <AttributeDefinition name="objectId" type="string">
+        <Description>Unique identifier for the service plan which is a combination of skuId and servicePlanId separated by colon (:).</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="skuId" type="string">
+        <Description>Unique identifier (GUID) for the License Pack.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="skuPartNumber" type="string">
+        <Description>The SKU part number of the License Pack. For example, AAD_PREMIUM.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="appliesTo" type="string">
+        <Description>Object types to which the license pack can be assigned. For example: User, Company.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Display name of service plan which is a combination of skuPartNumber and servicePlanName separated by colon (:).</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="servicePlanId" type="string">
+        <Description>Unique identifier of the service plan.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="servicePlanName" type="string">
+        <Description>The name of the service plan.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="provisioningStatus" type="string">
+        <Description>The provisioning status of the service plan.</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975138" descriptionAttribute="" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae200cc" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="azureADActiveRole" objectType="azureADActiveRole" significantModified="1754666499739">
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Microsoft Entra ID Role Display Name</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>Microsoft Entra ID Active Role ID</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isBuiltIn" type="string">
+        <Description>Indicates whether role is custom or built-in</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="roleName" type="string">
+        <Description>Name of the role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="scope" type="string">
+        <Description>Scope at which role can be assigned</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975138" descriptionAttribute="" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae200cd" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="accessPackage" objectType="accessPackage" significantModified="1754666499739">
+      <AttributeDefinition name="id" type="string">
+        <Description>Unique identifier of the Access Package.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Display name made by combining Access Package name and Policy name.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="description" type="string">
+        <Description>Description of the Access Package.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="policyDescription" type="string">
+        <Description>Description of the Access Package's policy.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="expiration" type="string">
+        <Description>Expiration time for the Access Package's policy.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isHidden" type="boolean">
+        <Description>Indicates whether the Access Package is hidden from end users on My Access portal.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="catalog" type="string">
+        <Description>Container where the Access Package resides.</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975138" descriptionAttribute="description" displayAttribute="displayName" featuresString="PROVISIONING" id="0a2a018d986f17cc81986fe59ae200ce" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="channel" objectType="channel" significantModified="1754666499739">
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Display name of the channel</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="description" type="string">
+        <Description>Decription of the channel</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>The channel's unique identifier</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="email" type="string">
+        <Description>Email address of the channel</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="webUrl" type="string">
+        <Description>Hyperlink of the channel</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="membershipType" type="string">
+        <Description>Type of the channel</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="owners" type="string">
+        <Description>The list of owners of the private channel</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="createdDateTime" type="string">
+        <Description>Creation timestamp of the channel </Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isFavoriteByDefault" type="boolean">
+        <Description>Indicates whether the channel should automatically be marked 'favorite' for all members of the team</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="teamEmail" type="string">
+        <Description>The email address of the parent team</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975138" descriptionAttribute="" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae200cf" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="azureActiveRole" objectType="azureActiveRole" significantModified="1754666499739">
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Active Role Display Name</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>Azure Active Role ID</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isBuiltIn" type="string">
+        <Description>Indicates whether role is custom or built-in</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="roleName" type="string">
+        <Description>Name of the role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="scope" type="string">
+        <Description>Scope at which role can be assigned</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema aggregationType="group" created="1754223975138" descriptionAttribute="" displayAttribute="displayName" id="0a2a018d986f17cc81986fe59ae200d0" identityAttribute="id" instanceAttribute="" modified="1754666499739" nativeObjectType="azureEligibleRole" objectType="azureEligibleRole" significantModified="1754666499739">
+      <AttributeDefinition name="displayName" type="string">
+        <Description>Eligible Role Display Name</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="id" type="string">
+        <Description>Azure Eligible Role ID</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="isBuiltIn" type="string">
+        <Description>Indicates whether role is custom or built-in</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="roleName" type="string">
+        <Description>Name of the role</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="scope" type="string">
+        <Description>Scope at which role can be assigned</Description>
+      </AttributeDefinition>
+    </Schema>
+    <Schema cloudAccessType="group" created="1754223975138" descriptionAttribute="description" displayAttribute="displayName" featuresString="PROVISIONING" hierarchyAttribute="memberOf" id="0a2a018d986f17cc81986fe59ae200d1" identityAttribute="objectId" instanceAttribute="" modified="1754666499739" nativeObjectType="group" objectType="group" significantModified="1754666499739">
+      <AttributeDefinition name="description" type="string">
+        <Description>Description for the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="dirSyncEnabled" type="string">
+        <Description>Indicates whether this object was synced from the on-premises directory.</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="displayName" type="string">
+        <Description>The display name for the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="groupTypes" type="string">
+        <Description>Type of the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="lastDirSyncTime" type="string">
+        <Description>Indicates the last time at which the object was synced with the on-premises directory</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mail" type="string">
+        <Description>The SMTP address for the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mailEnabled" type="string">
+        <Description>Specifies whether the group is mail-enabled</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="mailNickname" type="string">
+        <Description>The mail alias for the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="objectId" type="string">
+        <Description>Group ID</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="onPremisesSecurityIdentifier" type="string">
+        <Description>Contains the on-premises security identifier (SID) for the group that was synchronized from on-premises to the cloud</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="proxyAddresses" type="string">
+        <Description>Proxy addresses of the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="securityEnabled" type="string">
+        <Description>Specifies whether the group is a security group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition name="teamsEnabled" type="string">
+        <Description>Specifies whether teams has been enabled for the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="owners" type="string">
+        <Description>Owners of the group</Description>
+      </AttributeDefinition>
+      <AttributeDefinition multi="true" name="memberOf" type="string">
+        <Description>Group Membership</Description>
+      </AttributeDefinition>
+    </Schema>
+  </Schemas>
+  <ApplicationScorecard created="1754223975134" id="0a2a018d986f17cc81986fe59ade00c6" modified="1754666499739" significantModified="1754666499739"/>
+</Application>
