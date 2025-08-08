@@ -79,6 +79,7 @@
         lastName = displayName.split(" ")[1];
         identityModel.put("firstname", firstName);
         identityModel.put("lastname", lastName);
+        identityModel.put("identityName", email);
         identityModel.put("name", email);
         identityModel.put("employeeType", "Contractor");
         workflow.put("identityName", email);
