@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE ObjectConfig PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<ObjectConfig created="1747599788479" id="0a2a037496e5102c8196e51089bf00fb" modified="1753630666143" name="Identity" significantModified="1753630666143">
+<ObjectConfig created="1747599788479" id="0a2a037496e5102c8196e51089bf00fb" modified="1753657225076" name="Identity" significantModified="1753657225076">
   <Attributes>
     <Map>
       <entry key="defaultIdentityType">
@@ -68,13 +68,6 @@
   <ObjectAttribute displayName="att_administrator" name="administrator" standard="true" type="sailpoint.object.Identity"/>
   <ObjectAttribute displayName="Business unit" editMode="ReadOnly" name="Business unit" type="string"/>
   <ObjectAttribute displayName="Country" editMode="ReadOnly" name="Country" type="string"/>
-  <ObjectAttribute displayName="Department" editMode="ReadOnly" name="Department" type="string">
-    <AttributeSource name="department">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a015e984b110f81984ba282bc3c30" name="hr_people"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
   <ObjectAttribute displayName="att_display_name" editMode="ReadOnly" name="displayName" standard="true" type="string"/>
   <ObjectAttribute displayName="att_first_name" editMode="ReadOnly" name="firstname" standard="true" type="string">
     <AttributeSource name="first_name">
@@ -84,13 +77,6 @@
     </AttributeSource>
   </ObjectAttribute>
   <ObjectAttribute displayName="att_inactive" editMode="ReadOnly" name="inactive" standard="true" type="boolean"/>
-  <ObjectAttribute displayName="Job Title" editMode="ReadOnly" name="Job Title" type="string">
-    <AttributeSource name="job_title">
-      <ApplicationRef>
-        <Reference class="sailpoint.object.Application" id="0a2a015e984b110f81984ba282bc3c30" name="hr_people"/>
-      </ApplicationRef>
-    </AttributeSource>
-  </ObjectAttribute>
   <ObjectAttribute displayName="att_last_name" editMode="ReadOnly" name="lastname" standard="true" type="string">
     <AttributeSource name="last_name">
       <ApplicationRef>
@@ -335,4 +321,23 @@
       </AttributeTarget>
     </AttributeTargets>
   </ObjectAttribute>
+  <ObjectAttribute displayName="Job Title" editMode="ReadOnly" extendedNumber="2" groupFactory="true" identityAttributeSyncUsingWorkflow="true" name="Job Title" type="string">
+    <AttributeSource name="job_title">
+      <ApplicationRef>
+        <Reference class="sailpoint.object.Application" id="0a2a015e984b110f81984ba282bc3c30" name="hr_people"/>
+      </ApplicationRef>
+    </AttributeSource>
+  </ObjectAttribute>
+  <ObjectAttribute displayName="Department" editMode="ReadOnly" extendedNumber="3" identityAttributeSyncUsingWorkflow="true" name="Department" type="string">
+    <AttributeSource name="department">
+      <ApplicationRef>
+        <Reference class="sailpoint.object.Application" id="0a2a015e984b110f81984ba282bc3c30" name="hr_people"/>
+      </ApplicationRef>
+    </AttributeSource>
+  </ObjectAttribute>
+  <ObjectAttribute displayName="Redirect URL" editMode="ReadOnly" name="RedirectURL" type="string"/>
+  <ObjectAttribute displayName="Custom Invitation Message" editMode="ReadOnly" name="CustomInvitationMessage" type="string"/>
+  <ObjectAttribute displayName="Usage Location" editMode="ReadOnly" name="UsageLocation" type="string"/>
+  
+  
 </ObjectConfig>

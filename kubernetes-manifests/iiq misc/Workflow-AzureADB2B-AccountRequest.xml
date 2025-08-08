@@ -72,10 +72,14 @@
         }
 
         // Set the identityName variable
-        identityModel.put("identityName", email);
-        identityModel.put("identityDisplayName", email);
+        //identityModel.put("identityName", email);
+        //identityModel.put("identityDisplayName", email);
+        firstName = DisplayName.split(" ")[0];
+        lastName = DisplayName.split(" ")[1];
+        identityModel.put("firstname", firstName);
+        identityModel.put("lastname", lastName);
         identityModel.put("name", email);
-        workflow.put("identityName", identityModel.get("name"));
+        workflow.put("identityName", email);
 
         return identityModel;
       </Source>

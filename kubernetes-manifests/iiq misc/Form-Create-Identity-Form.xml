@@ -107,9 +107,9 @@
                         <Script>
                             <Source>
                                 if ("Contractor".equals(status)) {
-                                    return false;
+                                return false;
                                 } else {
-                                    return true;
+                                return true;
                                 }
                             </Source>
                         </Script>
@@ -117,6 +117,21 @@
                 </entry>
             </Map>
         </Attributes>
+        // Add Field for Entra ID Guest User ExternalEmail,RedirectURL,DisplayName,UsageLocation,SendCustomInvitationMessage,CustomInvitationMessage
+        
+        <Field displayName="External Email" name="ExternalEmail" type="string" />
+        <Field displayName="Redirect URL" name="RedirectURL" type="string" />
+        <Field displayName="Display Name" name="DisplayName" type="string" />
+        <Field displayName="Usage Location" name="UsageLocation" type="string" />
+        <Field displayName="Custom Invitation Message" name="CustomInvitationMessage" type="string" />
 
-        <Field displayName="Entra ID Guest User" name="entraIdGuestUser" type="boolean" value="true" />
+    </Section>
+    
+    <Button action="back" label="Back" />
+                                        
+                
+    <Button action="next" label="Next" />
+                                        
+                
+    <Button action="cancel" label="Cancel" />
 </Form>
