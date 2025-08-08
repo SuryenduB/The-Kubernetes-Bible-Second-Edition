@@ -1,108 +1,14 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <!DOCTYPE Workflow PUBLIC "sailpoint.dtd" "sailpoint.dtd">
-<Workflow created="1754252269539" explicitTransitions="true" id="0a2a018f9870150e8198719557e201e9"
-  modified="1754599556735" name="Azure AD B2B Provisioning" significantModified="1754599556735"
-  type="IdentityLifecycle">
-  <Variable input="true" name="trigger">
-    <Description>The IdentityTrigger</Description>
-  </Variable>
-  <Variable input="true" name="event" transient="true">
-    <Description>
-      The IdentityChangeEvent. It can be used to build
-      the provisioning plan, but does not need to be
-      persisted with the case, so marked as transient.
-    </Description>
-  </Variable>
-  <Variable name="identityName">
-    <Description>The name of the identity.</Description>
-  </Variable>
-  <Variable name="identityDisplayName">
-    <Description>
-      The displayName of the identity being updated.
-      Query for this using a projection query and fall back to the name.
-    </Description>
-  </Variable>
-  <Variable name="plan">
-    <Description>The provisioning plan, which is built by a service method. </Description>
-  </Variable>
-  <Variable initializer="string:Immediate Termination" name="flow">
-    <Description>The name of the identity.</Description>
-  </Variable>
-  <Variable editable="true" initializer="false" name="optimisticProvisioning">
-    <Description>
-      Set to true to enable optimistic provisioning. This will cause
-      changes to the entitlements compiled from role assignments to be
-      applied immediately to the identity cube rather than waiting
-      for the next refresh/reaggregation after the provisioning system
-      completes the request.
-    </Description>
-  </Variable>
-  <Variable editable="true" initializer="true" name="foregroundProvisioning">
-    <Description>
-      Normally provisioning is done in a step that uses the "background"
-      option to force the workflow to be suspend and be resumed in a
-      background task thread. This prevents the browser session from
-      hanging since provision can sometimes take a long time. For demos
-      and testing it can be better to do this in the foreground so that
-      provisioning will have been performed when control is returned to the
-      user. This prevents having to run the Perform Maintenance task to
-      see the results of the request.
-    </Description>
-  </Variable>
-  <Variable initializer="spadmin" input="true" name="fallbackApprover">
-    <Description>
-      A String that specifies the name of the Identity that will
-      be assigned any approvals where the owner of the approver
-      can't be resolved. Example if the scheme is "owner" and the
-      application doesn't specify and owner.
-    </Description>
-  </Variable>
-  <Variable initializer="LCM" input="true" name="source">
-    <Description>
-      String version of sailpoint.object.Source to indicate
-      where the request originated. Defaults to LCM.
-    </Description>
-  </Variable>
-  <Variable initializer="true" input="true" name="trace">
-    <Description>
-      Used for debugging this workflow and when set to true trace
-      will be sent to stdout.
-    </Description>
-  </Variable>
-  <Variable name="project">
-    <Description>
-      ProvisioningProject which is just a compiled version of the ProvisioningPlan.
-    </Description>
-  </Variable>
-  <Variable name="identity" type="object">
-    <Description>
-      Identity object we're refreshing. This is a transient object
-      that will only be used by finishRefresh if the workflow runs to
-      completion without suspending.
-    </Description>
-  </Variable>
-  <Variable name="identityRequestId" output="true">
-    <Description>
-      The sequence id of the Identity request object which is stored in
-      the name field of the identity request.
-    </Description>
-  </Variable>
-  <Variable name="cart" output="true">
-    <Description>
-      This variable includes all ApprovalItems that are part of
-      the request process and is updated during the AfterScript
-      of the approval process by assimilating the decisions
-      and comments from the Approvals copy of the ApprovalItem.
-    </Description>
-  </Variable>
-  <Variable initializer="Normal" input="true" name="workItemPriority">
-    <Description>
-      The String version of a WorkItem.Priority. This variable is
-      used to set the priority on all of the workitems generated
-      as part of this workflow and also set on the IdentityRequest
-      object.
-    </Description>
-  </Variable>
+<Workflow created="1754252269539" explicitTransitions="true" id="0a2a018f9870150e8198719557e201e9" modified="1754643288251" name="Azure AD B2B Provisioning" significantModified="1754643288251" type="IdentityLifecycle">
+  <Variable name="plan"/>
+  <Variable name="identityRequestId"/>
+  <Variable name="identityModel"/>
+  <Variable name="launcher"/>
+  <Variable name="identityName"/>
+  <Variable initializer="string:true" name="transient"/>
+  <Variable initializer="true" name="trace"/>
+  <Variable initializer="true" name="foregroundProvisioning"/>
   <Variable name="EmailAddress">
     <Description>
       The Email Variable.
@@ -130,41 +36,21 @@
   </Variable>
   <Description>Provision Entra ID B2B Guest Account.</Description>
   <RuleLibraries>
-    <Reference class="sailpoint.object.Rule" id="0a2a037496e5102c8196e510a3a1019b"
-      name="LCM Workflow Library" />
+    <Reference class="sailpoint.object.Rule" id="0a2a037496e5102c8196e510a3a1019b" name="LCM Workflow Library"/>
   </RuleLibraries>
   <Step icon="Start" name="Start" posX="28" posY="10">
-    <Transition to="Initialize" />
-  </Step>
-  <Step action="call:getIdentityModel" name="Initialize" posX="15" posY="115"
-    resultVariable="identityModel">
-    <Description>
-      Initialize the data for the identity that we are creating.
-    </Description>
-    <Transition to="Seed identityName" />
-  </Step>
-  <Step name="Seed identityName">
-    <Script>
-      <Source>
-        Object email = identityModel.get("email");
-        if (email != null) {
-        identityModel.put("identityName", email.toString().trim());
-        }
-        return null;
-      </Source>
-    </Script>
-    <Transition to="Azure AD B2B Request" />
+    <Transition to="Azure AD B2B Request"/>
   </Step>
   <Step icon="Approval" name="Azure AD B2B Request" posX="135" posY="9">
     <Approval mode="serial" owner="ref:launcher" return="identityModel">
-      <Arg name="workItemType" value="Form" />
-      <Arg name="workItemDescription" value="Azure AD B2B Account Request Form" />
-      <Arg name="workItemForm" value="Azure AD B2B Account Request Form" />
-      <Arg name="workItemFormBasePath" value="identityModel" />
+      <Arg name="workItemType" value="Form"/>
+      <Arg name="workItemDescription" value="Azure AD B2B Account Request Form"/>
+      <Arg name="workItemForm" value="Azure AD B2B Account Request Form"/>
+      <Arg name="workItemFormBasePath" value="identityModel"/>
     </Approval>
-    <Transition to="Set identity name" />
+    <Transition to="Set identity name"/>
   </Step>
-  <Step name="Set identity name" posX="507" posY="6" resultVariable="identityName">
+  <Step name="Set identity name" posX="507" posY="6" resultVariable="identityModel">
     <Description>
       Set the identityName workflow variable based on the form input.
     </Description>
@@ -175,18 +61,26 @@
 
         if (email != null) {
         email = email.trim();
-        }else {
-        // If email is null, we can set a default
-        email = "default@example.com";
-        System.out.println("Email is null, setting default: " + email);
         }
+
+        // If email is null or empty, we can't proceed without a valid identity name.
+        // For the purpose of this workflow, we will treat an empty email as an error
+        // or handle it by providing a default value. Here we set a default.
+        if (email == null || email.isEmpty()) {
+        email = "default@example.com";
+        System.out.println("Email was null or empty, setting default: " + email);
+        }
+
         // Set the identityName variable
         identityModel.put("identityName", email);
+        identityModel.put("identityDisplayName", email);
+        identityModel.put("name", email);
+        workflow.put("identityName", identityModel.get("name"));
 
-        return email;
+        return identityModel;
       </Source>
     </Script>
-    <Transition to="Debug identityModel contents" />
+    <Transition to="Debug identityModel contents"/>
   </Step>
   <Step name="Debug identityModel contents">
     <Script>
@@ -195,49 +89,32 @@
         return null;
       </Source>
     </Script>
-    <Transition to="Build Provisioning Plan" />
+    <Transition to="Build Provisioning Plan"/>
   </Step>
-  <Step action="call:buildPlanFromIdentityModel" name="Build Provisioning Plan" posX="646" posY="6"
-    resultVariable="plan">
-    <Arg name="identityModel" value="ref:identityModel" />
+  <Step action="call:buildPlanFromIdentityModel" name="Build Provisioning Plan" posX="646" posY="6" resultVariable="plan">
+    <Arg name="identityModel" value="ref:identityModel"/>
     <Description>
       Convert the registration request into a provisioning plan.
     </Description>
-    <Transition to="Submit Registration Request" />
+    <Transition to="Submit Registration Request"/>
   </Step>
   <Step icon="Task" name="Submit Registration Request" posX="646" posY="110">
-    <Arg name="identityName" value="ref:identityName" />
-    <Arg name="identityDisplayName" value="ref:identityDisplayName" />
-    <Arg name="plan" value="ref:plan" />
-    <Arg name="flow" value="ref:flow" />
-    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning" />
-    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning" />
-    <Arg name="doRefresh" value="ref:doRefresh" />
-    <Arg name="securityOfficerName" value="ref:securityOfficerName" />
-    <Arg name="notificationScheme" value="ref:notificationScheme" />
-    <Arg name="approvalMode" value="ref:approvalMode" />
-    <Arg name="approvalScheme" value="ref:approvalScheme" />
-    <Arg name="approvingIdentities" value="ref:approvingIdentities" />
-    <Arg name="fallbackApprover" value="ref:fallbackApprover" />
-    <Arg name="approverElectronicSignature" value="ref:approverElectronicSignature" />
-    <Arg name="approvalEmailTemplate" value="ref:approvalEmailTemplate" />
-    <Arg name="userEmailTemplate" value="ref:userEmailTemplate" />
-    <Arg name="managerEmailTemplate" value="ref:managerEmailTemplate" />
-    <Arg name="securityOfficerEmailTemplate" value="ref:securityOfficerEmailTemplate" />
-    <Arg name="policyScheme" value="ref:policyScheme" />
-    <Arg name="policiesToCheck" value="ref:policiesToCheck" />
-    <Arg name="workItemPriority" value="ref:workItemPriority" />
-    <Arg name="ticketManagementApplication" value="ref:ticketManagementApplication" />
-    <Arg name="source" value="ref:source" />
-    <Arg name="trace" value="ref:trace" />
+    <Arg name="plan" value="ref:plan"/>
+    <Arg name="flow" value="ref:flow"/>
+    <Arg name="optimisticProvisioning" value="ref:optimisticProvisioning"/>
+    <Arg name="foregroundProvisioning" value="ref:foregroundProvisioning"/>
+    <Arg name="workItemPriority" value="ref:workItemPriority"/>
+    <Arg name="source" value="ref:source"/>
+    <Arg name="trace" value="ref:trace"/>
+    <Arg name="fallbackApprover" value="ref:fallbackApprover"/>
+    <Arg name="identityName" value="ref:identityName"/>
     <Description>
-      Call the LCM Create and Update workflow with the plan that was created.
+      Call the LCM Provisioning workflow with the plan that was created.
     </Description>
     <WorkflowRef>
-      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e5118d520037"
-        name="LCM Create and Update" />
+      <Reference class="sailpoint.object.Workflow" id="0a2a037496e5113d8196e5118bdd0036" name="LCM Provisioning"/>
     </WorkflowRef>
-    <Transition to="end" />
+    <Transition to="end"/>
   </Step>
-  <Step icon="Stop" name="end" posX="646" posY="217" />
+  <Step icon="Stop" name="end" posX="646" posY="217"/>
 </Workflow>
