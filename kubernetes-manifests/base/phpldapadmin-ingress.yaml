@@ -5,9 +5,7 @@ metadata:
   namespace: default
   annotations:
     kubernetes.io/ingress.class: traefik
-    traefik.ingress.kubernetes.io/router.entrypoints: web
-    traefik.ingress.kubernetes.io/service.serverstransport: phpldapadmin-transport
-    
+    traefik.ingress.kubernetes.io/router.entrypoints: web  # Use HTTP entrypoint
 spec:
   ingressClassName: traefik
   rules:
@@ -20,4 +18,4 @@ spec:
           service:
             name: phpldapadmin
             port:
-              number: 443
+              number: 80
