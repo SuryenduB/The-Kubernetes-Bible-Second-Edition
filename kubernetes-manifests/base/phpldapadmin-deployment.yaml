@@ -31,7 +31,7 @@ spec:
           tcpSocket:
             port: 443
       - image: alpine/socat
-        name: sota-sidecar
+        name: socat-sidecar
         command: ["/bin/sh", "-c"]
         args:
         - "sleep 5; socat TCP-LISTEN:8080,fork,reuseaddr OPENSSL:localhost:443,verify=0"
