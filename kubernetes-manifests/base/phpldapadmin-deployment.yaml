@@ -15,6 +15,7 @@ spec:
       labels:
         app: phpldapadmin
     spec:
+      restartPolicy: Always
       containers:
       - env:
         - name: PHPLDAPADMIN_HTTPS
@@ -42,3 +43,8 @@ spec:
         readinessProbe:
           tcpSocket:
             port: 8080
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5

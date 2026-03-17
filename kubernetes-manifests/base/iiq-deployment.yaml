@@ -40,6 +40,28 @@ spec:
       containers:
         - name: iiq
           image: 192.168.0.236:5000/sailpoint-docker:latest
+          ports:
+            - containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /identityiq
+              port: 8080
+            failureThreshold: 300
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /identityiq
+              port: 8080
+            initialDelaySeconds: 3000
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /identityiq
+              port: 8080
+            initialDelaySeconds: 3000
+            periodSeconds: 10
+            failureThreshold: 3
           env:
             - name: DATABASE_TYPE
               value: "mssql"

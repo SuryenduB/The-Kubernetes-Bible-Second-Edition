@@ -1,0 +1,138 @@
+<mxGraphModel dx="1422" dy="791" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    
+    <!-- Cluster Boundary -->
+    <mxCell id="boundary" value="K3s Homelab Cluster" style="swimlane;whiteSpace=wrap;html=1;startSize=30;dashed=1;fillColor=#f5f5f5;fontColor=#333333;strokeColor=#666666;" vertex="1" parent="1">
+      <mxGeometry x="40" y="120" width="770" height="560" as="geometry" />
+    </mxCell>
+
+    <!-- External Access -->
+    <mxCell id="users" value="Users / Clients" style="shape=mxgraph.aws4.users;whiteSpace=wrap;html=1;fillColor=#D2D3D3;strokeColor=#545B64;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;" vertex="1" parent="1">
+      <mxGeometry x="385" y="10" width="80" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Ingress Layer -->
+    <mxCell id="ingress_box" value="Ingress Layer (Traefik + MetalLB)" style="swimlane;whiteSpace=wrap;html=1;startSize=23;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="boundary">
+      <mxGeometry x="20" y="50" width="730" height="100" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="host1" value="openwebui.local" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="ingress_box">
+      <mxGeometry x="40" y="40" width="180" height="40" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="host2" value="identityiq.example.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="ingress_box">
+      <mxGeometry x="270" y="40" width="180" height="40" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="host3" value="phpldapadmin.example.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="ingress_box">
+      <mxGeometry x="500" y="40" width="180" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Control Plane -->
+    <mxCell id="master" value="&lt;b&gt;NUC (Master)&lt;/b&gt;&lt;br&gt;192.168.0.21&lt;br&gt;Intel Celeron 847E&lt;br&gt;8GB RAM | SSD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="boundary">
+      <mxGeometry x="300" y="180" width="170" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Workers Row 1 -->
+    <mxCell id="w1" value="&lt;b&gt;kubernetes1&lt;/b&gt;&lt;br&gt;.19 | i5-4590T&lt;br&gt;16GB | HDD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="boundary">
+      <mxGeometry x="20" y="300" width="130" height="70" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="w2" value="&lt;b&gt;kubernetes2&lt;/b&gt;&lt;br&gt;.20 | i3-8100&lt;br&gt;16GB | SSD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="boundary">
+      <mxGeometry x="170" y="300" width="130" height="70" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="w3" value="&lt;b&gt;kubernetes3&lt;/b&gt;&lt;br&gt;.22 | i3-6100U&lt;br&gt;16GB | SSD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="boundary">
+      <mxGeometry x="320" y="300" width="130" height="70" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="w4" value="&lt;b&gt;kubernetes4&lt;/b&gt;&lt;br&gt;.23 | i5-4590S&lt;br&gt;8GB | SSD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="boundary">
+      <mxGeometry x="470" y="300" width="130" height="70" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="w5" value="&lt;b&gt;kubernetes5&lt;/b&gt;&lt;br&gt;.24 | i3-4130&lt;br&gt;8GB | HDD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="boundary">
+      <mxGeometry x="620" y="300" width="130" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Workers Row 2 -->
+    <mxCell id="w6" value="&lt;b&gt;kubernetes6&lt;/b&gt;&lt;br&gt;.25 | i3-4350T&lt;br&gt;16GB | HDD&lt;br&gt;(100 Mbps)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="boundary">
+      <mxGeometry x="320" y="400" width="130" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Storage Layer -->
+    <mxCell id="storage_layer" value="Storage Layer" style="swimlane;whiteSpace=wrap;html=1;startSize=23;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="boundary">
+      <mxGeometry x="20" y="450" width="350" height="100" as="geometry" />
+    </mxCell>
+
+    <mxCell id="storage" value="Local Path&lt;br&gt;Provisioner" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="storage_layer">
+      <mxGeometry x="20" y="30" width="100" height="60" as="geometry" />
+    </mxCell>
+
+    <mxCell id="nas" value="&lt;b&gt;NASECDE55 (NAS)&lt;/b&gt;&lt;br&gt;192.168.0.128&lt;br&gt;1 Gbps | QNAP/Synology" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="storage_layer">
+      <mxGeometry x="150" y="30" width="180" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Management -->
+    <mxCell id="argocd" value="ArgoCD / GitOps" style="shape=module;align=left;spacingLeft=20;dashed=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="boundary">
+      <mxGeometry x="580" y="450" width="170" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Connections -->
+    <mxCell id="conn1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="users" target="ingress_box">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="conn2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary" source="ingress_box" target="master">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    
+    <mxCell id="conn3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="boundary" source="master">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="290" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="conn4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="290" as="sourcePoint" />
+        <mxPoint x="85" y="300" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="conn5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="290" as="sourcePoint" />
+        <mxPoint x="235" y="300" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="conn6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="290" as="sourcePoint" />
+        <mxPoint x="385" y="300" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="conn7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="290" as="sourcePoint" />
+        <mxPoint x="535" y="300" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    <mxCell id="conn8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="385" y="290" as="sourcePoint" />
+        <mxPoint x="685" y="300" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+    
+    <mxCell id="conn9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="boundary" source="w3" target="w6">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- NAS Connection -->
+    <mxCell id="conn_nas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#d6b656;dashed=1;" edge="1" parent="boundary" source="w6" target="nas">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
