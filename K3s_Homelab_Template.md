@@ -2,7 +2,7 @@
 
 ## 📅 Last Update Date
 
-<2026-03-17>
+<2026-03-18>
 
 ---
 
@@ -72,13 +72,13 @@ _TPC: Threads per Core | CPS: Cores per Socket | AVX: Accelerates LLM Inference_
 
 | Hostname     | Total RAM | Used RAM | Free RAM | Buff/Cache | Available RAM | Total Swap | Used Swap | Free Swap |
 |--------------|----------:|---------:|---------:|-----------:|--------------:|-----------:|----------:|----------:|
-| NUC          |    7.7 Gi |   1.4 Gi |   5.5 Gi |     1.1 Gi |        6.3 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes1  |     15 Gi |   674 Mi |    14 Gi |     685 Mi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes2  |     14 Gi |   2.6 Gi |   8.3 Gi |      4.0 Gi|         11 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes3  |     15 Gi |   2.8 Gi |   9.2 Gi |      3.8 Gi|         12 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes4  |    7.7 Gi |   1.5 Gi |   4.1 Gi |     2.3 Gi |        6.1 Gi |     0 B    |      0 B  |    0 B    |
-| kubernetes5  |    7.7 Gi |    449 Mi|    7.2 Gi|     322 Mi |        7.3 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes6  |     15 Gi |    482 Mi|     14 Gi|     329 Mi |         15 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+| NUC          |    7.7 Gi |   4.3 Gi |   3.0 Gi |     0.4 Gi |        3.4 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+| kubernetes1  |     15 Gi |   0.7 Gi |    14 Gi |     0.3 Gi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+| kubernetes2  |     14 Gi |   0.8 Gi |    13 Gi |     0.3 Gi |         13 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+| kubernetes3  |     15 Gi |   0.8 Gi |    14 Gi |     0.3 Gi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+| kubernetes4  |    7.7 Gi |   0.5 Gi |   7.0 Gi |     0.2 Gi |        7.0 Gi |     0 B    |      0 B  |    0 B    |
+| kubernetes5  |    7.7 Gi |   0.5 Gi |   7.0 Gi |     0.2 Gi |        7.0 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+| kubernetes6  |     15 Gi |   0.6 Gi |    14 Gi |     0.4 Gi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
 
 ### 💾 Storage Inventory (100% NAS-Backed)
 
@@ -125,17 +125,17 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 | kubernetes5  | worker               | 130m        | 3%      | 552 Mi         | 7%         | Ready  |
 | kubernetes6  | worker               | 166m        | 4%      | 593 Mi         | 3%         | Ready  |
 
-### 🚀 K3s Service Status
+### 🚀 K3s Service Status (Synchronized)
 
 | Hostname     | K3s Version                | Go Version   | Status   | Uptime       |
 |--------------|----------------------------|-------------|----------|--------------|
-| NUC          | **v1.34.5+k3s1**           | go1.23.6    | running  | < 1h (Upgraded) |
-| kubernetes1  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
-| kubernetes2  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
-| kubernetes3  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
-| kubernetes4  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
-| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | 22h          |
-| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | 22h          |
+| NUC          | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes1  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes2  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes3  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes4  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
 
 
 | Setting             | Value                         |
@@ -180,7 +180,7 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 | **ai**        | ollama           | 1/1 Running       | 1h    | **Migrated to NAS** (`ollama-nas-pvc`) |
 | **ai**        | openwebui        | 1/1 Running       | 1h    | **Migrated to NAS** (`webui-nas-pvc`) |
 | **argocd**    | server/redis/dex | 1/1 Running       | 79d   | Full ArgoCD Stack active    |
-| **default**   | identityiq (iiq) | **0/1 ErrImagePull**| 210d| Check image registry at 192.168.0.236 |
+| **default**   | identityiq (iiq) | **0/1 ErrImagePull**| 210d| Registry at 192.168.0.236 is OFFLINE |
 | **default**   | mysql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mysql-nas-pvc`) |
 | **default**   | mssql (db)       | 1/1 Running       | 15m   | **Migrated to NAS** (`mssql-nas-pvc`) |
 | **default**   | activemq/ldap    | 1/1 Running       | 15m   | **Migrated to NAS** (`ldap-nas-pvc`) |
@@ -235,7 +235,7 @@ All nodes below trust the local `id_ed25519` public key:
 ## ⚠️ Issues & Troubleshooting Notes
 
 - [ ] Node `kubernetes6`: Link speed at **100 Mbps**. (Action: Check cable/port)
-- [ ] **default/iiq**: Pod in `ErrImagePull`. (Action: Check image registry at 192.168.0.236)
+- [ ] **default/iiq**: Pod in `ErrImagePull`. (Root Cause: Registry at .236 is unreachable)
 - [ ] Multiple nodes: `systemd-networkd-wait-online.service` failing. (Minor)
 
 ---
