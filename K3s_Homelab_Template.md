@@ -80,20 +80,20 @@ _TPC: Threads per Core | CPS: Cores per Socket | AVX: Accelerates LLM Inference_
 | kubernetes5  |    7.7 Gi |    449 Mi|    7.2 Gi|     322 Mi |        7.3 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
 | kubernetes6  |     15 Gi |    482 Mi|     14 Gi|     329 Mi |         15 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
 
-### 💾 Storage Inventory
+### 💾 Storage Inventory (100% NAS-Backed)
 
 | Hostname     | Root Disk | Size     | Type | ROTA | Model                 | Usage (%) |
 |--------------|-----------|----------|------|------|-----------------------|----------:|
 | NUC          | sda       | 111.8G   | disk | 0    | KINGSTON SMS200S3120G | 19%       |
 | kubernetes1  | sda       | 465.8G   | disk | 1    | ST500LM000-1EJ16      | 28%       |
-| kubernetes2  | nvme0n1   | 931.5G   | disk | 0    | CT1000P3SSD8          | **83%**   |
+| kubernetes2  | nvme0n1   | 931.5G   | disk | 0    | CT1000P3SSD8          | 12% (Freed) |
 | kubernetes3  | sda       | 111.8G   | disk | 0    | KINGSTON SM2280S      | 23%       |
-| kubernetes4  | sda       | 238.5G   | disk | 0    | SAMSUNG MZ7LN256      | 45%       |
+| kubernetes4  | sda       | 238.5G   | disk | 0    | SAMSUNG MZ7LN256      | 15% (Freed) |
 | kubernetes5  | sda       | 931.5G   | disk | 1    | WDC WD10EZEX-21M      | 8%        |
 | kubernetes6  | sda       | 465.8G   | disk | 1    | TOSHIBA MQ02ABF0      | 8%        |
-| **NASECDE55**| **NAS**   | -        | nfs  | -    | **External NAS**      | -         |
+| **NASECDE55**| **NAS**   | **423G** | nfs  | -    | **Primary Storage**   | **12%**   |
 
-_ROTA: 0 = SSD, 1 = HDD_
+_ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 
 ## 📡 Network Configuration
 
@@ -117,25 +117,25 @@ _ROTA: 0 = SSD, 1 = HDD_
 
 | Node Name    | Role                 | CPU (cores) | CPU (%) | Memory (bytes) | Memory (%) | Status |
 |--------------|----------------------|------------:|--------:|---------------:|-----------:|--------|
-| nuc          | control-plane,master | 374m        | 18%     | 2359 Mi        | 29%        | Ready  |
-| kubernetes1  | worker               | 80m         | 2%      | 2847 Mi        | 17%        | Ready  |
-| kubernetes2  | worker               | 47m         | 1%      | 1298 Mi        | 8%         | Ready  |
-| kubernetes3  | worker               | 66m         | 1%      | 1025 Mi        | 6%         | Ready  |
-| kubernetes4  | worker               | 60m         | 1%      | 1522 Mi        | 19%        | Ready  |
-| kubernetes5  | worker               | 37m         | 0%      | 545 Mi         | 6%         | Ready  |
-| kubernetes6  | worker               | 41m         | 1%      | 563 Mi         | 3%         | Ready  |
+| nuc          | control-plane,master | 1971m       | 98%     | 4374 Mi        | 55%        | Ready  |
+| kubernetes1  | worker               | 151m        | 3%      | 731 Mi         | 4%         | Ready  |
+| kubernetes2  | worker               | 409m        | 10%     | 813 Mi         | 5%         | Ready  |
+| kubernetes3  | worker               | 421m        | 10%     | 864 Mi         | 5%         | Ready  |
+| kubernetes4  | worker               | 264m        | 6%      | 501 Mi         | 6%         | Ready  |
+| kubernetes5  | worker               | 130m        | 3%      | 552 Mi         | 7%         | Ready  |
+| kubernetes6  | worker               | 166m        | 4%      | 593 Mi         | 3%         | Ready  |
 
 ### 🚀 K3s Service Status
 
 | Hostname     | K3s Version                | Go Version   | Status   | Uptime       |
 |--------------|----------------------------|-------------|----------|--------------|
-| NUC          | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
+| NUC          | **v1.34.5+k3s1**           | go1.23.6    | running  | < 1h (Upgraded) |
 | kubernetes1  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
 | kubernetes2  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
 | kubernetes3  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
 | kubernetes4  | v1.32.4+k3s1 (6b330558)    | go1.23.6    | running  | 305d         |
-| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | 3h           |
-| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | 3h           |
+| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | 22h          |
+| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | 22h          |
 
 
 | Setting             | Value                         |
@@ -177,13 +177,13 @@ _ROTA: 0 = SSD, 1 = HDD_
 
 | Namespace     | App Name         | Pod Status        | Age   | Notes                       |
 |---------------|------------------|-------------------|-------|-----------------------------|
-| **ai**        | ollama           | 1/1 Running       | 10m   | **Migrated to NAS** (`ollama-nas-pvc`) |
-| **ai**        | openwebui        | 1/1 Running       | 10m   | **Migrated to NAS** (`webui-nas-pvc`) |
+| **ai**        | ollama           | 1/1 Running       | 1h    | **Migrated to NAS** (`ollama-nas-pvc`) |
+| **ai**        | openwebui        | 1/1 Running       | 1h    | **Migrated to NAS** (`webui-nas-pvc`) |
 | **argocd**    | server/redis/dex | 1/1 Running       | 79d   | Full ArgoCD Stack active    |
 | **default**   | identityiq (iiq) | **0/1 ErrImagePull**| 210d| Check image registry at 192.168.0.236 |
-| **default**   | mysql (db)       | 1/1 Running       | 222d  |                             |
-| **default**   | mssql (db)       | 1/1 Running       | 79d   |                             |
-| **default**   | activemq/ldap    | 1/1 Running       | 79d   |                             |
+| **default**   | mysql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mysql-nas-pvc`) |
+| **default**   | mssql (db)       | 1/1 Running       | 15m   | **Migrated to NAS** (`mssql-nas-pvc`) |
+| **default**   | activemq/ldap    | 1/1 Running       | 15m   | **Migrated to NAS** (`ldap-nas-pvc`) |
 | **default**   | mail (MailHog)   | 1/1 Running       | 79d   |                             |
 | **default**   | phpldapadmin     | 2/2 Running       | 210d  | High availability setup     |
 | **default**   | ssh-deployment   | 1/1 Running       | 79d   |                             |
@@ -221,19 +221,19 @@ All nodes below trust the local `id_ed25519` public key:
 
 ---
 
-## 🔁 Backup & Recovery
+## 🔁 Backup & Recovery (Triple Protection System)
 
 | Tool      | Setup Status | Command/Notes                        |
 |-----------|--------------|--------------------------------------|
-| etcdctl   | ❌ / ✅        | `k3s etcd-snapshot save`             |
-| Velero    | ❌ / ✅       | `velero backup create <name>`        |
-| S3 Backup | ❌ / ✅            | AWS/GCP/Minio bucket used            |
+| **Manual**| ✅ Active    | `sudo /usr/local/bin/k3s-backup-to-nas.sh` |
+| **Cron**  | ✅ Scheduled | Daily at 2:00 AM (to NAS)            |
+| **Pre-Shut**| ✅ Enabled | `k3s-nas-backup.service` (Systemd)   |
+| **Recovery**| ✅ Ready   | `sudo /usr/local/bin/k3s-recovery.sh` |
 
 ---
 
 ## ⚠️ Issues & Troubleshooting Notes
 
-- [ ] Node `kubernetes2`: Root disk at **83% usage**. (Action: Cleanup or Expand)
 - [ ] Node `kubernetes6`: Link speed at **100 Mbps**. (Action: Check cable/port)
 - [ ] **default/iiq**: Pod in `ErrImagePull`. (Action: Check image registry at 192.168.0.236)
 - [ ] Multiple nodes: `systemd-networkd-wait-online.service` failing. (Minor)
