@@ -125,7 +125,7 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 | kubernetes5  | worker               | 130m        | 3%      | 552 Mi         | 7%         | Ready  |
 | kubernetes6  | worker               | 166m        | 4%      | 593 Mi         | 3%         | Ready  |
 
-### 🚀 K3s Service Status (Synchronized)
+### 🚀 K3s Service Status (100% Synchronized)
 
 | Hostname     | K3s Version                | Go Version   | Status   | Uptime       |
 |--------------|----------------------------|-------------|----------|--------------|
@@ -134,8 +134,8 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 | kubernetes2  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
 | kubernetes3  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
 | kubernetes4  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
+| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | 23h          |
+| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | 23h          |
 
 
 | Setting             | Value                         |
@@ -154,7 +154,7 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 
 | Add-on         | Description           | Storage Class      | Controller         | Status |
 |----------------|-----------------------|--------------------|--------------------|--------|
-| Traefik        | Ingress Controller    | -                  | traefik-b64686b57  | ✅     |
+| **Traefik v39**| Ingress Controller    | -                  | traefik-b64686b57  | ✅ **Upgraded** |
 | **NFS NAS**    | **Default Storage**   | **nfs-nas**        | **nfs-provisioner**| ✅     |
 | Local Path     | Secondary Storage     | `local-path`       | local-path-prov    | ✅     |
 | MetalLB        | LoadBalancer          | -                  | -                  | ✅     |
@@ -180,10 +180,10 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 | **ai**        | ollama           | 1/1 Running       | 1h    | **Migrated to NAS** (`ollama-nas-pvc`) |
 | **ai**        | openwebui        | 1/1 Running       | 1h    | **Migrated to NAS** (`webui-nas-pvc`) |
 | **argocd**    | server/redis/dex | 1/1 Running       | 79d   | Full ArgoCD Stack active    |
-| **default**   | identityiq (iiq) | **0/1 ErrImagePull**| 210d| Registry at 192.168.0.236 is OFFLINE |
+| **default**   | identityiq (iiq) | **0/1 ErrImagePull**| 210d| Registry host at .236 is OFFLINE |
 | **default**   | mysql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mysql-nas-pvc`) |
-| **default**   | mssql (db)       | 1/1 Running       | 15m   | **Migrated to NAS** (`mssql-nas-pvc`) |
-| **default**   | activemq/ldap    | 1/1 Running       | 15m   | **Migrated to NAS** (`ldap-nas-pvc`) |
+| **default**   | mssql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mssql-nas-pvc`) |
+| **default**   | activemq/ldap    | 1/1 Running       | 1h    | **Migrated to NAS** (`ldap-nas-pvc`) |
 | **default**   | mail (MailHog)   | 1/1 Running       | 79d   |                             |
 | **default**   | phpldapadmin     | 2/2 Running       | 210d  | High availability setup     |
 | **default**   | ssh-deployment   | 1/1 Running       | 79d   |                             |
@@ -235,8 +235,8 @@ All nodes below trust the local `id_ed25519` public key:
 ## ⚠️ Issues & Troubleshooting Notes
 
 - [ ] Node `kubernetes6`: Link speed at **100 Mbps**. (Action: Check cable/port)
-- [ ] **default/iiq**: Pod in `ErrImagePull`. (Root Cause: Registry at .236 is unreachable)
-- [ ] Multiple nodes: `systemd-networkd-wait-online.service` failing. (Minor)
+- [ ] **default/iiq**: Pod in `ErrImagePull`. (Root Cause: Registry at .236 is currently **OFFLINE**)
+- [ ] **Traefik Upgrade**: Resolved CRD metadata conflicts; Traefik is now running v39.
 
 ---
 
