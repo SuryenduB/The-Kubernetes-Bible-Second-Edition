@@ -10,7 +10,19 @@
 
 ![Homelab Architecture](homelab_architecture.png)
 
-> **Note:** The diagram above is rendered from [homelab_architecture.drawio](./homelab_architecture.drawio). You can open the source file in [diagrams.net](https://app.diagrams.net) to view or edit the full interactive version.
+---
+
+## 🚀 Application Access & URLs
+
+| App Name      | Access URL                                | Description                     | Status  |
+| :------------ | :---------------------------------------- | :------------------------------ | :------ |
+| **OpenWebUI** | [http://openwebui.local](http://openwebui.local) | AI Chat Interface (Llama3/Phi3) | ✅ UP   |
+| **IdentityIQ**| [http://identityiq.example.com/identityiq](http://identityiq.example.com/identityiq) | SailPoint Identity Governance   | ✅ READY|
+| **phpLDAPadmin**| [http://phpldapadmin.example.com](http://phpldapadmin.example.com) | LDAP Directory Management       | ✅ UP   |
+| **MailHog**   | [http://192.168.0.21:30266](http://192.168.0.21:30266) | Local Email Testing Server      | ✅ UP   |
+| **ArgoCD**    | [https://argocd.example.com](https://argocd.example.com) | GitOps Cluster Management       | ✅ UP   |
+
+> **📡 DNS Note:** To access these `.local` or `.example.com` domains from your browser, ensure your local `hosts` file (or DNS server) maps these hostnames to any of your node IPs (e.g., `192.168.0.21`).
 
 ---
 
@@ -28,230 +40,67 @@
 
 ---
 
-### 🆔 Machine & Boot IDs
+### 🖥️ CPU & Performance Overview
 
-| Hostname     | Machine ID                           | Boot ID                               |
-|--------------|--------------------------------------|---------------------------------------|
-| NUC          | 7f008044c9034b0bb5336558d14146e4     | 018d8e4b4f944b46acd7d2622238a25a      |
-| kubernetes1  | 069b4db95ee44204b2b9711a5c8c758e     | f7e55003772c4a62947e986761071b49      |
-| kubernetes2  | 7b40a6eec44842b68c4b0e6cece70b8     | 871de8b90262422d833376c12170509e      |
-| kubernetes3  | fcf6d4cb3ab340a48e6567abb43f6334     | bf5ff8d6e62349648998170171fd8f09      |
-| kubernetes4  | 8c1b18d2c52e4a1f941239f1abab8a06     | 4787e1fb-b008-494b-b9f6-ec9680be8097      |
-| kubernetes5  | bf74ae462f274ce4aa6f87b4f21c94d3     | 804b0ba9-30b2-4f36-92a9-5dbf98b489a9  |
-| kubernetes6  | 4a7ba178b74446bf8df14c82e51568df     | a3944f0e-6cb2-4695-ab0f-06f3bcf6dede  |
+| Hostname     | CPU Model                                      | Cores | Threads | AVX | AI Tier |
+|--------------|------------------------------------------------|------:|--------:|:---:|:-------:|
+| NUC          | Intel(R) Celeron(R) CPU 847E @ 1.10GHz         |     2 |       2 |  -  | -       |
+| kubernetes1  | Intel(R) Core(TM) i5-4590T CPU @ 2.00GHz       |     4 |       4 | ✅  | Tier 1  |
+| kubernetes2  | Intel(R) Core(TM) i3-8100 CPU @ 3.60GHz        |     4 |       4 | ✅  | Tier 1  |
+| kubernetes3  | Intel(R) Core(TM) i3-6100U CPU @ 2.30GHz       |     2 |       4 | ✅  | Tier 1  |
+| kubernetes4  | Intel(R) Core(TM) i5-4590S CPU @ 3.00GHz       |     4 |       4 | ✅  | Tier 2  |
+| kubernetes5  | Intel(R) Core(TM) i3-4130 CPU @ 3.40GHz        |     2 |       4 | ✅  | Tier 2  |
+| kubernetes6  | Intel(R) Core(TM) i3-4350T CPU @ 3.10GHz       |     2 |       4 | ✅  | Tier 1  |
 
 ---
 
-### 🖥️ CPU & Performance Overview
+### 🚀 K3s Cluster Health (Balanced)
 
-| Hostname     | CPU Model                                      | Cores | Threads | AVX | TPC | CPS |
-|--------------|------------------------------------------------|------:|--------:|:---:|----:|----:|
-| NUC          | Intel(R) Celeron(R) CPU 847E @ 1.10GHz         |     2 |       2 |  -  |   1 |   2 |
-| kubernetes1  | Intel(R) Core(TM) i5-4590T CPU @ 2.00GHz       |     4 |       4 | ✅  |   1 |   4 |
-| kubernetes2  | Intel(R) Core(TM) i3-8100 CPU @ 3.60GHz        |     4 |       4 | ✅  |   1 |   4 |
-| kubernetes3  | Intel(R) Core(TM) i3-6100U CPU @ 2.30GHz       |     2 |       4 | ✅  |   2 |   2 |
-| kubernetes4  | Intel(R) Core(TM) i5-4590S CPU @ 3.00GHz       |     4 |       4 | ✅  |   1 |   4 |
-| kubernetes5  | Intel(R) Core(TM) i3-4130 CPU @ 3.40GHz        |     2 |       4 | ✅  |   2 |   2 |
-| kubernetes6  | Intel(R) Core(TM) i3-4350T CPU @ 3.10GHz       |     2 |       4 | ✅  |   2 |   2 |
+| Node Name    | Role                 | CPU (%) | Memory (%) | Status |
+|--------------|----------------------|--------:|-----------:|--------|
+| nuc          | control-plane,master | 14%     | 25%        | Ready  |
+| kubernetes1  | worker               | 9%      | 13%        | Ready  |
+| kubernetes2  | worker               | 2%      | 7%         | Ready  |
+| kubernetes3  | worker               | 3%      | 8%         | Ready  |
+| kubernetes4  | worker               | 2%      | 23%        | Ready  |
+| kubernetes5  | worker               | 1%      | 20%        | Ready  |
+| kubernetes6  | worker               | 5%      | 4%         | Ready  |
 
-_TPC: Threads per Core | CPS: Cores per Socket | AVX: Accelerates LLM Inference_
-
-### 🤖 AI/LLM Readiness & Hardware
-
-| Hostname     | GPU / Graphics Controller                                      | AI Tier | Best Use Case Models |
-|--------------|----------------------------------------------------------------|:-------:|----------------------|
-| kubernetes1  | Intel 4th Gen Core Processor Integrated Graphics               | Tier 1  | 7B-8B (Llama3, Mistral) |
-| kubernetes2  | Intel CoffeeLake-S GT2 [UHD Graphics 630]                      | Tier 1  | 7B-8B (Llama3, Mistral) |
-| kubernetes3  | Intel Skylake GT2 [HD Graphics 520]                            | Tier 1  | 7B-8B (Llama3, Mistral) |
-| kubernetes6  | Intel 4th Gen Core Processor Integrated Graphics               | Tier 1  | 7B-8B (Llama3, Mistral) |
-| kubernetes4  | Intel 4th Gen Core Processor Integrated Graphics               | Tier 2  | 1B-3B (Gemma, Phi-3) |
-| kubernetes5  | **NVIDIA GeForce GT 625 OEM** (Legacy)                         | Tier 2  | 1B-3B (Gemma, Phi-3) |
-| NUC          | Intel Integrated Graphics                                      | -       | Master node only     |
-
-### 🖥️ Memory Overview
-
-| Hostname     | Total RAM | Used RAM | Free RAM | Buff/Cache | Available RAM | Total Swap | Used Swap | Free Swap |
-|--------------|----------:|---------:|---------:|-----------:|--------------:|-----------:|----------:|----------:|
-| NUC          |    7.7 Gi |   4.3 Gi |   3.0 Gi |     0.4 Gi |        3.4 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes1  |     15 Gi |   0.7 Gi |    14 Gi |     0.3 Gi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes2  |     14 Gi |   0.8 Gi |    13 Gi |     0.3 Gi |         13 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes3  |     15 Gi |   0.8 Gi |    14 Gi |     0.3 Gi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes4  |    7.7 Gi |   0.5 Gi |   7.0 Gi |     0.2 Gi |        7.0 Gi |     0 B    |      0 B  |    0 B    |
-| kubernetes5  |    7.7 Gi |   0.5 Gi |   7.0 Gi |     0.2 Gi |        7.0 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
-| kubernetes6  |     15 Gi |   0.6 Gi |    14 Gi |     0.4 Gi |         14 Gi |     4.0 Gi |      0 B  |    4.0 Gi |
+---
 
 ### 💾 Storage Inventory (100% NAS-Backed)
 
-| Hostname     | Root Disk | Size     | Type | ROTA | Model                 | Usage (%) |
-|--------------|-----------|----------|------|------|-----------------------|----------:|
-| NUC          | sda       | 111.8G   | disk | 0    | KINGSTON SMS200S3120G | 19%       |
-| kubernetes1  | sda       | 465.8G   | disk | 1    | ST500LM000-1EJ16      | 28%       |
-| kubernetes2  | nvme0n1   | 931.5G   | disk | 0    | CT1000P3SSD8          | 12% (Freed) |
-| kubernetes3  | sda       | 111.8G   | disk | 0    | KINGSTON SM2280S      | 23%       |
-| kubernetes4  | sda       | 238.5G   | disk | 0    | SAMSUNG MZ7LN256      | 15% (Freed) |
-| kubernetes5  | sda       | 931.5G   | disk | 1    | WDC WD10EZEX-21M      | 8%        |
-| kubernetes6  | sda       | 465.8G   | disk | 1    | TOSHIBA MQ02ABF0      | 8%        |
-| **NASECDE55**| **NAS**   | **423G** | nfs  | -    | **Primary Storage**   | **12%**   |
-
-_ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
-
-## 📡 Network Configuration
-
-| Node Role | Hostname | IP Address     | Interface | Link Speed | Notes         |
-|-----------|----------|----------------|-----------|------------|---------------|
-| master    |   **NUC**       |    192.168.0.21             |  eno1         | 1000 Mbps  |               |
-| worker-1  |   **KUBERNETES1**       |      192.168.0.19           |    enp0s25        | 1000 Mbps  |               |
-| worker-2  |   **KUBERNETES2**       |   192.168.0.20             |     enp2s0      | 1000 Mbps  |               |
-| worker-3  |   **KUBERNETES3**       |    192.168.0.22            |     enp0s31f6      | 1000 Mbps  |               |
-| worker-4  |   **KUBERNETES4**       |    192.168.0.23            |     eno1           | 1000 Mbps  |               |
-| worker-5  |   **KUBERNETES5**       |    192.168.0.24            |     enp3s0         | 1000 Mbps  |               |
-| worker-6  |   **KUBERNETES6**       |    192.168.0.25            |     enp0s25        | **100 Mbps** | Check cable   |
-| **Storage**| **NASECDE55**   | **192.168.0.128**      | -             | 1000 Mbps  | MAC: 00:08:9b:ec:de:55 |
+| Hostname     | Root Disk | Size     | Type | Usage (%) |
+|--------------|-----------|----------|------|----------:|
+| **NASECDE55**| **NAS**   | **423G** | nfs  | **12%**   |
 
 ---
 
-## 🚀 K3s Installation & Cluster Health
+## 🛠️ Installed Add-ons
 
-
-### 📊 Cluster Resource Utilization (Balanced)
-
-| Node Name    | Role                 | CPU (cores) | CPU (%) | Memory (bytes) | Memory (%) | Status |
-|--------------|----------------------|------------:|--------:|---------------:|-----------:|--------|
-| nuc          | control-plane,master | 297m        | 14%     | 2042 Mi        | 25%        | Ready  |
-| kubernetes1  | worker               | 375m        | 9%      | 2172 Mi        | 13%        | Ready  |
-| kubernetes2  | worker               | 92m         | 2%      | 1232 Mi        | 7%         | Ready  |
-| kubernetes3  | worker               | 136m        | 3%      | 1350 Mi        | 8%         | Ready  |
-| kubernetes4  | worker               | 92m         | 2%      | 1837 Mi        | 23%        | Ready  |
-| kubernetes5  | worker               | 77m         | 1%      | 1579 Mi        | 20%        | Ready  |
-| kubernetes6  | worker               | 211m        | 5%      | 756 Mi         | 4%         | Ready  |
-
-### 🚀 K3s Service Status (100% Synchronized)
-
-| Hostname     | K3s Version                | Go Version   | Status   | Uptime       |
-|--------------|----------------------------|-------------|----------|--------------|
-| NUC          | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes1  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes2  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes3  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes4  | **v1.34.5+k3s1**           | go1.23.6    | running  | Synchronized |
-| kubernetes5  | **v1.34.5+k3s1**           | go1.23.6    | running  | 23h          |
-| kubernetes6  | **v1.34.5+k3s1**           | go1.23.6    | running  | 23h          |
-
-
-| Setting             | Value                         |
-|---------------------|-------------------------------|
-| Install Method      | curl                          |
-| Cluster Token       | `<Stored securely>`           |
-| Kubeconfig Path     | `~/.kube/config`              |
-| SSH Auth            | **Passwordless (Ed25519)**    |
-| **Default Storage** | **NFS NAS (nfs-nas)**         |
-
-
+| Add-on         | Description           | Status |
+|----------------|-----------------------|--------|
+| **Traefik v39**| Ingress Controller    | ✅ UP   |
+| **NFS NAS**    | **Default Storage**   | ✅ UP   |
+| **MetalLB**    | LoadBalancer          | ✅ UP   |
 
 ---
 
-## 🛠️ Installed Add-ons / Tools
+## 🔁 Backup & Recovery
 
-| Add-on         | Description           | Storage Class      | Controller         | Status |
-|----------------|-----------------------|--------------------|--------------------|--------|
-| **Traefik v39**| Ingress Controller    | -                  | traefik-b64686b57  | ✅ **Upgraded** |
-| **NFS NAS**    | **Default Storage**   | **nfs-nas**        | **nfs-provisioner**| ✅     |
-| Local Path     | Secondary Storage     | `local-path`       | local-path-prov    | ✅     |
-| MetalLB        | LoadBalancer          | -                  | -                  | ✅     |
-| Metrics Server | Resource Monitoring   | -                  | metrics-server     | ✅     |
-| CloudNativePG  | PostgreSQL Operator   | -                  | cnpg-controller    | ✅     |
-
----
-
-## 📦 Workloads & Access
-
-### 🌐 Application Ingresses
-
-| App Name     | Namespace | Ingress Host             | Endpoint Address (Service LoadBalancer IPs) |
-|--------------|-----------|--------------------------|---------------------------------------------|
-| OpenWebUI    | ai        | `openwebui.local`        | 192.168.0.19, .20, .21, .22, .23, .24, .25  |
-| IdentityIQ   | default   | `identityiq.example.com` | 192.168.0.19, .20, .21, .22, .23, .24, .25  |
-| phpLDAPadmin | default   | `phpldapadmin.example.com`| 192.168.0.19, .20, .21, .22, .23, .24, .25 |
-
-### 📦 Running Workloads (Namespace View)
-
-| Namespace     | App Name         | Pod Status        | Age   | Notes                       |
-|---------------|------------------|-------------------|-------|-----------------------------|
-| **ai**        | ollama           | 1/1 Running       | 1h    | **Migrated to NAS** (`ollama-nas-pvc`) |
-| **ai**        | openwebui        | 1/1 Running       | 1h    | **Migrated to NAS** (`webui-nas-pvc`) |
-| **argocd**    | server/redis/dex | 1/1 Running       | 79d   | Full ArgoCD Stack active    |
-| **default**   | identityiq (iiq) | **0/1 Starting**  | 5m    | **Registry is Online**. Initializing... |
-| **default**   | mysql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mysql-nas-pvc`) |
-| **default**   | mssql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mssql-nas-pvc`) |
-| **default**   | activemq/ldap    | 1/1 Running       | 1h    | **Migrated to NAS** (`ldap-nas-pvc`) |
-| **default**   | mail (MailHog)   | 1/1 Running       | 79d   |                             |
-| **default**   | phpldapadmin     | 2/2 Running       | 210d  | High availability setup     |
-| **default**   | ssh-deployment   | 1/1 Running       | 79d   |                             |
-
----
-
-## 🔐 Authentication & Access
-
-| Component       | Configuration                                                                 |
-|-----------------|-------------------------------------------------------------------------------|
-| Kubeconfig      | Present (`cat ~/.kube/config` shows cluster, user, and certs)                 |
-| **SSH Access**  | **Passwordless (Ed25519)**. Trusted keys provisioned across all nodes and NAS.|
-| SSH Fingerprint | `SHA256:URooKHsJxxu8xuA5rrpzWRuXZacp93gkKZO9yISRJVg` (Local Host)             |
-| Automation      | PowerShell functions `Test-KubernetesNodes` and `Stop-K3sHomelab` enabled.    |
-| RBAC Settings   | Roles and rolebindings exist in various namespaces (e.g., `argocd`, `kube-system`) |
-| Users/Groups    | Single user (`default`) via kubeconfig; OIDC not configured                   |
-| API Access      | Port `6443`, secured with certificates (see `server:` and `certificate-authority-data` in kubeconfig) |
-
-### 🛠️ SSH Trust Matrix
-All nodes below trust the local `id_ed25519` public key:
-*   **Master:** NUC (`192.168.0.21`)
-*   **Workers:** kubernetes1 through kubernetes6
-*   **Storage:** NASECDE55 NAS (`192.168.0.128`)
-
----
-
-## 📊 Monitoring & Logging
-
-| Tool         | Status | Notes                   |
-|--------------|--------|-------------------------|
-| Grafana      | ❌     | Dashboard Enabled       |
-| Prometheus   | ❌    | Targets OK              |
-| Loki         | ⬜      | Planned                 |
-| Fluent Bit   | ⬜      | TBD                     |
-
----
-
-## 🔁 Backup & Recovery (Triple Protection System)
-
-| Tool      | Setup Status | Command/Notes                        |
-|-----------|--------------|--------------------------------------|
-| **Manual**| ✅ Active    | `sudo /usr/local/bin/k3s-backup-to-nas.sh` |
-| **Cron**  | ✅ Scheduled | Daily at 2:00 AM (to NAS)            |
-| **Pre-Shut**| ✅ Enabled | `k3s-nas-backup.service` (Systemd)   |
-| **Recovery**| ✅ Ready   | `sudo /usr/local/bin/k3s-recovery.sh` |
-
----
-
-## ⚠️ Issues & Troubleshooting Notes
-
-- [ ] Node `kubernetes6`: Link speed at **100 Mbps**. (Action: Check cable/port)
-- [ ] **default/iiq**: Pod in `Starting` state. (Status: Registry is Online; App is unpacking)
-- [ ] **Master Taint**: NUC is tainted (`NoSchedule`) to preserve Control Plane CPU.
+| Tool      | Status | Schedule/Command                     |
+|-----------|--------|--------------------------------------|
+| **Cron**  | ✅ Active| Daily at 2:00 AM (to NAS)            |
+| **Manual**| ✅ Ready | `sudo /usr/local/bin/k3s-backup-to-nas.sh` |
 
 ---
 
 ## 📚 Useful Commands
 
 \`\`\`bash
-# List nodes
-kubectl get nodes
+# Start Cluster Routine
+Start-K3sHomelab
 
-# Get all pods in all namespaces
-kubectl get pods -A
-
-# View k3s logs
-journalctl -u k3s -f
-
-# Helm list
-helm list -A
+# Systematic Shutdown
+Stop-K3sHomelab
 \`\`\`
