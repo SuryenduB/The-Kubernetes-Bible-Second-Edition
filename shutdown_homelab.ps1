@@ -1,91 +1,108 @@
-﻿# 🛑 K3s Homelab Systematic Shutdown (v3 - Robust & Secure)
-# This script addresses all previous findings regarding error checking, IP filtering, and credential safety.
+﻿# 🛑 K3s Homelab Systematic Shutdown (v7 - Full Mode Control)
+[CmdletBinding()]
+param(
+    [Parameter(HelpMessage="Skip all manual confirmations")]
+    [switch]$Force,
 
-$ErrorActionPreference = 'Stop'
+    [Parameter(HelpMessage="Skip the kubectl drain process and power off immediately")]
+    [switch]$SkipDrain,
 
-# 1. Verification
-if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) { throw "kubectl not found in PATH." }
+    [Parameter(HelpMessage="Discovery Mode: Auto (detect), Dynamic (Force API), Fallback (Force Hardcoded)")]
+    [ValidateSet("Auto", "Dynamic", "Fallback")]
+    [string]$Mode = "Auto"
+)
 
-Write-Host "--- K3s Cluster Shutdown Sequence (v3) ---" -ForegroundColor Cyan
+$ErrorActionPreference = 'Continue'
 
-# 2. Dynamic Node Discovery with IPv4 Filtering
-Write-Host "Discovering cluster topology..."
-$allNodes = kubectl get nodes -o json | ConvertFrom-Json
+# --- CONFIGURATION (Inventory) ---
+$masterFallback = @{ Name = "nuc"; IP = "192.168.0.21" }
+$workerFallback = @(
+    @{ Name = "kubernetes1"; IP = "192.168.0.19" },
+    @{ Name = "kubernetes2"; IP = "192.168.0.20" },
+    @{ Name = "kubernetes3"; IP = "192.168.0.22" },
+    @{ Name = "kubernetes4"; IP = "192.168.0.23" },
+    @{ Name = "kubernetes5"; IP = "192.168.0.24" },
+    @{ Name = "kubernetes6"; IP = "192.168.0.25" }
+)
 
-# Helper to get first IPv4 address
-function Get-IPv4 {
-    param($addresses)
-    return ($addresses | Where-Object { $_.type -eq 'InternalIP' -and $_.address -match '^\d{1,3}(\.\d{1,3}){3}$' } | Select-Object -First 1 -ExpandProperty address)
-}
+Write-Host "--- K3s Cluster Shutdown Sequence (v7) ---" -ForegroundColor Cyan
 
-$masterNode = $allNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
-$workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name }
-
-$masterIp = Get-IPv4 -addresses $masterNode.status.addresses
+# 1. DISCOVERY LOGIC
 $targets = @()
+$masterIp = $null
+$actualMode = ""
 
-foreach ($node in $workerNodes) {
-    $ip = Get-IPv4 -addresses $node.status.addresses
-    if ($ip) {
-        $targets += [PSCustomObject]@{ Name = $node.metadata.name; IP = $ip; Role = 'Worker' }
+if ($Mode -eq "Fallback") {
+    Write-Host "Forcing FALLBACK mode..." -ForegroundColor Yellow
+    $actualMode = "FALLBACK"
+} else {
+    try {
+        Write-Host "Attempting dynamic node discovery..." -ForegroundColor Gray
+        $allNodes = kubectl get nodes -o json --timeout=10s | ConvertFrom-Json
+        
+        function Get-IPv4 {
+            param($addresses)
+            return ($addresses | Where-Object { $_.type -eq 'InternalIP' -and $_.address -match '^\d{1,3}(\.\d{1,3}){3}$' } | Select-Object -First 1 -ExpandProperty address)
+        }
+
+        $masterNode = $allNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
+        $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name }
+
+        $masterIp = Get-IPv4 -addresses $masterNode.status.addresses
+        foreach ($node in $workerNodes) {
+            $ip = Get-IPv4 -addresses $node.status.addresses
+            if ($ip) { $targets += [PSCustomObject]@{ Name = $node.metadata.name; IP = $ip } }
+        }
+        $actualMode = "DYNAMIC"
+    }
+    catch {
+        if ($Mode -eq "Dynamic") {
+            Write-Error "Force Dynamic mode requested but API is unreachable. Aborting."
+            exit 1
+        }
+        Write-Host "[!] API Unreachable. Switching to FALLBACK mode." -ForegroundColor Yellow
+        $actualMode = "FALLBACK"
     }
 }
 
-Write-Host "Found Master: $($masterNode.metadata.name) ($masterIp)"
-Write-Host "Found $($targets.Count) Workers: $($targets.Name -join ', ')"
+# Apply Fallback data if needed
+if ($actualMode -eq "FALLBACK") {
+    $masterIp = $masterFallback.IP
+    foreach ($w in $workerFallback) { $targets += [PSCustomObject]@{ Name = $w.Name; IP = $w.IP } }
+}
 
-# 3. Secure Credential Handling (Base64 to avoid quoting issues)
-$password = Read-Host "Enter sudo password for suryendub" -AsSecureString
+Write-Host "Active Mode: $actualMode" -ForegroundColor Cyan
+Write-Host "Master: $masterIp"
+Write-Host "Workers: $($targets.Name -join ', ')"
+
+# 2. CREDENTIALS
+$password = Read-Host "Enter sudo password" -AsSecureString
 $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
 $b64Pass = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($plainPass))
 
-Write-Host "!!! WARNING: Powering off the entire cluster !!!" -ForegroundColor Red
-$confirm = Read-Host "Proceed? (yes/no)"
-if ($confirm -ne 'yes') { Write-Host "Aborted."; exit }
-
-# 4. Preflight Checks (Check ALL nodes before starting)
-Write-Host "
-Running preflight checks on all nodes..." -ForegroundColor Cyan
-$allIps = @($targets.IP + $masterIp)
-foreach ($ip in $allIps) {
-    $testCmd = "echo $b64Pass | base64 -d | sudo -S true"
-    & ssh -tt -o BatchMode=yes -o StrictHostKeyChecking=yes suryendub@$ip $testCmd 2>$null
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "Preflight failed for $ip. Check SSH keys or sudo password."
-        exit 1
-    }
-    Write-Host "  - $ip: OK" -ForegroundColor Green
+if (!$Force) {
+    $confirm = Read-Host "!!! WARNING: Powering off entire cluster. Proceed? (yes/no)"
+    if ($confirm -ne 'yes') { exit 0 }
 }
 
-# 5. Graceful Worker Shutdown with Strict Error Checking
+# 3. SHUTDOWN LOOP
 foreach ($worker in $targets) {
     Write-Host "
---- Processing Worker: $($worker.Name) ---" -ForegroundColor Yellow
+--- Node: $($worker.Name) ---" -ForegroundColor Yellow
     
-    # Cordon
-    Write-Host "  - Cordoning..."
-    kubectl cordon $worker.Name
-    if ($LASTEXITCODE -ne 0) { Write-Error "Failed to cordon $($worker.Name). Aborting."; exit 1 }
-    
-    # Drain
-    Write-Host "  - Draining pods..."
-    kubectl drain $worker.Name --ignore-daemonsets --delete-emptydir-data --force --grace-period=30 --timeout=90s
-    if ($LASTEXITCODE -ne 0) { Write-Error "Failed to drain $($worker.Name). Aborting."; exit 1 }
-    
-    # Poweroff
+    if ($actualMode -eq "DYNAMIC" -and !$SkipDrain) {
+        Write-Host "  - Draining..."
+        kubectl cordon $worker.Name | Out-Null
+        kubectl drain $worker.Name --ignore-daemonsets --delete-emptydir-data --force --grace-period=30 --timeout=60s
+    } else {
+        Write-Host "  - Skipping Drain (Static mode or SkipDrain requested)." -ForegroundColor Gray
+    }
+
     Write-Host "  - Powering off..."
-    $offCmd = "echo $b64Pass | base64 -d | sudo -S poweroff"
-    ssh -tt -o StrictHostKeyChecking=yes suryendub@$worker.IP $offCmd
+    ssh -tt -o StrictHostKeyChecking=yes suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
 }
 
 Write-Host "
-Waiting 10 seconds for worker cycles..." -ForegroundColor Gray
-Start-Sleep -Seconds 10
+--- Powering off Master (NUC) ---" -ForegroundColor Red
+ssh -tt -o StrictHostKeyChecking=yes suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
 
-# 6. Master Shutdown
-Write-Host "--- Powering off Master (NUC) ---" -ForegroundColor Red
-$masterOffCmd = "echo $b64Pass | base64 -d | sudo -S poweroff"
-ssh -tt -o StrictHostKeyChecking=yes suryendub@$masterIp $masterOffCmd
-
-Write-Host "
-[SUCCESS] Shutdown sequence complete." -ForegroundColor Green
