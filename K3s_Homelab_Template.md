@@ -113,17 +113,17 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 ## 🚀 K3s Installation & Cluster Health
 
 
-### 📊 Cluster Resource Utilization
+### 📊 Cluster Resource Utilization (Balanced)
 
 | Node Name    | Role                 | CPU (cores) | CPU (%) | Memory (bytes) | Memory (%) | Status |
 |--------------|----------------------|------------:|--------:|---------------:|-----------:|--------|
-| nuc          | control-plane,master | 1971m       | 98%     | 4374 Mi        | 55%        | Ready  |
-| kubernetes1  | worker               | 151m        | 3%      | 731 Mi         | 4%         | Ready  |
-| kubernetes2  | worker               | 409m        | 10%     | 813 Mi         | 5%         | Ready  |
-| kubernetes3  | worker               | 421m        | 10%     | 864 Mi         | 5%         | Ready  |
-| kubernetes4  | worker               | 264m        | 6%      | 501 Mi         | 6%         | Ready  |
-| kubernetes5  | worker               | 130m        | 3%      | 552 Mi         | 7%         | Ready  |
-| kubernetes6  | worker               | 166m        | 4%      | 593 Mi         | 3%         | Ready  |
+| nuc          | control-plane,master | 297m        | 14%     | 2042 Mi        | 25%        | Ready  |
+| kubernetes1  | worker               | 375m        | 9%      | 2172 Mi        | 13%        | Ready  |
+| kubernetes2  | worker               | 92m         | 2%      | 1232 Mi        | 7%         | Ready  |
+| kubernetes3  | worker               | 136m        | 3%      | 1350 Mi        | 8%         | Ready  |
+| kubernetes4  | worker               | 92m         | 2%      | 1837 Mi        | 23%        | Ready  |
+| kubernetes5  | worker               | 77m         | 1%      | 1579 Mi        | 20%        | Ready  |
+| kubernetes6  | worker               | 211m        | 5%      | 756 Mi         | 4%         | Ready  |
 
 ### 🚀 K3s Service Status (100% Synchronized)
 
@@ -180,7 +180,7 @@ _ROTA: 0 = SSD, 1 = HDD | All app data moved to NAS._
 | **ai**        | ollama           | 1/1 Running       | 1h    | **Migrated to NAS** (`ollama-nas-pvc`) |
 | **ai**        | openwebui        | 1/1 Running       | 1h    | **Migrated to NAS** (`webui-nas-pvc`) |
 | **argocd**    | server/redis/dex | 1/1 Running       | 79d   | Full ArgoCD Stack active    |
-| **default**   | identityiq (iiq) | **0/1 ErrImagePull**| 210d| Registry host at .236 is OFFLINE |
+| **default**   | identityiq (iiq) | **0/1 Starting**  | 5m    | **Registry is Online**. Initializing... |
 | **default**   | mysql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mysql-nas-pvc`) |
 | **default**   | mssql (db)       | 1/1 Running       | 1h    | **Migrated to NAS** (`mssql-nas-pvc`) |
 | **default**   | activemq/ldap    | 1/1 Running       | 1h    | **Migrated to NAS** (`ldap-nas-pvc`) |
@@ -235,8 +235,8 @@ All nodes below trust the local `id_ed25519` public key:
 ## ⚠️ Issues & Troubleshooting Notes
 
 - [ ] Node `kubernetes6`: Link speed at **100 Mbps**. (Action: Check cable/port)
-- [ ] **default/iiq**: Pod in `ErrImagePull`. (Root Cause: Registry at .236 is currently **OFFLINE**)
-- [ ] **Traefik Upgrade**: Resolved CRD metadata conflicts; Traefik is now running v39.
+- [ ] **default/iiq**: Pod in `Starting` state. (Status: Registry is Online; App is unpacking)
+- [ ] **Master Taint**: NUC is tainted (`NoSchedule`) to preserve Control Plane CPU.
 
 ---
 
