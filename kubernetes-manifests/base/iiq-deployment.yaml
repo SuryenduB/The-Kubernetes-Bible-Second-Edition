@@ -46,25 +46,17 @@ spec:
             httpGet:
               path: /identityiq
               port: 8080
-            failureThreshold: 300
+            failureThreshold: 60
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /identityiq
               port: 8080
-            initialDelaySeconds: 3000
+            initialDelaySeconds: 30
             periodSeconds: 10
-            failureThreshold: 3
-          livenessProbe:
-            httpGet:
-              path: /identityiq
-              port: 8080
-            initialDelaySeconds: 3000
-            periodSeconds: 10
-            failureThreshold: 3
           env:
             - name: DATABASE_TYPE
-              value: "mssql"
+              value: "mysql"
             - name: MSSQL_HOST
               value: "db"
             - name: MSSQL_SA_USER
@@ -76,7 +68,7 @@ spec:
             - name: MSSQL_SA_PASSWORD
               value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
             - name: MYSQL_HOST
-              value: "db_mysql"
+              value: "db-mysql"
             - name: MYSQL_USER
               value: "identityiq"
             - name: MYSQL_PASSWORD
