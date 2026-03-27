@@ -1,4 +1,4 @@
-﻿# 🛑 K3s Homelab Systematic Shutdown (v7 - Full Mode Control)
+﻿# 🛑 K3s Homelab Systematic Shutdown (v8 - Refined & Verified)
 [CmdletBinding()]
 param(
     [Parameter(HelpMessage="Skip all manual confirmations")]
@@ -12,9 +12,9 @@ param(
     [string]$Mode = "Auto"
 )
 
-$ErrorActionPreference = 'Continue'
+$ErrorActionPreference = 'Stop' # Critical for Catch block to trigger on external errors
 
-# --- CONFIGURATION (Inventory) ---
+# --- CONFIGURATION (Hardcoded Fallback) ---
 $masterFallback = @{ Name = "nuc"; IP = "192.168.0.21" }
 $workerFallback = @(
     @{ Name = "kubernetes1"; IP = "192.168.0.19" },
@@ -25,7 +25,7 @@ $workerFallback = @(
     @{ Name = "kubernetes6"; IP = "192.168.0.25" }
 )
 
-Write-Host "--- K3s Cluster Shutdown Sequence (v7) ---" -ForegroundColor Cyan
+Write-Host "--- K3s Cluster Shutdown Sequence (v8) ---" -ForegroundColor Cyan
 
 # 1. DISCOVERY LOGIC
 $targets = @()
@@ -33,12 +33,12 @@ $masterIp = $null
 $actualMode = ""
 
 if ($Mode -eq "Fallback") {
-    Write-Host "Forcing FALLBACK mode..." -ForegroundColor Yellow
     $actualMode = "FALLBACK"
 } else {
     try {
         Write-Host "Attempting dynamic node discovery..." -ForegroundColor Gray
-        $allNodes = kubectl get nodes -o json --timeout=10s | ConvertFrom-Json
+        # Correct flag is --request-timeout
+        $allNodes = kubectl get nodes -o json --request-timeout=10s | ConvertFrom-Json
         
         function Get-IPv4 {
             param($addresses)
@@ -57,7 +57,7 @@ if ($Mode -eq "Fallback") {
     }
     catch {
         if ($Mode -eq "Dynamic") {
-            Write-Error "Force Dynamic mode requested but API is unreachable. Aborting."
+            Write-Error "Force Dynamic mode requested but API is unreachable."
             exit 1
         }
         Write-Host "[!] API Unreachable. Switching to FALLBACK mode." -ForegroundColor Yellow
@@ -65,7 +65,6 @@ if ($Mode -eq "Fallback") {
     }
 }
 
-# Apply Fallback data if needed
 if ($actualMode -eq "FALLBACK") {
     $masterIp = $masterFallback.IP
     foreach ($w in $workerFallback) { $targets += [PSCustomObject]@{ Name = $w.Name; IP = $w.IP } }
@@ -87,22 +86,17 @@ if (!$Force) {
 
 # 3. SHUTDOWN LOOP
 foreach ($worker in $targets) {
-    Write-Host "
---- Node: $($worker.Name) ---" -ForegroundColor Yellow
+    Write-Host "`n--- Node: $($worker.Name) ---" -ForegroundColor Yellow
     
     if ($actualMode -eq "DYNAMIC" -and !$SkipDrain) {
         Write-Host "  - Draining..."
         kubectl cordon $worker.Name | Out-Null
         kubectl drain $worker.Name --ignore-daemonsets --delete-emptydir-data --force --grace-period=30 --timeout=60s
-    } else {
-        Write-Host "  - Skipping Drain (Static mode or SkipDrain requested)." -ForegroundColor Gray
     }
 
     Write-Host "  - Powering off..."
     ssh -tt -o StrictHostKeyChecking=yes suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
 }
 
-Write-Host "
---- Powering off Master (NUC) ---" -ForegroundColor Red
+Write-Host "`n--- Powering off Master (NUC) ---" -ForegroundColor Red
 ssh -tt -o StrictHostKeyChecking=yes suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
-
