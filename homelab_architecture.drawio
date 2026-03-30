@@ -3,7 +3,7 @@
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="K3s Homelab - Live Snapshot (2026-03-17)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="title" value="K3s Homelab - Live Snapshot (2026-03-30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="20" y="10" width="900" height="30" as="geometry"/>
     </mxCell>
 
@@ -23,23 +23,23 @@
       <mxGeometry x="20" y="40" width="940" height="430" as="geometry"/>
     </mxCell>
 
-    <mxCell id="nuc" value="&lt;b&gt;NUC&lt;/b&gt; (control-plane)&lt;br&gt;192.168.0.21&lt;br&gt;2C/2T, 7.7 GiB RAM&lt;br&gt;k3s v1.32.4&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="nuc" value="&lt;b&gt;NUC&lt;/b&gt; (control-plane)&lt;br&gt;192.168.0.21&lt;br&gt;2C/2T, 7.7 GiB RAM&lt;br&gt;k3s v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="20" y="40" width="190" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k1" value="&lt;b&gt;kubernetes1&lt;/b&gt;&lt;br&gt;192.168.0.19&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.32.4&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k1" value="&lt;b&gt;kubernetes1&lt;/b&gt;&lt;br&gt;192.168.0.19&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="240" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k2" value="&lt;b&gt;kubernetes2&lt;/b&gt;&lt;br&gt;192.168.0.20&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.32.4&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k2" value="&lt;b&gt;kubernetes2&lt;/b&gt;&lt;br&gt;192.168.0.20&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="420" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k3" value="&lt;b&gt;kubernetes3&lt;/b&gt;&lt;br&gt;192.168.0.22&lt;br&gt;2C/4T, 15 GiB&lt;br&gt;v1.32.4&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k3" value="&lt;b&gt;kubernetes3&lt;/b&gt;&lt;br&gt;192.168.0.22&lt;br&gt;2C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="600" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k4" value="&lt;b&gt;kubernetes4&lt;/b&gt;&lt;br&gt;192.168.0.23&lt;br&gt;4C/4T, 7.7 GiB&lt;br&gt;v1.32.4&lt;br&gt;NIC: 1000 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k4" value="&lt;b&gt;kubernetes4&lt;/b&gt;&lt;br&gt;192.168.0.23&lt;br&gt;4C/4T, 7.7 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 1000 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="780" y="40" width="145" height="120" as="geometry"/>
     </mxCell>
 
@@ -51,7 +51,11 @@
       <mxGeometry x="420" y="200" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="versions" value="Version state: 5 nodes on v1.32.4 + 2 nodes on v1.34.5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="nodepool">
+    <mxCell id="k7" value="&lt;b&gt;kubernetes7&lt;/b&gt;&lt;br&gt;192.168.0.27&lt;br&gt;2C/4T, 7.7 GiB&lt;br&gt;v1.34.6&lt;br&gt;NIC: WiFi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
+      <mxGeometry x="600" y="200" width="165" height="120" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="versions" value="Version state: 7 nodes on v1.34.5 + 1 node on v1.34.6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="nodepool">
       <mxGeometry x="20" y="350" width="900" height="50" as="geometry"/>
     </mxCell>
 
