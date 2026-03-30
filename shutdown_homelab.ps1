@@ -1,4 +1,4 @@
-﻿# 🛑 K3s Homelab Systematic Shutdown (v8 - Refined & Verified)
+# ?? K3s Homelab Systematic Shutdown (v8 - Refined & Verified)
 [CmdletBinding()]
 param(
     [Parameter(HelpMessage="Skip all manual confirmations")]
@@ -22,7 +22,7 @@ $workerFallback = @(
     @{ Name = "kubernetes3"; IP = "192.168.0.22" },
     @{ Name = "kubernetes4"; IP = "192.168.0.23" },
     @{ Name = "kubernetes5"; IP = "192.168.0.24" },
-    @{ Name = "kubernetes6"; IP = "192.168.0.25" }
+        @{ Name = "kubernetes6"; IP = "192.168.0.25" },`n    @{ Name = "kubernetes7"; IP = "192.168.0.26" }
 )
 
 Write-Host "--- K3s Cluster Shutdown Sequence (v8) ---" -ForegroundColor Cyan
