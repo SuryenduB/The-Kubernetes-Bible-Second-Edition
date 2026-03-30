@@ -22,6 +22,7 @@ spec:
       initContainers:
       # Fix: Fix-permissions init container to resolve NFS permission issues
       # This ensures the mssql user (UID 10001) can write to NFS mounts
+      # Must run with elevated privileges to fix NFS directory permissions
       - name: fix-permissions
         image: busybox:latest
         command:
@@ -31,11 +32,18 @@ spec:
             echo "Fixing NFS directory permissions for MSSQL..."
             if [ -d /var/opt/mssql ]; then
               chmod 777 /var/opt/mssql
+              chmod 777 /var/opt/mssql/data 2>/dev/null || true
+              chmod 777 /var/opt/mssql/log 2>/dev/null || true
               echo "Permissions fixed: $(ls -ld /var/opt/mssql)"
+              echo "Data dir: $(ls -ld /var/opt/mssql/data 2>/dev/null || echo 'not yet created')"
             fi
         volumeMounts:
         - name: mssql-data
           mountPath: /var/opt/mssql
+        securityContext:
+          # Run init container as root to properly fix NFS permissions
+          runAsUser: 0
+          allowPrivilegeEscalation: true
       containers:
       - name: db
         image: mcr.microsoft.com/mssql/server:2019-latest
