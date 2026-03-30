@@ -14,6 +14,28 @@ spec:
       labels:
         app: db
     spec:
+      # Fix: Add securityContext to ensure proper file permissions
+      # MSSQL requires specific UID (10001) for proper NFS access
+      securityContext:
+        fsGroup: 10001
+        fsGroupChangePolicy: "OnRootMismatch"
+      initContainers:
+      # Fix: Fix-permissions init container to resolve NFS permission issues
+      # This ensures the mssql user (UID 10001) can write to NFS mounts
+      - name: fix-permissions
+        image: busybox:latest
+        command:
+          - sh
+          - -c
+          - |
+            echo "Fixing NFS directory permissions for MSSQL..."
+            if [ -d /var/opt/mssql ]; then
+              chmod 777 /var/opt/mssql
+              echo "Permissions fixed: $(ls -ld /var/opt/mssql)"
+            fi
+        volumeMounts:
+        - name: mssql-data
+          mountPath: /var/opt/mssql
       containers:
       - name: db
         image: mcr.microsoft.com/mssql/server:2019-latest
@@ -29,19 +51,23 @@ spec:
         volumeMounts:
         - name: mssql-data
           mountPath: /var/opt/mssql
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsUser: 10001
       volumes:
       - name: mssql-data
         persistentVolumeClaim:
-          claimName: mssql-pvc
+          claimName: mssql-nas-pvc
 
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: mssql-pvc
+  name: mssql-nas-pvc
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
+  storageClassName: nfs-nas
   resources:
     requests:
-      storage: 10Gi
+      storage: 15Gi

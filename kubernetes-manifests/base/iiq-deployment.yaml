@@ -46,8 +46,12 @@ spec:
             httpGet:
               path: /identityiq
               port: 8080
+            # Fix: Increase timeout for Java app initialization (now 600s max = 60 retries * 10s period)
+            # IIQ Tomcat server startup takes ~65-90 seconds, was timing out at 600s (60 * 10)
             failureThreshold: 60
             periodSeconds: 10
+            timeoutSeconds: 5
+            initialDelaySeconds: 15
           readinessProbe:
             httpGet:
               path: /identityiq
