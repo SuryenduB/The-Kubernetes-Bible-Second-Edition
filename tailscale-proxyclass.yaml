@@ -1,0 +1,77 @@
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: tailscale-proxy
+spec:
+  tailscaleSSHListener: false
+  statefulSet:
+    labels:
+      app.kubernetes.io/name: tailscale-services
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwebui-tailscale
+  namespace: ai
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "openwebui"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: openwebui
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iiq-tailscale
+  namespace: default
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "iiq"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: iiq
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpldapadmin-tailscale
+  namespace: default
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "phpldapadmin"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+  selector:
+    app: phpldapadmin
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server-tailscale
+  namespace: argocd
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "argocd"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 443
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: argocd-server
