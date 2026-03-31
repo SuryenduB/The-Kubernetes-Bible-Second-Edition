@@ -1,0 +1,98 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iiq
+  labels:
+    app: iiq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iiq
+  template:
+    metadata:
+      labels:
+        app: iiq
+    spec:
+      # Simplified init container - just wait for MSSQL instead of MySQL
+      initContainers:
+        - name: wait-for-mssql
+          image: mcr.microsoft.com/mssql-tools:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Waiting for MSSQL to be available at db:1433..."
+              until /opt/mssql-tools/bin/sqlcmd -S db -U sa -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -Q "SELECT 1" > /dev/null 2>&1; do
+                echo "MSSQL not responding yet..."
+                sleep 5
+              done
+              echo "✅ MSSQL is ready and responding!"
+      containers:
+        - name: iiq
+          image: 192.168.0.236:5000/sailpoint-docker:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          startupProbe:
+            httpGet:
+              path: /identityiq
+              port: 8080
+            failureThreshold: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            initialDelaySeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /identityiq
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          env:
+            # Use MSSQL as primary database for this test
+            - name: DATABASE_TYPE
+              value: "mssql"
+            - name: MSSQL_HOST
+              value: "db"
+            - name: MSSQL_SA_USER
+              value: "sa"
+            - name: MSSQL_USER
+              value: "identityiq"
+            - name: MSSQL_PASS
+              value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+            - name: MSSQL_SA_PASSWORD
+              value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
+          volumeMounts:
+            - name: iiq-config
+              mountPath: /opt/identityiq
+      volumes:
+        - name: iiq-config
+          persistentVolumeClaim:
+            claimName: iiq-config-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iiq
+  labels:
+    app: iiq
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: iiq
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: iiq-config-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 10Gi
