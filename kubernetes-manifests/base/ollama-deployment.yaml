@@ -45,10 +45,10 @@ spec:
         resources:
           requests:
             memory: "2Gi"
-            cpu: "1000m"
+            cpu: "1"
           limits:
             memory: "8Gi"
-            cpu: "4000m"
+            cpu: "4"
         livenessProbe:
           httpGet:
             path: /v1/models
@@ -74,6 +74,9 @@ spec:
       - name: ollama-data
         persistentVolumeClaim:
           claimName: ollama-pvc
+      - name: ollama-storage
+        persistentVolumeClaim:
+          claimName: ollama-nas-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -103,5 +106,16 @@ spec:
   resources:
     requests:
       storage: 50Gi
-  # Note: For production, use NFS storage class
-  # storageClassName: nfs-nas
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-nas-pvc
+  namespace: ai
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-nas
+  resources:
+    requests:
+      storage: 2Gi

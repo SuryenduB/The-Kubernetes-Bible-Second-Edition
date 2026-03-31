@@ -1,9 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: iiq
   labels:
     app: iiq
+  name: iiq
+  namespace: default
 spec:
   replicas: 1
   selector:
@@ -14,72 +15,42 @@ spec:
       labels:
         app: iiq
     spec:
-      initContainers:
-        - name: wait-for-hr-table
-          image: mysql:8.0
-          command:
-            - /bin/sh
-            - -c
-            - |
-              echo "Waiting for MySQL to be available at db-mysql:3306..."
-              until mysqladmin ping -hdb-mysql -uidentityiq -pidentityiq --silent; do
-                echo "MySQL not up yet..."
-                sleep 5
-              done
-              echo "Checking for hr database..."
-              until mysql -hdb-mysql -uidentityiq -pidentityiq -e "USE hr;" ; do
-                echo "hr database not found yet..."
-                sleep 5
-              done
-              echo "Checking for hr_people table in hr database..."
-              until mysql -hdb-mysql -uidentityiq -pidentityiq -e "USE hr; DESCRIBE hr_people;" ; do
-                echo "hr_people table not found yet..."
-                sleep 5
-              done
-              echo "MySQL, hr database, and hr_people table are ready."
       containers:
-        - name: iiq
-          image: 192.168.0.236:5000/sailpoint-docker:latest
-          ports:
-            - containerPort: 8080
-          startupProbe:
-            httpGet:
-              path: /identityiq
-              port: 8080
-            # Fix: Increase timeout for Java app initialization (now 600s max = 60 retries * 10s period)
-            # IIQ Tomcat server startup takes ~65-90 seconds, was timing out at 600s (60 * 10)
-            failureThreshold: 60
-            periodSeconds: 10
-            timeoutSeconds: 5
-            initialDelaySeconds: 15
-          readinessProbe:
-            httpGet:
-              path: /identityiq
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          env:
-            - name: DATABASE_TYPE
-              value: "mysql"
-            - name: MSSQL_HOST
-              value: "db"
-            - name: MSSQL_SA_USER
-              value: "sa"
-            - name: MSSQL_USER
-              value: "identityiq"
-            - name: MSSQL_PASS
-              value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
-            - name: MSSQL_SA_PASSWORD
-              value: "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
-            - name: MYSQL_HOST
-              value: "db-mysql"
-            - name: MYSQL_USER
-              value: "identityiq"
-            - name: MYSQL_PASSWORD
-              value: "identityiq"
-            - name: MYSQL_DATABASE
-              value: "identityiq"
-            - name: MYSQL_ROOT_PASSWORD
-              value: "password"
-            - name: CATALINA_OPTS
-              value: "-Xmx2048M"
+      - env:
+        - name: DATABASE_TYPE
+          value: mssql
+        - name: MSSQL_HOST
+          value: db
+        - name: MSSQL_SA_USER
+          value: identityiq
+        - name: MSSQL_USER
+          value: identityiq
+        - name: MSSQL_PASS
+          value: Id3nt!tyIQ2026
+        - name: MSSQL_SA_PASSWORD
+          value: Id3nt!tyIQ2026
+        - name: CATALINA_OPTS
+          value: -Xmx2048M
+        image: 192.168.0.236:5000/sailpoint-docker:latest
+        imagePullPolicy: Always
+        name: iiq
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /identityiq
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 20
+        startupProbe:
+          failureThreshold: 60
+          httpGet:
+            path: /identityiq
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30
+          periodSeconds: 15
+      restartPolicy: Always

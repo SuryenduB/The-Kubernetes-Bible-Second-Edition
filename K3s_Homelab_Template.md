@@ -572,3 +572,12 @@ kubectl debug node/<node-name> -it --image=ubuntu:24.04       # Debug node
 **Last Health Check**: 2026-03-30 19:20 UTC  
 **Next Review**: 2026-04-06  
 **Emergency Contact**: Check CLUSTER_FIXES_2026-03-30.md for troubleshooting
+
+## Tailscale Service Exposure
+Services are exposed via Tailscale annotations. To expose a new service:
+1. Add annotations:
+   `yaml
+   tailscale.com/expose: "true"
+   tailscale.com/hostname: "service-name"
+   `
+2. The operator will assign a 100.x.x.x IP.

@@ -73,7 +73,7 @@ function Test-KubernetesNodes {
 function Stop-K3sHomelab {
     [CmdletBinding()]
     param()
-    $workers = @('192.168.0.19', '192.168.0.20', '192.168.0.22', '192.168.0.23', '192.168.0.24', '192.168.0.25', '192.168.0.27')
+    $workers = @('192.168.0.19', '192.168.0.20', '192.168.0.22', '192.168.0.23', '192.168.0.24', '192.168.0.25')
     $master = '192.168.0.21'
     $password = '558068'
     Write-Host "!!! WARNING: Powering off Kubernetes Cluster !!!" -ForegroundColor Red
