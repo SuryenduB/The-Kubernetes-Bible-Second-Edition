@@ -9,3 +9,6 @@ variables.tf
 outputs.tf
 terraform/terraform.tfstate
 terraform/terraform.tfstate.backup
+
+# Sensitive deployment files (contain auth keys)
+TAILSCALE_DEPLOYMENT_GUIDE.md
