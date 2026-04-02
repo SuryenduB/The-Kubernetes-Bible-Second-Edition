@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: registry-fixer
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      name: registry-fixer
+  template:
+    metadata:
+      labels:
+        name: registry-fixer
+    spec:
+      hostNetwork: true
+      tolerations:
+      - operator: Exists # Ensure it runs on master too
+      containers:
+      - name: fixer
+        image: busybox:1.36
+        command: ["sh", "-c"]
+        args:
+        - |
+          mkdir -p /host/etc/rancher/k3s
+          cat <<EOF > /host/etc/rancher/k3s/registries.yaml
+          mirrors:
+            "192.168.0.236:5000":
+              endpoint:
+                - "http://192.168.0.236:5000"
+          EOF
+          echo "Registry config updated on $(hostname)"
+          sleep 3600
+        volumeMounts:
+        - name: etc-k3s
+          mountPath: /host/etc/rancher/k3s
+      volumes:
+      - name: etc-k3s
+        hostPath:
+          path: /etc/rancher/k3s
