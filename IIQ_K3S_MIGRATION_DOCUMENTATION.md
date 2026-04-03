@@ -119,8 +119,37 @@ The `osixia/openldap` image proved highly volatile when combined with Kubernetes
 
 ---
 
-## 8. Final State & Verification
+## 8. Final Stabilization & Orchestration Fixes (2026-04-03)
 
-*   **Readiness:** The IdentityIQ application pods successfully connected to the databases, completed their Tomcat initialization cycle, passed the 10-minute liveness delay, and reached the `1/1 READY` state.
-*   **Tailscale:** MagicDNS is fully operational. The `tailscale` namespace contains active proxy pods (`ts-iiq`, `ts-db`, etc.) routing traffic.
-*   **Access:** The environment is securely accessible remotely via **`http://iiq-main/identityiq`**.
+Following the initial migration, several deep architectural flaws were resolved to ensure production stability.
+
+### 8.1. Persistence-Aware Startup (The Synchronization Barrier)
+*   **Issue:** IdentityIQ pods and the `iiq-init` Job ran in parallel. If the app pods connected before the schema was ready, they crashed with "Invalid object name" errors. Furthermore, multiple pods trying to unpack the WAR onto the same NAS volume caused `checkdir` permission errors.
+*   **Resolution:** 
+    *   Implemented an **IdentityIQ Synchronization Barrier** using an `initContainer` (`wait-and-prep-nas`).
+    *   The barrier polls the Kubernetes API for the `iiq-init` Job status, holding the Tomcat startup until the database is 100% ready.
+    *   Centralized the **WAR Unpacking** and **Configuration Patching** logic into this single-threaded init container to prevent race conditions on the NAS.
+
+### 8.2. MSSQL Quartz Locking Logic
+*   **Issue:** Application failed with `EntityManagerFactory is closed` and `FOR UPDATE clause allowed only for DECLARE CURSOR`.
+*   **Resolution:** Identified that SailPoint's default Quartz scheduler configuration is incompatible with MSSQL's locking syntax.
+    *   Surgically patched `iiq.properties` via `sed` to uncomment and activate:
+        *   `org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.MSSQLDelegate`
+        *   `org.quartz.jobStore.selectWithLockSQL=SELECT * FROM {0}LOCKS UPDLOCK WHERE LOCK_NAME = ?`
+
+### 8.3. NetworkPolicy Hardening for Tailscale
+*   **Issue:** IdentityIQ was `READY` internally but inaccessible via Tailscale MagicDNS (Timeouts).
+*   **Resolution:** Discovered that the strict `default-deny` NetworkPolicy was blocking the Tailscale Operator's proxy pods (which reside in the `tailscale` namespace).
+    *   Updated the `iiqstack-allow-internal` policy to explicitly allow `Ingress` from the `tailscale` and `kube-system` namespaces.
+
+### 8.4. Storage Optimization
+*   **Mount Correction:** Corrected the `iiq-nas-pvc` mount point from `/opt/sailpoint/nas-storage` to the standard Tomcat path **`/opt/tomcat/webapps`**, allowing the application to load directly from the NAS.
+*   **Resource Boost:** Increased the `iiq-init` Job resources to **1 CPU / 2Gi RAM** to accelerate the intensive `init.xml` object import process.
+
+---
+
+## 9. Final State & Verification
+
+*   **Readiness:** The IdentityIQ application pods successfully connected to the databases, completed their Tomcat initialization cycle, and reached the `1/1 READY` state.
+*   **Deterministic Success:** Verified via `Invoke-RestMethod` to the Tailscale endpoint `http://iiq-main/identityiq/login.jsf`, confirming a `200 OK` response.
+*   **Access:** The environment is fully operational, hardened, and accessible remotely via **`http://iiq-main/identityiq`**.
