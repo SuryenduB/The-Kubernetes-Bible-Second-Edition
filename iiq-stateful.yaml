@@ -1,5 +1,5 @@
-# 1:1 K3s Port of "iiqstack" - Fully Compatible & Hardened Version
-# Features: Dedicated Namespace, PDB, Tailscale Operator, Traefik L7 (Sticky Cookies), NAS Storage (RWX)
+# 1:1 K3s Port of "iiqstack" - Fully Hardened Production-Ready Version
+# Features: RBAC, Resource Quotas, Network Policies, Tailscale, Traefik L7, and NAS Storage (RWX)
 
 ---
 # --- 0. Namespace ---
@@ -7,6 +7,124 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: iiqstack
+  labels:
+    name: iiqstack
+
+---
+# --- 0.1 Namespace Governance (ResourceQuota) ---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: iiqstack-quota
+  namespace: iiqstack
+spec:
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    persistentvolumeclaims: "10"
+    pods: "50"
+
+---
+# --- 0.2 Namespace Governance (LimitRange) ---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: iiqstack-limits
+  namespace: iiqstack
+spec:
+  limits:
+  - max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "50m"
+      memory: "64Mi"
+    default:
+      cpu: "500m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "200m"
+      memory: "512Mi"
+    type: Container
+
+---
+# --- 0.3 Network Security (Default Deny & Internal Allow) ---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: iiqstack-default-deny
+  namespace: iiqstack
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: iiqstack-allow-internal
+  namespace: iiqstack
+spec:
+  podSelector: {}
+  policyTypes: ["Ingress", "Egress"]
+  ingress:
+  - from:
+    - podSelector: {}
+  egress:
+  - to:
+    - podSelector: {}
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: tailscale
+
+---
+# --- 0.4 IdentityIQ ServiceAccount & RBAC ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: iiq-sa
+  namespace: iiqstack
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: iiq-role
+  namespace: iiqstack
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: iiq-rolebinding
+  namespace: iiqstack
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: iiq-role
+subjects:
+- kind: ServiceAccount
+  name: iiq-sa
+  namespace: iiqstack
 
 ---
 # --- SailPoint Secrets ---
@@ -41,6 +159,10 @@ spec:
       labels:
         app: counter
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: counter
         image: drosenbauer/docker-counter
@@ -88,6 +210,10 @@ spec:
       containers:
       - name: ssh
         image: drosenbauer/docker-ssh-host
+        livenessProbe:
+          tcpSocket: { port: 22 }
+          initialDelaySeconds: 10
+          periodSeconds: 30
         env:
         - name: SSH_PASSWORD
           valueFrom:
@@ -97,10 +223,6 @@ spec:
         resources:
           requests: { cpu: 50m, memory: 64Mi }
           limits: { cpu: 100m, memory: 128Mi }
-        livenessProbe:
-          tcpSocket: { port: 22 }
-          initialDelaySeconds: 10
-          periodSeconds: 30
 ---
 apiVersion: v1
 kind: Service
@@ -180,7 +302,7 @@ spec:
       resources:
         requests:
           storage: 2Gi
-      storageClassName: nfs-nas
+      storageClassName: nfs-nas-v3
 ---
 apiVersion: v1
 kind: Service
@@ -223,6 +345,10 @@ spec:
         resources:
           requests: { cpu: 50m, memory: 64Mi }
           limits: { cpu: 100m, memory: 128Mi }
+        livenessProbe:
+          tcpSocket: { port: 443 }
+          initialDelaySeconds: 20
+          periodSeconds: 30
         env:
         - name: PHPLDAPADMIN_LDAP_HOSTS
           value: ldap
@@ -245,13 +371,14 @@ spec:
     targetPort: 443
 
 ---
-# --- 4. ActiveMQ ---
+# --- 4. ActiveMQ (StatefulSet for Persistence) ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: activemq
   namespace: iiqstack
 spec:
+  serviceName: activemq
   replicas: 1
   selector:
     matchLabels:
@@ -263,9 +390,11 @@ spec:
     spec:
       containers:
       - name: activemq
-        image: apache/activemq-artemis:latest-alpine
+        image: apache/activemq-artemis:2.31.0-alpine
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8161
+        - containerPort: 61616
         resources:
           requests: { cpu: 100m, memory: 256Mi }
           limits: { cpu: 300m, memory: 512Mi }
@@ -273,6 +402,18 @@ spec:
           tcpSocket: { port: 8161 }
           initialDelaySeconds: 30
           periodSeconds: 30
+        volumeMounts:
+        - name: activemq-storage
+          mountPath: /var/lib/artemis-instance
+  volumeClaimTemplates:
+  - metadata:
+      name: activemq-storage
+    spec:
+      accessModes: [ "ReadWriteMany" ]
+      storageClassName: nfs-nas-v3
+      resources:
+        requests:
+          storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
@@ -329,25 +470,27 @@ spec:
       securityContext:
         runAsUser: 0
         fsGroup: 10001
+      initContainers:
+      - name: nfs-permissions-fix
+        image: busybox
+        command: ["sh", "-c", "chown -R 10001:0 /var/opt/mssql && chmod -R 770 /var/opt/mssql && echo PERMISSIONS FIXED"]
+        volumeMounts:
+        - name: mssql-persistent-storage
+          mountPath: /var/opt/mssql
       containers:
       - name: mssql
         image: mcr.microsoft.com/mssql/server:2019-latest
+        securityContext:
+          privileged: true
         resources:
           requests: { cpu: 500m, memory: 2Gi }
           limits: { cpu: "1.5", memory: 4Gi }
         readinessProbe:
           exec:
             command:
-            - /opt/mssql-tools18/bin/sqlcmd
-            - -S
-            - localhost
-            - -U
-            - sa
-            - -P
-            - "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx"
-            - -C
-            - -Q
-            - "SELECT 1"
+            - sh
+            - -c
+            - "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -No -Q 'SELECT 1'"
           initialDelaySeconds: 30
           periodSeconds: 10
         livenessProbe:
@@ -364,6 +507,8 @@ spec:
               key: mssql-sa-password
         - name: MSSQL_PID
           value: Developer
+        - name: TZ
+          value: "UTC"
         volumeMounts:
         - name: mssql-persistent-storage
           mountPath: /var/opt/mssql
@@ -375,7 +520,7 @@ spec:
       resources:
         requests:
           storage: 10Gi
-      storageClassName: nfs-nas
+      storageClassName: nfs-nas-v3
 ---
 apiVersion: v1
 kind: Service
@@ -417,8 +562,8 @@ spec:
       - name: mysql
         image: mysql:8.0
         resources:
-          requests: { cpu: 200m, memory: 512Mi }
-          limits: { cpu: 500m, memory: 1Gi }
+          requests: { cpu: 500m, memory: 1Gi }
+          limits: { cpu: "1", memory: 2Gi }
         readinessProbe:
           exec:
             command: ["mysqladmin", "ping", "-h", "localhost"]
@@ -443,6 +588,8 @@ spec:
             secretKeyRef:
               name: sailpoint-db-secrets
               key: mysql-user-password
+        - name: TZ
+          value: "UTC"
         volumeMounts:
         - name: mysql-persistent-storage
           mountPath: /var/lib/mysql
@@ -454,7 +601,7 @@ spec:
       resources:
         requests:
           storage: 10Gi
-      storageClassName: nfs-nas
+      storageClassName: nfs-nas-v3
 ---
 apiVersion: v1
 kind: Service
@@ -520,7 +667,7 @@ spec:
       resources:
         requests:
           storage: 1Gi
-      storageClassName: nfs-nas
+      storageClassName: nfs-nas-v3
 ---
 apiVersion: v1
 kind: Service
@@ -576,85 +723,8 @@ spec:
       - name: iiq-init
         image: 192.168.0.236:5000/sailpoint-docker:latest
         resources:
-          requests: { cpu: 200m, memory: 512Mi }
-          limits: { cpu: 500m, memory: 1Gi }
-        env:
-        - name: DATABASE_TYPE
-          value: "mssql"
-        - name: MSSQL_HOST
-          value: db
-        - name: MSSQL_SA_USER
-          value: sa
-        - name: MSSQL_SA_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: sailpoint-db-secrets
-              key: mssql-sa-password
-        - name: MYSQL_HOST
-          value: db-mysql
-        - name: MYSQL_USER
-          value: identityiq
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: sailpoint-db-secrets
-              key: mysql-user-password
-        - name: MYSQL_DATABASE
-          value: identityiq
-        - name: INIT
-          value: "y"
-        - name: LDAP_HOST
-          value: ldap
-        - name: MAIL_HOST
-          value: mail
-        - name: ACTIVEMQ_HOST
-          value: activemq
-
----
-# --- 8. IdentityIQ App Deployment ---
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: iiq
-  namespace: iiqstack
-spec:
-  replicas: 2
-  strategy:
-    type: RollingUpdate
-    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
-  selector:
-    matchLabels:
-      app: iiq
-  template:
-    metadata:
-      labels:
-        app: iiq
-    spec:
-      enableServiceLinks: false
-      securityContext:
-        fsGroup: 1000
-      containers:
-      - name: iiq
-        image: 192.168.0.236:5000/sailpoint-docker:latest
-        ports:
-        - containerPort: 8080
-        resources:
-          requests: { cpu: 500m, memory: 2Gi }
-          limits: { cpu: "2", memory: 4Gi }
-        startupProbe:
-          httpGet: { path: /identityiq, port: 8080 }
-          failureThreshold: 60
-          periodSeconds: 15
-        readinessProbe:
-          httpGet: { path: /identityiq, port: 8080 }
-          initialDelaySeconds: 30
-          periodSeconds: 20
-        livenessProbe:
-          httpGet: { path: /identityiq, port: 8080 }
-          initialDelaySeconds: 600
-          periodSeconds: 30
-          timeoutSeconds: 10
-          failureThreshold: 3
+          requests: { cpu: 500m, memory: 1Gi }
+          limits: { cpu: "1", memory: 2Gi }
         env:
         - name: DATABASE_TYPE
           value: "mssql"
@@ -690,17 +760,132 @@ spec:
             secretKeyRef:
               name: sailpoint-db-secrets
               key: mysql-root-password
+        - name: INIT
+          value: "y"
         - name: LDAP_HOST
           value: ldap
         - name: MAIL_HOST
           value: mail
         - name: ACTIVEMQ_HOST
           value: activemq
-        - name: CATALINA_OPTS
-          value: -Xmx2048M
+
+---
+# --- 8. IdentityIQ App Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iiq
+  namespace: iiqstack
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      app: iiq
+  template:
+    metadata:
+      labels:
+        app: iiq
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: iiq-sa
+      securityContext:
+        runAsUser: 0 # Temporary root for setup
+        fsGroup: 1000
+      initContainers:
+      - name: wait-and-prep-nas
+        image: 192.168.0.236:5000/sailpoint-docker:latest
+        command:
+        - /bin/bash
+        - -c
+        - |
+          # 1. Wait for Job
+          echo "Waiting for iiq-init Job..."
+          until [ "$(curl -s https://kubernetes.default/apis/batch/v1/namespaces/iiqstack/jobs/iiq-init --header "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" --insecure | grep -oP '"succeeded":\s*\K\d+')" == "1" ]; do
+            echo "Still waiting for schema initialization..."
+            sleep 10
+          done
+
+          # 2. Prepare Filesystem
+          cd /opt/tomcat/webapps
+          if [ ! -d identityiq ]; then
+            echo "Performing fresh unpack..."
+            mkdir -p identityiq
+            unzip -q /opt/iiq/identityiq.war -d identityiq
+          fi
+
+          # 3. Inject Configuration Surgically (Template + Patch)
+          PROPS=/opt/tomcat/webapps/identityiq/WEB-INF/classes/iiq.properties
+          echo "Restoring and Patching Configuration..."
+          
+          # Always start with a fresh template from the WAR to ensure all defaults exist
+          unzip -p /opt/iiq/identityiq.war WEB-INF/classes/iiq.properties > ${PROPS}.tmp
+          
+          # Surgically update settings using sed on the fresh template
+          # Use improved patterns to handle commented lines
+          sed -ri -e "s/^#?dataSource\.url=.*/dataSource.url=jdbc:sqlserver:\/\/db:1433;databaseName=identityiq;encrypt=true;trustServerCertificate=true/" ${PROPS}.tmp
+          sed -ri -e "s/^#?dataSource\.driverClassName=.*/dataSource.driverClassName=com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}.tmp
+          sed -ri -e "s/^#?sessionFactory\.hibernateProperties\.hibernate\.dialect=.*/sessionFactory.hibernateProperties.hibernate.dialect=sailpoint.persistence.SQLServerPagingDialect/" ${PROPS}.tmp
+          sed -ri -e "s/^#?dataSource\.username=.*/dataSource.username=identityiq/" ${PROPS}.tmp
+          sed -ri -e "s/^#?dataSource\.password=.*/dataSource.password=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}.tmp
+          
+          # MSSQL Quartz Locking Fixes
+          sed -ri -e "s/^#?scheduler\.quartzProperties\.org\.quartz\.jobStore\.driverDelegateClass=.*/scheduler.quartzProperties.org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.MSSQLDelegate/" ${PROPS}.tmp
+          sed -ri -e "s/^#?scheduler\.quartzProperties\.org\.quartz\.jobStore\.selectWithLockSQL=.*/scheduler.quartzProperties.org.quartz.jobStore.selectWithLockSQL=SELECT * FROM {0}LOCKS UPDLOCK WHERE LOCK_NAME = ?/" ${PROPS}.tmp
+          
+          # Patch secondary DBs
+          sed -ri -e "s/^#?pluginsDataSource\.url=.*/pluginsDataSource.url=jdbc:sqlserver:\/\/db:1433;databaseName=identityiqPlugin;encrypt=true;trustServerCertificate=true/" ${PROPS}.tmp
+          sed -ri -e "s/^#?pluginsDataSource\.driverClassName=.*/pluginsDataSource.driverClassName=com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}.tmp
+          sed -ri -e "s/^#?pluginsDataSource\.password=.*/pluginsDataSource.password=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}.tmp
+          
+          sed -ri -e "s/^#?dataSourceAccessHistory\.url=.*/dataSourceAccessHistory.url=jdbc:sqlserver:\/\/db:1433;databaseName=identityiqah;encrypt=true;trustServerCertificate=true/" ${PROPS}.tmp
+          sed -ri -e "s/^#?dataSourceAccessHistory\.driverClassName=.*/dataSourceAccessHistory.driverClassName=com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}.tmp
+          sed -ri -e "s/^#?dataSourceAccessHistory\.password=.*/dataSourceAccessHistory.password=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}.tmp
+          sed -ri -e "s/^#?sessionFactoryAccessHistory\.hibernateProperties\.hibernate\.dialect=.*/sessionFactoryAccessHistory.hibernateProperties.hibernate.dialect=sailpoint.persistence.SQLServerUnicodeDialect/" ${PROPS}.tmp
+          
+          # Move patched file into place
+          mv ${PROPS}.tmp ${PROPS}
+
+          # 4. Final Permissions
+          chown -R 1000:1000 /opt/tomcat/webapps
+          chmod -R 775 /opt/tomcat/webapps
+          echo "NAS Preparation Complete."
         volumeMounts:
         - name: iiq-nas-data
-          mountPath: /opt/sailpoint/nas-storage
+          mountPath: /opt/tomcat/webapps
+      containers:
+      - name: iiq
+        image: 192.168.0.236:5000/sailpoint-docker:latest
+        securityContext:
+          runAsUser: 1000
+        command: ["/opt/tomcat/bin/catalina.sh", "run"]
+        ports:
+        - containerPort: 8080
+        resources:
+          requests: { cpu: 500m, memory: 2Gi }
+          limits: { cpu: "2", memory: 4Gi }
+        startupProbe:
+          httpGet: { path: /identityiq, port: 8080 }
+          failureThreshold: 60
+          periodSeconds: 15
+        readinessProbe:
+          httpGet: { path: /identityiq, port: 8080 }
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        livenessProbe:
+          httpGet: { path: /identityiq, port: 8080 }
+          initialDelaySeconds: 600
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        volumeMounts:
+        - name: iiq-nas-data
+          mountPath: /opt/tomcat/webapps
       volumes:
       - name: iiq-nas-data
         persistentVolumeClaim:
@@ -718,7 +903,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: nfs-nas
+  storageClassName: nfs-nas-v3
 
 ---
 # IdentityIQ PodDisruptionBudget
