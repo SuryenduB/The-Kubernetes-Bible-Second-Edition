@@ -1,5 +1,5 @@
 # 1:1 K3s Port of "iiqstack" - Fully Hardened Production-Ready Version
-# Features: RBAC, Resource Quotas, Network Policies, Tailscale, Traefik L7, and NAS Storage (RWX)
+# Features: RBAC, Resource Quotas, Network Policies, Tailscale, Traefik L7, and Longhorn Storage (HA)
 
 ---
 # --- 0. Namespace ---
@@ -50,7 +50,7 @@ spec:
     type: Container
 
 ---
-# --- 0.3 Network Security (Default Deny & Internal Allow) ---
+# --- 0.3 Network Security (Hardened Policies) ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -71,6 +71,14 @@ spec:
   ingress:
   - from:
     - podSelector: {}
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: tailscale
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: kube-system
   egress:
   - to:
     - podSelector: {}
@@ -87,6 +95,13 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: tailscale
+  # FIX: Allow egress to Kubernetes API Server (required for Job polling)
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+    ports:
+    - protocol: TCP
+      port: 443
 
 ---
 # --- 0.4 IdentityIQ ServiceAccount & RBAC ---
@@ -298,11 +313,11 @@ spec:
   - metadata:
       name: ldap-persistent-storage
     spec:
-      accessModes: [ "ReadWriteMany" ]
+      accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
           storage: 2Gi
-      storageClassName: nfs-nas-v3
+      storageClassName: longhorn
 ---
 apiVersion: v1
 kind: Service
@@ -337,6 +352,7 @@ spec:
       labels:
         app: phpldapadmin
     spec:
+      # securityContext removed to allow osixia/phpldapadmin root initialization
       containers:
       - name: phpldapadmin
         image: osixia/phpldapadmin
@@ -388,6 +404,9 @@ spec:
       labels:
         app: activemq
     spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
       - name: activemq
         image: apache/activemq-artemis:2.31.0-alpine
@@ -400,7 +419,7 @@ spec:
           limits: { cpu: 300m, memory: 512Mi }
         livenessProbe:
           tcpSocket: { port: 8161 }
-          initialDelaySeconds: 30
+          initialDelaySeconds: 120
           periodSeconds: 30
         volumeMounts:
         - name: activemq-storage
@@ -409,8 +428,8 @@ spec:
   - metadata:
       name: activemq-storage
     spec:
-      accessModes: [ "ReadWriteMany" ]
-      storageClassName: nfs-nas-v3
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: longhorn
       resources:
         requests:
           storage: 5Gi
@@ -428,9 +447,14 @@ spec:
   selector:
     app: activemq
   ports:
-  - protocol: TCP
+  - name: admin-ui
+    protocol: TCP
     port: 8161
     targetPort: 8161
+  - name: broker
+    protocol: TCP
+    port: 61616
+    targetPort: 61616
 ---
 apiVersion: traefik.io/v1alpha1
 kind: IngressRoute
@@ -468,20 +492,20 @@ spec:
     spec:
       enableServiceLinks: false
       securityContext:
-        runAsUser: 0
+        runAsUser: 10001
         fsGroup: 10001
       initContainers:
       - name: nfs-permissions-fix
         image: busybox
-        command: ["sh", "-c", "chown -R 10001:0 /var/opt/mssql && chmod -R 770 /var/opt/mssql && echo PERMISSIONS FIXED"]
+        command: ["sh", "-c", "echo 'Longhorn block storage, bypassing NFS fixes'"]
         volumeMounts:
         - name: mssql-persistent-storage
           mountPath: /var/opt/mssql
       containers:
       - name: mssql
-        image: mcr.microsoft.com/mssql/server:2019-latest
+        image: mcr.microsoft.com/mssql/server:2019-CU28-ubuntu-20.04
         securityContext:
-          privileged: true
+          privileged: false
         resources:
           requests: { cpu: 500m, memory: 2Gi }
           limits: { cpu: "1.5", memory: 4Gi }
@@ -490,7 +514,10 @@ spec:
             command:
             - sh
             - -c
-            - "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -No -Q 'SELECT 1'"
+            - |
+              SQLCMD=$(find /opt/mssql-tools* /opt/mssql/bin -name sqlcmd | head -n 1)
+              [ -z "$SQLCMD" ] && SQLCMD=sqlcmd
+              $SQLCMD -S localhost -U sa -P "$MSSQL_SA_PASSWORD" -No -C -Q 'SELECT 1'
           initialDelaySeconds: 30
           periodSeconds: 10
         livenessProbe:
@@ -516,11 +543,11 @@ spec:
   - metadata:
       name: mssql-persistent-storage
     spec:
-      accessModes: [ "ReadWriteMany" ]
+      accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
           storage: 10Gi
-      storageClassName: nfs-nas-v3
+      storageClassName: longhorn
 ---
 apiVersion: v1
 kind: Service
@@ -556,8 +583,7 @@ spec:
         app: db-mysql
     spec:
       enableServiceLinks: false
-      securityContext:
-        fsGroup: 999
+      # securityContext removed to allow MySQL 8.0 root initialization
       containers:
       - name: mysql
         image: mysql:8.0
@@ -597,11 +623,11 @@ spec:
   - metadata:
       name: mysql-persistent-storage
     spec:
-      accessModes: [ "ReadWriteMany" ]
+      accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
           storage: 10Gi
-      storageClassName: nfs-nas-v3
+      storageClassName: longhorn
 ---
 apiVersion: v1
 kind: Service
@@ -637,6 +663,10 @@ spec:
       labels:
         app: mail
     spec:
+      securityContext:
+        runAsUser: 1000
+        runAsNonRoot: true
+        fsGroup: 1000
       containers:
       - name: mailpit
         image: axllent/mailpit
@@ -648,8 +678,6 @@ spec:
           initialDelaySeconds: 15
           periodSeconds: 30
         env:
-        - name: MP_MAX_MESSAGES
-          value: "5000"
         - name: MP_DATABASE
           value: "/data/mailpit.db"
         - name: MP_SMTP_AUTH_ACCEPT_ANY
@@ -663,11 +691,11 @@ spec:
   - metadata:
       name: mail-persistent-storage
     spec:
-      accessModes: [ "ReadWriteMany" ]
+      accessModes: [ "ReadWriteOnce" ]
       resources:
         requests:
           storage: 1Gi
-      storageClassName: nfs-nas-v3
+      storageClassName: longhorn
 ---
 apiVersion: v1
 kind: Service
@@ -692,82 +720,7 @@ spec:
     targetPort: 8025
 
 ---
-# --- 7. IdentityIQ Init Job ---
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: iiq-init
-  namespace: iiqstack
-spec:
-  backoffLimit: 4
-  template:
-    metadata:
-      labels:
-        app: iiq-init
-    spec:
-      restartPolicy: Never
-      initContainers:
-      - name: wait-for-all-dependencies
-        image: busybox:1.36
-        command: 
-        - 'sh'
-        - '-c'
-        - |
-          until nc -z db 1433; do echo waiting for mssql; sleep 5; done;
-          until nc -z db-mysql 3306; do echo waiting for mysql; sleep 5; done;
-          until nc -z ldap 389; do echo waiting for ldap; sleep 5; done;
-          until nc -z mail 1025; do echo waiting for mail; sleep 5; done;
-          until nc -z activemq 8161; do echo waiting for activemq; sleep 5; done;
-          echo "All dependencies are up."
-      containers:
-      - name: iiq-init
-        image: 192.168.0.236:5000/sailpoint-docker:latest
-        resources:
-          requests: { cpu: 500m, memory: 1Gi }
-          limits: { cpu: "1", memory: 2Gi }
-        env:
-        - name: DATABASE_TYPE
-          value: "mssql"
-        - name: MSSQL_HOST
-          value: db
-        - name: MSSQL_SA_USER
-          value: sa
-        - name: MSSQL_SA_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: sailpoint-db-secrets
-              key: mssql-sa-password
-        - name: MSSQL_USER
-          value: identityiq
-        - name: MSSQL_PASS
-          valueFrom:
-            secretKeyRef:
-              name: sailpoint-db-secrets
-              key: mssql-user-password
-        - name: MYSQL_HOST
-          value: db-mysql
-        - name: MYSQL_USER
-          value: identityiq
-        - name: MYSQL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: sailpoint-db-secrets
-              key: mysql-user-password
-        - name: MYSQL_DATABASE
-          value: identityiq
-        - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: sailpoint-db-secrets
-              key: mysql-root-password
-        - name: INIT
-          value: "y"
-        - name: LDAP_HOST
-          value: ldap
-        - name: MAIL_HOST
-          value: mail
-        - name: ACTIVEMQ_HOST
-          value: activemq
+# --- 7. IdentityIQ Init Job (Managed via iiq-init-job.yaml) ---
 
 ---
 # --- 8. IdentityIQ App Deployment ---
@@ -792,11 +745,13 @@ spec:
       enableServiceLinks: false
       serviceAccountName: iiq-sa
       securityContext:
-        runAsUser: 0 # Temporary root for setup
         fsGroup: 1000
       initContainers:
       - name: wait-and-prep-nas
-        image: 192.168.0.236:5000/sailpoint-docker:latest
+        image: 192.168.0.236:5000/sailpoint-iiq:8.5
+        securityContext:
+          runAsUser: 0
+          privileged: true
         command:
         - /bin/bash
         - -c
@@ -808,56 +763,83 @@ spec:
             sleep 10
           done
 
-          # 2. Prepare Filesystem
+          # 2. Configuration Hashing (State Detection)
+          # We hash all critical connection strings to detect if the config changed
+          CONFIG_STATE="db:1433:identityiq:identityiqPlugin:identityiqah"
+          CONFIG_HASH=$(echo "$CONFIG_STATE" | md5sum | cut -d' ' -f1)
+          SENTINEL=".unpacked_${CONFIG_HASH}"
+          
           cd /opt/tomcat/webapps
-          if [ ! -d identityiq ]; then
-            echo "Performing fresh unpack..."
-            mkdir -p identityiq
-            unzip -q /opt/iiq/identityiq.war -d identityiq
+          WAR_FILE=/opt/iiq/identityiq.war
+          
+          # 3. Smart Unpack/Patch Decision
+          NEEDS_WORK=0
+          if [ ! -f "$SENTINEL" ]; then
+            echo "No valid config sentinel found ($SENTINEL). Starting preparation..."
+            NEEDS_WORK=1
+          elif [ "$WAR_FILE" -nt "$SENTINEL" ]; then
+            echo "Newer WAR file detected. Triggering upgrade..."
+            NEEDS_WORK=1
           fi
 
-          # 3. Inject Configuration Surgically (Template + Patch)
-          PROPS=/opt/tomcat/webapps/identityiq/WEB-INF/classes/iiq.properties
-          echo "Restoring and Patching Configuration..."
-          
-          # Always start with a fresh template from the WAR to ensure all defaults exist
-          unzip -p /opt/iiq/identityiq.war WEB-INF/classes/iiq.properties > ${PROPS}.tmp
-          
-          # Surgically update settings using sed on the fresh template
-          # Use improved patterns to handle commented lines
-          sed -ri -e "s/^#?dataSource\.url=.*/dataSource.url=jdbc:sqlserver:\/\/db:1433;databaseName=identityiq;encrypt=true;trustServerCertificate=true/" ${PROPS}.tmp
-          sed -ri -e "s/^#?dataSource\.driverClassName=.*/dataSource.driverClassName=com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}.tmp
-          sed -ri -e "s/^#?sessionFactory\.hibernateProperties\.hibernate\.dialect=.*/sessionFactory.hibernateProperties.hibernate.dialect=sailpoint.persistence.SQLServerPagingDialect/" ${PROPS}.tmp
-          sed -ri -e "s/^#?dataSource\.username=.*/dataSource.username=identityiq/" ${PROPS}.tmp
-          sed -ri -e "s/^#?dataSource\.password=.*/dataSource.password=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}.tmp
-          
-          # MSSQL Quartz Locking Fixes
-          sed -ri -e "s/^#?scheduler\.quartzProperties\.org\.quartz\.jobStore\.driverDelegateClass=.*/scheduler.quartzProperties.org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.MSSQLDelegate/" ${PROPS}.tmp
-          sed -ri -e "s/^#?scheduler\.quartzProperties\.org\.quartz\.jobStore\.selectWithLockSQL=.*/scheduler.quartzProperties.org.quartz.jobStore.selectWithLockSQL=SELECT * FROM {0}LOCKS UPDLOCK WHERE LOCK_NAME = ?/" ${PROPS}.tmp
-          
-          # Patch secondary DBs
-          sed -ri -e "s/^#?pluginsDataSource\.url=.*/pluginsDataSource.url=jdbc:sqlserver:\/\/db:1433;databaseName=identityiqPlugin;encrypt=true;trustServerCertificate=true/" ${PROPS}.tmp
-          sed -ri -e "s/^#?pluginsDataSource\.driverClassName=.*/pluginsDataSource.driverClassName=com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}.tmp
-          sed -ri -e "s/^#?pluginsDataSource\.password=.*/pluginsDataSource.password=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}.tmp
-          
-          sed -ri -e "s/^#?dataSourceAccessHistory\.url=.*/dataSourceAccessHistory.url=jdbc:sqlserver:\/\/db:1433;databaseName=identityiqah;encrypt=true;trustServerCertificate=true/" ${PROPS}.tmp
-          sed -ri -e "s/^#?dataSourceAccessHistory\.driverClassName=.*/dataSourceAccessHistory.driverClassName=com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}.tmp
-          sed -ri -e "s/^#?dataSourceAccessHistory\.password=.*/dataSourceAccessHistory.password=id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}.tmp
-          sed -ri -e "s/^#?sessionFactoryAccessHistory\.hibernateProperties\.hibernate\.dialect=.*/sessionFactoryAccessHistory.hibernateProperties.hibernate.dialect=sailpoint.persistence.SQLServerUnicodeDialect/" ${PROPS}.tmp
-          
-          # Move patched file into place
-          mv ${PROPS}.tmp ${PROPS}
+          if [ "$NEEDS_WORK" -eq 1 ]; then
+            if mkdir .lock 2>/dev/null; then
+              # Clean old sentinels to prevent disk clutter
+              rm -f .unpacked_*
+              
+              # Only unzip if the directory is missing or we detect a WAR change
+              if [ ! -d identityiq ] || [ "$WAR_FILE" -nt "identityiq" ]; then
+                echo "Unpacking IdentityIQ WAR..."
+                rm -rf identityiq
+                mkdir -p identityiq
+                unzip -qo $WAR_FILE -d identityiq
+              fi
+              
+              # 4. Inject Configuration (Atomic Multi-Key Patch)
+              PROPS=/opt/tomcat/webapps/identityiq/WEB-INF/classes/iiq.properties
+              echo "Applying Configuration Patch (Hash: $CONFIG_HASH)..."
+              
+              sed -ri "s/^(dataSource\.url=).*/\1jdbc:sqlserver:\/\/db:1433;databaseName=identityiq;encrypt=true;trustServerCertificate=true/" ${PROPS}
+              sed -ri "s/^(dataSource\.driverClassName=).*/\1com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}
+              sed -ri "s/^(dataSource\.username=).*/\1identityiq/" ${PROPS}
+              sed -ri "s/^(dataSource\.password=).*/\1id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}
+              sed -ri "s/^(sessionFactory\.hibernateProperties\.hibernate\.dialect=).*/\1sailpoint.persistence.SQLServerPagingDialect/" ${PROPS}
+              
+              sed -ri "s/^(pluginsDataSource\.url=).*/\1jdbc:sqlserver:\/\/db:1433;databaseName=identityiqPlugin;encrypt=true;trustServerCertificate=true/" ${PROPS}
+              sed -ri "s/^(pluginsDataSource\.driverClassName=).*/\1com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}
+              sed -ri "s/^(pluginsDataSource\.password=).*/\1id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}
+              
+              sed -ri "s/^(dataSourceAccessHistory\.url=).*/\1jdbc:sqlserver:\/\/db:1433;databaseName=identityiqah;encrypt=true;trustServerCertificate=true/" ${PROPS}
+              sed -ri "s/^(dataSourceAccessHistory\.driverClassName=).*/\1com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}
+              sed -ri "s/^(dataSourceAccessHistory\.password=).*/\1id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}
+              sed -ri "s/^(sessionFactoryAccessHistory\.hibernateProperties\.hibernate\.dialect=).*/\1sailpoint.persistence.SQLServerUnicodeDialect/" ${PROPS}
 
-          # 4. Final Permissions
+              echo "scheduler.quartzProperties.org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.MSSQLDelegate" >> ${PROPS}
+              echo "scheduler.quartzProperties.org.quartz.jobStore.selectWithLockSQL=SELECT * FROM {0}LOCKS UPDLOCK WHERE LOCK_NAME = ?" >> ${PROPS}
+              
+              # 5. Driver Workaround
+              echo "Injecting driver into system lib..."
+              cp -f /opt/iiq/lib/mssql-jdbc*.jar /opt/tomcat/lib/
+              cp -f /opt/iiq/lib/*.jar /opt/tomcat/webapps/identityiq/WEB-INF/lib/
+
+              touch "$SENTINEL"
+              rmdir .lock
+              echo "Configuration Patching Complete."
+            else
+              echo "Preparation already in progress by another pod, waiting..."
+              until [ -f "$SENTINEL" ] && [ ! -d .lock ]; do sleep 5; done
+            fi
+          fi
+
+          # 5. Final Permissions
           chown -R 1000:1000 /opt/tomcat/webapps
-          chmod -R 775 /opt/tomcat/webapps
-          echo "NAS Preparation Complete."
+          echo "Storage Preparation Complete."
         volumeMounts:
         - name: iiq-nas-data
           mountPath: /opt/tomcat/webapps
       containers:
       - name: iiq
-        image: 192.168.0.236:5000/sailpoint-docker:latest
+        image: 192.168.0.236:5000/sailpoint-iiq:8.5
         securityContext:
           runAsUser: 1000
         command: ["/opt/tomcat/bin/catalina.sh", "run"]
@@ -892,7 +874,7 @@ spec:
           claimName: iiq-nas-pvc
 
 ---
-# NAS PVC for App Storage
+# Longhorn PVC for App Storage (RWX for multi-node support)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -903,10 +885,10 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: nfs-nas-v3
+  storageClassName: longhorn
 
 ---
-# IdentityIQ PodDisruptionBudget
+# IdentityIQ Pod Disruption Budget
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
@@ -917,6 +899,63 @@ spec:
   selector:
     matchLabels:
       app: iiq
+
+---
+# Database & Middleware Pod Disruption Budgets (Production Hardening)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: db-pdb
+  namespace: iiqstack
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: db
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: db-mysql-pdb
+  namespace: iiqstack
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: db-mysql
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: ldap-pdb
+  namespace: iiqstack
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: ldap
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: activemq-pdb
+  namespace: iiqstack
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: activemq
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: mail-pdb
+  namespace: iiqstack
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mail
 
 ---
 # IdentityIQ L7 & Tailscale Services

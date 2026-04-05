@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-03-30 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.5+k3s1
+**Last Updated**: 2026-04-03 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.5+k3s1
 
 ---
 
@@ -128,12 +128,12 @@ To access `.local` and `.example.com` domains from your browser, add these entri
 │                    Local Network                             │
 │                  192.168.0.0/24                              │
 └─────────────────────────────────────────────────────────────┘
-  │        │        │        │        │        │        │        │
-  ▼        ▼        ▼        ▼        ▼        ▼        ▼        ▼
-┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐
-│NUC│  │ k1│  │ k2│  │ k3│  │ k4│  │ k5│  │ k6│  │ k7│  K3s Cluster
-└───┘  └───┘  └───┘  └───┘  └───┘  └───┘  └───┘  └───┘
- CP     W      W      W      W      W      W      W
+  │        │        │        │        │        │        │        │        │
+  ▼        ▼        ▼        ▼        ▼        ▼        ▼        ▼        ▼
+┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌───┐  ┌──────┐
+│NUC│  │ k1│  │ k2│  │ k3│  │ k4│  │ k5│  │ k6│  │ k7│  │ REG  │
+└───┘  └───┘  └───┘  └───┘  └───┘  └───┘  └───┘  └───┘  └──────┘
+ CP     W      W      W      W      W      W      W     Registry
                └────────────────────────────────────┘
                     Kubernetes Workload Pool
                      (NFS Storage Access)
@@ -158,6 +158,14 @@ To access `.local` and `.example.com` domains from your browser, add these entri
 | **kubernetes5** | 192.168.0.24 | 🖥️ Desktop | worker | Intel i3-4130 | 2 | 4 | 16GB | NFS | ✅ Ready |
 | **kubernetes6** | 192.168.0.25 | 🖥️ Desktop | worker | Intel i3-4350T | 2 | 4 | 8GB | NFS | ✅ Ready |
 | **kubernetes7** | 192.168.0.27 | 💻 Laptop | worker | Intel i5-4210U | 2 | 4 | 8GB | Local + NFS | ✅ Ready |
+| **registry** | 192.168.0.236 | 🖥️ Desktop | Docker Registry | Intel (see note) | - | - | - | Local | ✅ Running |
+
+**Registry Server Details:**
+- **OS**: Ubuntu 24.04.1 LTS (Kernel 6.17.0-19-generic)
+- **SSH User**: `SuryenduB` (password: `558068`)
+- **Registry**: Docker Registry v2 (HTTP, no auth) on port 5000
+- **Images**: `sailpoint-docker:latest`, `sailpoint-iiq:latest`
+- **Config**: `/etc/rancher/k3s/registries.yaml` on all nodes points here
 
 ---
 
@@ -214,7 +222,7 @@ kubernetes7   Ready    worker                 v1.34.6+k3s1   192.168.0.27
 
 **NAS Server**: NASECDE55  
 **Address**: 192.168.0.128  
-**Protocol**: NFS v3/v4  
+**Protocol**: NFS v3 (Enforced via `mountOptions`)  
 **Total Capacity**: 423GB  
 **Usage**: ~50GB (12%)  
 **Mount Type**: RWX (Read-Write-Many)
@@ -305,6 +313,66 @@ sudo chown -R 10001:10001 /share/Public/default-mssql-nas-pvc-*
 
 ---
 
+## 🐳 Local Docker Registry
+
+### Registry Server
+
+| Property | Value |
+|----------|-------|
+| **Hostname** | registry |
+| **IP** | 192.168.0.236 |
+| **OS** | Ubuntu 24.04.1 LTS |
+| **SSH Access** | `ssh SuryenduB@192.168.0.236` |
+| **Registry URL** | `http://192.168.0.236:5000` |
+| **Auth** | None (HTTP, insecure) |
+
+### Stored Images
+
+| Image | Tag | Used By |
+|-------|-----|---------|
+| `sailpoint-docker` | `latest` | IIQ pods in iiqstack namespace |
+| `sailpoint-iiq` | `latest` | Not currently deployed |
+
+### Registry Configuration on K3s Nodes
+
+All 8 nodes have `/etc/rancher/k3s/registries.yaml` configured via the `registry-fixer` DaemonSet:
+
+```yaml
+mirrors:
+  "192.168.0.236:5000":
+    endpoint:
+      - "http://192.168.0.236:5000"
+```
+
+### Registry Management
+
+```bash
+# List all images on registry
+curl http://192.168.0.236:5000/v2/_catalog
+
+# List tags for an image
+curl http://192.168.0.236:5000/v2/sailpoint-docker/tags/list
+
+# Push a new image to registry
+docker tag my-image:latest 192.168.0.236:5000/my-image:latest
+docker push 192.168.0.236:5000/my-image:latest
+
+# Delete an image from registry
+curl -X DELETE http://192.168.0.236:5000/v2/my-image/manifests/$(curl -s -I http://192.168.0.236:5000/v2/my-image/manifests/latest | grep -i docker-content-digest | awk '{print $2}' | tr -d '\r')
+```
+
+### Registry DaemonSet
+
+```bash
+# Check registry-fixer status
+kubectl get daemonset registry-fixer -n kube-system
+
+# View registry-fixer logs
+kubectl logs -n kube-system -l name=registry-fixer --tail=10
+```
+
+---
+
 ## 📦 Deployment Manifests
 
 ### Manifest Location
@@ -386,16 +454,62 @@ kubectl get pods -A --field-selector=status.phase!=Running
 
 ### Backup & Recovery
 
-**Manual Backup** (Recommended before major changes):
+**Datastore**: SQLite (K3s default, NOT etcd)
+**Backup Location**: NAS `192.168.0.128:/share/Public/backups/k3s/`
+
+#### Triple Protection System
+
+| Type | Schedule | Trigger | Downtime |
+|------|----------|---------|----------|
+| Scheduled | Daily 2:00 AM UTC | Cron job | ~30 sec |
+| Pre-Shutdown | Before reboot/shutdown | systemd service | ~30 sec |
+| Manual | On-demand | Command | ~30 sec |
+
+#### What Gets Backed Up
+
+- SQLite database (`/var/lib/rancher/k3s/server/db/state.db`)
+- K3s configuration (`/etc/rancher/k3s/`)
+- Node token and certificates
+- All Kubernetes manifests and resources
+
+**Manual Backup** (run before major changes):
 ```bash
-# Backup etcd (K3s stores in SQLite by default)
 sudo /usr/local/bin/k3s-backup-to-nas.sh
 ```
 
+**List Available Backups:**
+```bash
+sudo /usr/local/bin/k3s-recovery.sh
+```
+
+**Restore from Backup:**
+```bash
+# Restore from specific backup (use date directory name)
+sudo /usr/local/bin/k3s-recovery.sh 20260403-140442
+```
+
+**Backup Structure on NAS:**
+```
+NAS:/share/Public/backups/k3s/
+├── 20260403-140442/
+│   ├── k3s-state.db        # SQLite database (33MB)
+│   └── k3s-config.tar.gz   # K3s configuration
+└── ... (up to 10 most recent)
+```
+
 **Scheduled Backups:**
-- Frequency: Daily at 2:00 AM (UTC)
-- Destination: NAS (/share/Public/k3s-backups/)
-- Retention: 7 days (automatic)
+- Frequency: Daily at 2:00 AM UTC (root crontab)
+- Destination: NAS `/share/Public/backups/k3s/`
+- Retention: 10 most recent backups (automatic cleanup)
+
+**Pre-Shutdown Service:**
+- `k3s-pre-shutdown.service` — runs backup before any reboot/shutdown
+- Enabled for: halt.target, reboot.target, shutdown.target
+
+**Backup Logs:**
+```bash
+tail -f /var/log/k3s-backup.log
+```
 
 ### Node Maintenance
 
@@ -411,7 +525,7 @@ kubectl uncordon kubernetes1
 
 **Restart a node:**
 ```bash
-ssh ubuntu@192.168.0.19
+ssh suryendub@192.168.0.19
 sudo reboot
 # Wait for node to come back and show Ready status
 ```
@@ -420,11 +534,11 @@ sudo reboot
 
 ```bash
 # Update control plane (nuc)
-ssh ubuntu@192.168.0.21
+ssh suryendub@192.168.0.21
 curl -sfL https://get.k3s.io | sh -
 
 # Update workers (one at a time)
-ssh ubuntu@192.168.0.19
+ssh suryendub@192.168.0.19
 curl -sfL https://get.k3s.io | K3S_URL=https://192.168.0.21:6443 \
   K3S_TOKEN=$(cat /var/lib/rancher/k3s/server/node-token) sh -
 ```
@@ -462,7 +576,7 @@ kubectl exec -it -n default db-* -- mount | grep nfs
 **Fix NFS permissions:**
 ```bash
 # From the node
-ssh ubuntu@kubernetes1
+ssh suryendub@kubernetes1
 sudo ls -la /var/lib/kubelet/pods/*/volumes/kubernetes.io~nfs/
 
 # If permissions wrong, fix on NAS
@@ -470,11 +584,28 @@ ssh admin@192.168.0.128
 sudo chmod 777 /share/Public/default-mssql-nas-pvc-*
 ```
 
+**Fix NFS Protocol Mismatch (`Protocol not supported`):**
+*Symptom:* Pods stuck in `ContainerCreating` with `mount.nfs: Protocol not supported` after node restart or rescheduling.
+*Cause:* Linux kernel defaults to NFSv4, but the NAS (NASECDE55) expects NFSv3.
+*Fix:* Ensure `nfsvers=3` is defined in your StorageClass `mountOptions`.
+
+```yaml
+# Edit storageclass nfs-nas
+kubectl edit storageclass nfs-nas
+
+# Add/Verify mountOptions:
+mountOptions:
+  - nfsvers=3
+  - noatime
+  - nodiratime
+```
+*Note:* After changing the StorageClass, you must delete and recreate the stuck PVC/Pod for the new options to take effect.
+
 ### Node Not Ready
 
 **Check kubelet status:**
 ```bash
-ssh ubuntu@kubernetes1
+ssh suryendub@kubernetes1
 sudo systemctl status k3s-agent
 
 # View kubelet logs
@@ -502,7 +633,7 @@ kubectl run -it --rm debug --image=busybox --restart=Never -- \
 **Restart networking:**
 ```bash
 # On affected node
-ssh ubuntu@kubernetes1
+ssh suryendub@kubernetes1
 sudo systemctl restart k3s-agent
 ```
 
@@ -573,11 +704,75 @@ kubectl debug node/<node-name> -it --image=ubuntu:24.04       # Debug node
 **Next Review**: 2026-04-06  
 **Emergency Contact**: Check CLUSTER_FIXES_2026-03-30.md for troubleshooting
 
-## Tailscale Service Exposure
-Services are exposed via Tailscale annotations. To expose a new service:
-1. Add annotations:
-   `yaml
-   tailscale.com/expose: "true"
-   tailscale.com/hostname: "service-name"
-   `
-2. The operator will assign a 100.x.x.x IP.
+## 🔗 Tailscale Service Exposure
+
+### Prerequisites: Tailscale ACL Policy
+
+Before services can get Tailscale IPs, your **Tailscale ACL policy** (`policy.hujson` or `acl.json`) must define tag owners:
+
+```json
+{
+  "tagOwners": {
+    "tag:k8s":          ["your-user@domain.com"],
+    "tag:k8s-operator": ["your-user@domain.com"]
+  }
+}
+```
+
+Without these tags, the operator cannot assign Tailscale IPs to services.
+
+### Exposing a Service
+
+Add these annotations to your Service or Ingress:
+
+```yaml
+metadata:
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "service-name"
+    tailscale.com/tags: "tag:k8s"
+```
+
+The operator will create a proxy pod (`ts-<service>-<hash>-0`) and assign a `100.x.x.x` Tailscale IP.
+
+### Currently Exposed Services
+
+| Service | Tailscale Hostname | Namespace |
+|---------|-------------------|-----------|
+| **OpenWebUI** | `openwebui` | ai |
+| **ArgoCD** | `argocd` | argocd |
+| **Homepage** | auto-generated | default |
+| **ActiveMQ** | auto-generated | iiqstack |
+| **Counter** | auto-generated | iiqstack |
+| **MSSQL (db)** | auto-generated | iiqstack |
+| **MySQL** | auto-generated | iiqstack |
+| **MailHog** | auto-generated | iiqstack |
+| **IIQ** | auto-generated | iiqstack |
+| **LDAP** | auto-generated | iiqstack |
+| **phpLDAPadmin** | auto-generated | iiqstack |
+| **SSH** | auto-generated | iiqstack |
+
+### Accessing Services
+
+From any device on your Tailscale network:
+```
+# Named services
+http://openwebui:8080
+https://argocd:443
+
+# For auto-generated hostnames, check your Tailscale admin console
+# at https://login.tailscale.com/admin/machines
+```
+
+### Managing the Operator
+
+```bash
+# Check operator status
+kubectl get pods -n tailscale
+
+# View operator logs
+kubectl logs -n tailscale deploy/operator --tail=20
+
+# List all Tailscale services
+kubectl get svc -A | grep tailscale
+```
