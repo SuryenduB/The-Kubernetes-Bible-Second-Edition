@@ -218,60 +218,64 @@ kubernetes7   Ready    worker                 v1.34.6+k3s1   192.168.0.27
 
 ## 💾 Storage Architecture
 
-### NAS-Backed Storage Configuration
+### 1. Longhorn Block Storage (High-Availability)
+The cluster has been migrated to **Longhorn** for all critical workloads. Longhorn provides distributed block storage that is more resilient and performant than traditional NFS for database and application state.
 
+#### Longhorn RWX (Read-Write-Many)
+IdentityIQ requires multiple replicas to share the same `/webapps` directory. We use **Longhorn RWX** for this purpose.
+- **Mechanism:** Longhorn implements RWX by automatically spinning up a dedicated "Share Manager" pod (using NFSv4 internally) that exports a block device to multiple nodes.
+- **Usage:** Defined in `iiq-stateful.yaml` via the `iiq-nas-pvc`.
+- **Benefit:** Resolves the `Access is denied` and file-locking issues found in QNAP/NFSv3 implementations.
+
+#### Longhorn RWO (Read-Write-Once)
+Used for databases (MSSQL, MySQL) and middleware (ActiveMQ, LDAP).
+- **Benefit:** Provides native block-level performance and synchronous replication across 3 nodes.
+
+### 2. NAS-Backed Storage (Legacy/Bulk)
 **NAS Server**: NASECDE55  
 **Address**: 192.168.0.128  
 **Protocol**: NFS v3 (Enforced via `mountOptions`)  
-**Total Capacity**: 423GB  
-**Usage**: ~50GB (12%)  
-**Mount Type**: RWX (Read-Write-Many)
+**Use Case**: Primarily used for cluster backups and bulk data that doesn't require high IOPS.
 
-### Storage Classes
+### 3. Storage Classes
 
+| Storage Class | Provisioner | Access Mode | Best For |
+|---------------|-------------|-------------|----------|
+| **longhorn** | `driver.longhorn.io` | RWO / RWX | Databases, IIQ App, Production State |
+| **nfs-nas** | `nfs-client` | RWX | Backups, Shared Scripts |
+| **local-path** | `rancher.io/local-path` | RWO | Ephemeral cache, Single-node tests |
+
+### 4. Persistent Volumes & Claims (IdentityIQ)
+
+| PVC Name | Namespace | Size | Mode | Storage Class | Mount Path |
+|----------|-----------|------|------|---------------|------------|
+| **iiq-nas-pvc** | `iiqstack` | 10Gi | **RWX** | `longhorn` | `/opt/tomcat/webapps` |
+| **mssql-storage** | `iiqstack` | 10Gi | RWO | `longhorn` | `/var/opt/mssql` |
+| **mysql-storage** | `iiqstack` | 10Gi | RWO | `longhorn` | `/var/lib/mysql` |
+
+### 5. Storage Maintenance & Monitoring
+
+**Check Longhorn Volume Health:**
 ```bash
-kubectl get storageclass
+# View all Longhorn volumes
+kubectl get volumes.longhorn.io -n longhorn-system
+
+# View RWX Share Managers
+kubectl get pods -n longhorn-system -l longhorn.io/component=share-manager
 ```
 
-**Available Storage Classes:**
-- `nfs-nas` - Default NAS-backed storage (RWX)
-- `local-path` - Local node storage (RWO, for single-node workloads)
-
-### Persistent Volumes & Claims
-
-| PVC Name | Namespace | Size | Storage Class | Status | Mount Path |
-|----------|-----------|------|---------------|--------|------------|
-| mssql-nas-pvc | default | 15Gi | nfs-nas | Bound | /var/opt/mssql |
-| mysql-nas-pvc | default | 2Gi | nfs-nas | Bound | /var/lib/mysql |
-| ldap-nas-pvc | default | 2Gi | nfs-nas | Bound | /var/lib/ldap |
-| ldap-config-nas-pvc | default | 2Gi | nfs-nas | Bound | /etc/ldap |
-| ollama-pvc | ai | 50Gi | local-path | Bound | /root/.ollama |
-
-### NFS Mounted Paths
-
-```
-NAS:/share/Public/
-├── default-mssql-nas-pvc-pvc-5ebaa04b-d457-40d0-8ff2-9e9a08972d1d/
-├── default-mysql-nas-pvc-pvc-a332e0b9-a853-48a7-822b-d1193143c680/
-├── default-ldap-nas-pvc-pvc-3a5d9b23-7bfb-472e-8395-8311b4f55f96/
-└── default-ldap-config-nas-pvc-pvc-9f365a43-6bba-4d64-978c-0086a9928eb5/
-```
-
-### Storage Maintenance
-
-**Check NFS connectivity:**
+**Access Longhorn UI:**
+The UI is available via Traefik or port-forward:
 ```bash
-kubectl exec -it -n default db-* -- mount | grep nfs
+kubectl port-forward -n longhorn-system svc/longhorn-frontend 8080:80
+# Open http://localhost:8080
 ```
 
-**Repair NFS permissions (if needed):**
+**Repair NFS permissions (Legacy only):**
 ```bash
 # SSH to NAS
 ssh admin@192.168.0.128
-
-# Fix MSSQL volume permissions
 sudo chmod 777 /share/Public/default-mssql-nas-pvc-*
-sudo chown -R 10001:10001 /share/Public/default-mssql-nas-pvc-*
 ```
 
 ---
