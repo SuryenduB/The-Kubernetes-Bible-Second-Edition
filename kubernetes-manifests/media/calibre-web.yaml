@@ -70,8 +70,10 @@ spec:
             mkdir -p /library
             if [ ! -f /library/metadata.db ]; then
               echo "metadata.db not found, seeding from GitHub..."
-              apk add --no-cache wget
+              apk add --no-cache wget sqlite
               wget https://github.com/janeczku/calibre-web/raw/master/library/metadata.db -O /library/metadata.db
+              sqlite3 /library/metadata.db "ALTER TABLE books ADD COLUMN isbn TEXT DEFAULT '';" || true
+              sqlite3 /library/metadata.db "ALTER TABLE books ADD COLUMN flags INTEGER DEFAULT 0;" || true
             fi
             chown -R 1000:1000 /library
         volumeMounts:
