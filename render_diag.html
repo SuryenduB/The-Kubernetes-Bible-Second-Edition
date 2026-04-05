@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://unpkg.com/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'neutral',
+            flowchart: { useMaxWidth: false, htmlLabels: true }
+        });
+    </script>
+    <style>
+        body { 
+            background-color: white; 
+            margin: 0; 
+            padding: 40px;
+            display: flex;
+            justify-content: center;
+        }
+        #container { 
+            border: 1px solid #eee;
+            padding: 20px;
+            background: #fff;
+        }
+        .mermaid {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <pre class="mermaid">
+graph TD
+    Users["👤 Users / Clients"] --> TS_Net["☁️ Tailscale Network (MagicDNS)"]
+    TS_Net --> Traefik["🔀 Traefik LoadBalancer"]
+    
+    subgraph Cluster["☸️ K3s Cluster Boundary (8 Nodes)"]
+        Traefik --> Namespaces
+        
+        subgraph Namespaces["📦 Application Namespaces"]
+            AI["<b>ai</b><br/>openwebui, ollama"]
+            Argo["<b>argocd</b><br/>GitOps Plane"]
+            Default["<b>default</b><br/>mysql, mssql, ldap, iiq"]
+            Media["<b>media (NEW)</b><br/>AudioBookShelf, Calibre-Web"]
+        end
+        
+        subgraph Storage["💾 Storage Layer"]
+            Local["local-path"]
+            NFS_NAS["nfs-nas (Default RWX)"]
+            NAS["NAS (192.168.0.128)"]
+            Longhorn["🐂 Longhorn RWO (Config)"]
+        end
+        
+        subgraph Platform["⚙️ Platform Components"]
+            Core["Core: DNS, Metrics"]
+            Ops["Ops: Argo, PG, NFS Prov"]
+            TS_Op["🌐 Tailscale Operator"]
+        end
+    end
+    
+    NFS_NAS -.-> NAS
+    Media --> NAS
+    Media --> Longhorn
+    AI --> NFS_NAS
+    Default --> Longhorn
+
+    %% Styling
+    style Media fill:#dae8fc,stroke:#6c8ebf,stroke-width:2px
+    style Longhorn fill:#e1d5e7,stroke:#9673a6,stroke-width:2px
+    style Cluster fill:#f5f5f5,stroke:#333,stroke-width:2px
+        </pre>
+    </div>
+</body>
+</html>
