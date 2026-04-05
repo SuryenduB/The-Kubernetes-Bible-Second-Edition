@@ -1,0 +1,145 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calibre-web-config
+  namespace: media
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# Calibre Library PV (NAS NFS) - Forced to NFSv3
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: calibre-library-pv
+spec:
+  capacity:
+    storage: 500Gi
+  accessModes: ["ReadWriteMany"]
+  persistentVolumeReclaimPolicy: Retain
+  mountOptions:
+    - nfsvers=3
+    - nolock
+    - noatime
+  nfs:
+    server: 192.168.0.128
+    path: /share/Public/calibre-library
+
+---
+# Calibre Library PVC (NAS NFS)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: calibre-library-pvc
+  namespace: media
+spec:
+  accessModes: ["ReadWriteMany"]
+  storageClassName: ""
+  volumeName: calibre-library-pv
+  resources:
+    requests:
+      storage: 500Gi
+
+---
+# Calibre-Web Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre-web
+  namespace: media
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calibre-web
+  template:
+    metadata:
+      labels:
+        app: calibre-web
+    spec:
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: init-library
+        image: alpine:3.21
+        securityContext:
+          runAsUser: 0
+        command: ["sh", "-c"]
+        args:
+          - |
+            mkdir -p /library
+            chown -R 1000:1000 /library
+        volumeMounts:
+        - name: library
+          mountPath: /library
+      containers:
+      - name: calibre-web
+        image: ghcr.io/linuxserver/calibre-web:0.6.25-ls358
+        ports:
+        - containerPort: 8083
+        resources:
+          requests: { cpu: 100m, memory: 256Mi }
+          limits: { cpu: "1", memory: 1Gi }
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: "Europe/Berlin"
+        livenessProbe:
+          httpGet: { path: /admin, port: 8083 }
+          initialDelaySeconds: 30
+          periodSeconds: 60
+        readinessProbe:
+          httpGet: { path: /admin, port: 8083 }
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: library
+          mountPath: /library
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: calibre-web-config
+      - name: library
+        persistentVolumeClaim:
+          claimName: calibre-library-pvc
+
+---
+# Service with Tailscale Integration
+apiVersion: v1
+kind: Service
+metadata:
+  name: calibre-web
+  namespace: media
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "calibre-web"
+spec:
+  selector:
+    app: calibre-web
+  ports:
+  - protocol: TCP
+    port: 8083
+    targetPort: 8083
+
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: calibre-web-pdb
+  namespace: media
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: calibre-web

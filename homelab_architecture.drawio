@@ -3,7 +3,7 @@
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="K3s Homelab - Live Snapshot (2026-03-30)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="title" value="K3s Homelab - Live Snapshot (2026-04-05)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="20" y="10" width="900" height="30" as="geometry"/>
     </mxCell>
 
@@ -11,8 +11,12 @@
       <mxGeometry x="20" y="50" width="160" height="50" as="geometry"/>
     </mxCell>
 
+    <mxCell id="tailscale_net" value="Tailscale Network&#xa;(MagicDNS)" style="ellipse;shape=cloud;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="200" y="40" width="160" height="80" as="geometry"/>
+    </mxCell>
+
     <mxCell id="traefik" value="Traefik LoadBalancer&#xa;80/443 -> 192.168.0.19-25" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="220" y="45" width="290" height="60" as="geometry"/>
+      <mxGeometry x="380" y="45" width="290" height="60" as="geometry"/>
     </mxCell>
 
     <mxCell id="cluster" value="K3s Cluster Boundary" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#f5f5f5;strokeColor=#666666;" vertex="1" parent="1">
@@ -75,12 +79,16 @@
       <mxGeometry x="520" y="40" width="220" height="110" as="geometry"/>
     </mxCell>
 
+    <mxCell id="ns_media" value="&lt;b&gt;media&lt;/b&gt;&lt;br&gt;AudioBookShelf, Calibre-Web&lt;br&gt;Access: Tailscale MagicDNS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="apps">
+      <mxGeometry x="20" y="310" width="340" height="100" as="geometry"/>
+    </mxCell>
+
     <mxCell id="ing_hosts" value="Ingress hosts:&lt;br&gt;- openwebui.local&lt;br&gt;- identityiq.example.com&lt;br&gt;- phpldapadmin.example.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="apps">
-      <mxGeometry x="20" y="180" width="340" height="120" as="geometry"/>
+      <mxGeometry x="20" y="170" width="340" height="120" as="geometry"/>
     </mxCell>
 
     <mxCell id="svc_summary" value="Service types: 21 ClusterIP, 2 NodePort, 1 LoadBalancer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="apps">
-      <mxGeometry x="380" y="180" width="360" height="50" as="geometry"/>
+      <mxGeometry x="380" y="170" width="360" height="50" as="geometry"/>
     </mxCell>
 
     <mxCell id="storage" value="Storage Layer" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="cluster">
@@ -88,15 +96,19 @@
     </mxCell>
 
     <mxCell id="sc_local" value="local-path (non-default)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="storage">
-      <mxGeometry x="20" y="50" width="200" height="80" as="geometry"/>
+      <mxGeometry x="20" y="50" width="160" height="80" as="geometry"/>
     </mxCell>
 
     <mxCell id="sc_nfs" value="nfs-nas (default)&lt;br&gt;RWX + expansion=true" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="storage">
-      <mxGeometry x="250" y="50" width="220" height="80" as="geometry"/>
+      <mxGeometry x="200" y="50" width="200" height="80" as="geometry"/>
     </mxCell>
 
     <mxCell id="nas" value="NAS NASECDE55&lt;br&gt;192.168.0.128" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="storage">
-      <mxGeometry x="500" y="50" width="200" height="80" as="geometry"/>
+      <mxGeometry x="420" y="50" width="200" height="80" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="sc_longhorn" value="Longhorn RWO&lt;br&gt;(Config Persistence)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="storage">
+      <mxGeometry x="640" y="50" width="200" height="80" as="geometry"/>
     </mxCell>
 
     <mxCell id="platform" value="Platform Components" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="cluster">
@@ -109,6 +121,10 @@
 
     <mxCell id="ops" value="Ops: Argo CD (+Dex), CloudNativePG 1.27.0, NFS Subdir External Provisioner 4.0.18" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="platform">
       <mxGeometry x="20" y="110" width="780" height="50" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="ts_op" value="Tailscale Operator: Ingress/Service Exposure via MagicDNS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#666666;" vertex="1" parent="platform">
+      <mxGeometry x="20" y="175" width="780" height="35" as="geometry"/>
     </mxCell>
 
     <mxCell id="risks" value="Current Risks / Action Queue" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="cluster">
@@ -135,7 +151,11 @@
       <mxGeometry x="580" y="105" width="540" height="45" as="geometry"/>
     </mxCell>
 
-    <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="users" target="traefik">
+    <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="users" target="tailscale_net">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="e_ts_traefik" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="tailscale_net" target="traefik">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
 
@@ -148,6 +168,14 @@
     </mxCell>
 
     <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;strokeColor=#d79b00;" edge="1" parent="cluster" source="nas" target="sc_nfs">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="e_media_nas" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#6c8ebf;" edge="1" parent="cluster" source="ns_media" target="nas">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="e_media_longhorn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#9673a6;" edge="1" parent="cluster" source="ns_media" target="sc_longhorn">
       <mxGeometry relative="1" as="geometry"/>
     </mxCell>
 
