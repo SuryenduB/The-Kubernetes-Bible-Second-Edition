@@ -59,24 +59,27 @@ Stop-K3sHomelab
 
 ## 🌐 Application Access & URLs
 
-### Web Applications
+### Web Applications (Tailscale / LAN)
 
-| Application | URL | Access | Description |
-|-------------|-----|--------|-------------|
-| **IdentityIQ** | http://iiq-main/identityiq | Tailscale / LAN | SailPoint Identity Governance |
-| **OpenWebUI** | http://openwebui.local | Internal LAN | AI Chat Interface |
-| **phpLDAPadmin** | http://iiq-ldap-admin/ | Tailscale / LAN | LDAP Directory Manager |
-| **ArgoCD** | https://argocd.example.com | Internal LAN | GitOps CD Platform |
-| **Longhorn UI** | http://192.168.0.21:30080 | Internal LAN | Storage Management Dashboard |
+| Application | Tailscale URL | Internal LAN URL | Description |
+|-------------|---------------|------------------|-------------|
+| **IdentityIQ** | [http://iiq-main/identityiq](http://iiq-main/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
+| **OpenWebUI** | [http://openwebui:8080](http://openwebui:8080) | http://openwebui.local | AI Chat Interface |
+| **phpLDAPadmin** | [http://iiq-ldap-admin](http://iiq-ldap-admin) | http://192.168.0.21:30081 | LDAP Directory Manager |
+| **ActiveMQ UI** | [http://iiq-mq-admin:8161](http://iiq-mq-admin:8161) | http://192.168.0.21:30082 | Middleware Console |
+| **Mailpit UI** | [http://iiq-mail:8025](http://iiq-mail:8025) | http://192.168.0.21:30083 | Email Testing Dashboard |
+| **ArgoCD** | [https://argocd](https://argocd) | https://argocd.example.com | GitOps CD Platform |
+| **Longhorn UI** | [http://nuc:30080](http://nuc:30080) | http://192.168.0.21:30080 | Storage Management |
 
-### Database & Middleware (Internal)
+### Infrastructure Services (Tailscale Access)
 
-| Service | Host | Port | Type | Namespace |
-|---------|------|------|------|-----------|
-| **MSSQL** | `db` | 1433 | Primary | `iiqstack` |
-| **MySQL** | `db-mysql` | 3306 | Plugins | `iiqstack` |
-| **LDAP** | `ldap` | 389 | Directory | `iiqstack` |
-| **ActiveMQ** | `activemq` | 61616 | Broker | `iiqstack` |
+| Service | Tailscale Host | Port | Type |
+|---------|----------------|------|------|
+| **MSSQL** | `iiq-db` | 1433 | Primary DB |
+| **MySQL** | `iiq-db-mysql` | 3306 | Plugin DB |
+| **LDAP** | `iiq-ldap` | 389 | Directory |
+| **SSH Jump** | `iiq-ssh` | 22 | Terminal Access |
+| **Counter** | `iiq-counter` | 12345 | Demo Service |
 
 ---
 
