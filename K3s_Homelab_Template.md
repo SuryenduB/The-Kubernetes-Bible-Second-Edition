@@ -64,6 +64,8 @@ Stop-K3sHomelab
 | Application | Tailscale URL | Internal LAN URL | Description |
 |-------------|---------------|------------------|-------------|
 | **IdentityIQ** | [http://iiq-main/identityiq](http://iiq-main/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
+| **AudioBookShelf**| [http://audiobookshelf](http://audiobookshelf) | http://audiobookshelf.media.svc | Media Server (Audiobooks/Podcasts) |
+| **Calibre-Web** | [http://calibre-web:8083](http://calibre-web:8083) | http://calibre-web.media.svc:8083 | Ebook Management |
 | **OpenWebUI** | [http://openwebui:8080](http://openwebui:8080) | http://openwebui.local | AI Chat Interface |
 | **phpLDAPadmin** | [http://iiq-ldap-admin](http://iiq-ldap-admin) | http://192.168.0.21:30081 | LDAP Directory Manager |
 | **ActiveMQ UI** | [http://iiq-mq-admin:8161](http://iiq-mq-admin:8161) | http://192.168.0.21:30082 | Middleware Console |
@@ -96,6 +98,8 @@ Stop-K3sHomelab
 | **iiqstack** | `activemq-0` | `kubernetes3` | 12m | 256Mi |
 | **ai** | `ollama-*` | `kubernetes7` | 1m | 50Mi |
 | **ai** | `openwebui-*` | `kubernetes7` | 320m | 1.2Gi |
+| **media** | `audiobookshelf-*` | `kubernetes3` | 100m | 256Mi |
+| **media** | `calibre-web-*` | `kubernetes4` | 100m | 256Mi |
 
 ---
 
@@ -114,11 +118,11 @@ IdentityIQ requires multiple replicas to share the same `/webapps` directory. We
 Used for databases (MSSQL, MySQL) and middleware (ActiveMQ, LDAP).
 - **Benefit:** Provides native block-level performance and synchronous replication across 3 nodes.
 
-### 2. NAS-Backed Storage (Legacy/Bulk)
+### 2. NAS-Backed Storage (Hybrid/Bulk)
 **NAS Server**: NASECDE55  
 **Address**: 192.168.0.128  
 **Protocol**: NFS v3  
-**Use Case**: Primarily used for cluster backups and bulk data that doesn't require high IOPS.
+**Use Case**: Used for bulk media data (Audiobooks, Ebooks) via the **media** namespace. This hybrid strategy offloads large static files from Longhorn replication to save cluster disk space while maintaining high performance for app configurations on Longhorn.
 
 ---
 
@@ -140,6 +144,7 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 **PodDisruptionBudgets** are configured to ensure service continuity during node maintenance:
 - **`db-pdb`**: `maxUnavailable: 0` (MSSQL must never be taken down automatically).
 - **`iiq-pdb`**: `minAvailable: 1` (At least one IdentityIQ replica must remain live).
+- **`audiobookshelf-pdb` / `calibre-web-pdb`**: `maxUnavailable: 0` (Ensures media is always accessible).
 
 ---
 
@@ -161,4 +166,5 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 ## 📚 Documentation References
 
 - **[IDENTITYIQ_K3S_FINAL_SPEC.md](IDENTITYIQ_K3S_FINAL_SPEC.md)** - Authoritative reference for the IdentityIQ 8.5 stack.
+- **[homelab-media-deployment-plan.md](homelab-media-deployment-plan.md)** - Detailed plan for AudioBookShelf and Calibre-Web.
 - **[CLUSTER_FIXES_2026-03-30.md](CLUSTER_FIXES_2026-03-30.md)** - Historical troubleshooting logs.
