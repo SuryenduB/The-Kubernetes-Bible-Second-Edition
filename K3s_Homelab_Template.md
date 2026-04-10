@@ -17,7 +17,8 @@
 9. [Deployment Manifests](#deployment-manifests)
 10. [Operations & Maintenance](#operations--maintenance)
 11. [Troubleshooting](#troubleshooting)
-12. [Documentation References](#documentation-references)
+12. [Audit & Compliance](#audit--compliance)
+13. [Documentation References](#documentation-references)
 
 ---
 
@@ -47,9 +48,9 @@ Stop-K3sHomelab
 ![Homelab Architecture](homelab_architecture.png)
 
 ### Cluster Configuration
-- **Kubernetes Version**: K3s v1.34.5+k3s1 (control plane: nuc)
-- **Nodes**: 8 total (1 control-plane + 7 workers)
-- **Status**: ✅ All Ready
+- **Kubernetes Version**: K3s v1.34.5+k3s1 (control plane: nuc) / v1.34.6+k3s1 (workers)
+- **Nodes**: 9 total (1 control-plane + 8 workers)
+- **Status**: ✅ All Ready (Verified 2026-04-10)
 - **Network**: Flat LAN (192.168.0.0/24)
 - **Storage**: Longhorn (Production) + QNAP NAS (Legacy/Backup)
 - **CNI**: Flannel (default K3s)
@@ -82,6 +83,16 @@ Stop-K3sHomelab
 | **LDAP** | `iiq-ldap` | 389 | Directory |
 | **SSH Jump** | `iiq-ssh` | 22 | Terminal Access |
 | **Counter** | `iiq-counter` | 12345 | Demo Service |
+
+---
+
+## 🖥️ System Infrastructure (Audit Snapshot)
+
+| Node | OS | CPU | RAM | Disk (Root) | Status |
+|------|----|-----|-----|-------------|--------|
+| **NUC** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 109G (49% used) | ✅ Master |
+| **kubernetes1** | Ubuntu 24.04 | 4C/4T | 15Gi | 109G (22% used) | ✅ Worker |
+| **kubernetes8-debian** | Debian 13 | 4C/4T | 3.8Gi | 289G (2% used) | ✅ Worker |
 
 ---
 
@@ -160,6 +171,52 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 | `sailpoint-iiq` | `8.5` | `iiqstack` |
 | `mysql` | `8.0` | `iiqstack` |
 | `axllent/mailpit` | `latest` | `iiqstack` |
+
+---
+
+## 🛡️ Audit & Compliance
+
+The cluster undergoes regular production audits to ensure security posture, certificate validity, and system health.
+
+### 1. Audit Mechanism
+- **Orchestrator**: `Run-K3sAudit.ps1` (Executes in parallel via SSH).
+- **Execution Script**: `k3s-prod-audit.sh` (Node-level data collection).
+- **Output**: Tarball bundles (`.tar.gz`) stored in `k3s-audits/`.
+
+### 2. Audit Categories
+| Category | Check | Target |
+|----------|-------|--------|
+| **System** | OS/Kernel/RAM/CPU usage | All Nodes |
+| **K3s Service** | Version and systemd status | All Nodes |
+| **Certificates** | Expiry dates for server/client TLS | Master (NUC) |
+| **Storage** | Longhorn mount points & disk usage | Worker Nodes |
+| **Networking** | Interface status & routing tables | All Nodes |
+| **Registry** | Local registry (`192.168.0.236`) connectivity | All Nodes |
+| **Security** | Redacted `registries.yaml` verification | All Nodes |
+
+### 3. Running an Audit
+```powershell
+# Start parallel audit across all 9 nodes
+.\Run-K3sAudit.ps1
+```
+
+### 4. Certificate Tracking (Latest Audit)
+| Certificate | Expiry Date | Status |
+|-------------|-------------|--------|
+| **Kube API Server** | Apr 10, 2027 | ✅ Valid |
+| **Admin Client** | Mar 17, 2027 | ✅ Valid |
+| **Server CA** | May 14, 2035 | ✅ Valid |
+
+### 5. Data Safety & Rotation Policy
+- **Minio/S3 Backups**: Daily database dumps are synced to Minio.
+- **Rotation**: 30-day retention policy enforced via `mc ilm` (Minio Client).
+- **Manual Verification**: Audit bundles in `k3s-audits/` should be cleared monthly after review.
+
+### 6. Remote Access Recovery
+If Tailscale connectivity is lost:
+1. SSH into the node via local LAN IP (documented in Section 2).
+2. Run `tailscale status` to check node connectivity.
+3. If necessary, re-authenticate: `sudo tailscale up --auth-key <KEY>`.
 
 ---
 
