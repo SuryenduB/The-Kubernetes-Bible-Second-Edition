@@ -1,9 +1,9 @@
-<mxGraphModel dx="1780" dy="1030" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0">
+<mxGraphModel dx="1780" dy="1030" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2200" pageHeight="1400" math="0" shadow="0" adaptiveColors="auto">
   <root>
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
 
-    <mxCell id="title" value="K3s Homelab - Live Snapshot (2026-04-05)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="title" value="K3s Homelab - Live Snapshot (2026-04-10)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=24;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="20" y="10" width="900" height="30" as="geometry"/>
     </mxCell>
 
@@ -15,7 +15,7 @@
       <mxGeometry x="200" y="40" width="160" height="80" as="geometry"/>
     </mxCell>
 
-    <mxCell id="traefik" value="Traefik LoadBalancer&#xa;80/443 -> 192.168.0.19-25" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
+    <mxCell id="traefik" value="Traefik LoadBalancer&#xa;80/443 -> 192.168.0.19-28" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontStyle=1;" vertex="1" parent="1">
       <mxGeometry x="380" y="45" width="290" height="60" as="geometry"/>
     </mxCell>
 
@@ -23,48 +23,52 @@
       <mxGeometry x="20" y="120" width="1760" height="980" as="geometry"/>
     </mxCell>
 
-    <mxCell id="nodepool" value="Node Pool" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="cluster">
-      <mxGeometry x="20" y="40" width="940" height="430" as="geometry"/>
+    <mxCell id="nodepool" value="Node Pool" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;pointerEvents=0;" vertex="1" parent="cluster">
+      <mxGeometry x="20" y="40" width="960" height="430" as="geometry"/>
     </mxCell>
 
-    <mxCell id="nuc" value="&lt;b&gt;NUC&lt;/b&gt; (control-plane)&lt;br&gt;192.168.0.21&lt;br&gt;2C/2T, 7.7 GiB RAM&lt;br&gt;k3s v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="nuc" value="&lt;b&gt;NUC&lt;/b&gt; (control-plane)&lt;br&gt;192.168.0.21&lt;br&gt;2C/4T, 7.7 GiB RAM&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="20" y="40" width="190" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k1" value="&lt;b&gt;kubernetes1&lt;/b&gt;&lt;br&gt;192.168.0.19&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k1" value="&lt;b&gt;kubernetes1&lt;/b&gt;&lt;br&gt;192.168.0.19&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="240" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k2" value="&lt;b&gt;kubernetes2&lt;/b&gt;&lt;br&gt;192.168.0.20&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k2" value="&lt;b&gt;kubernetes2&lt;/b&gt;&lt;br&gt;192.168.0.20&lt;br&gt;4C/4T, 15 GiB&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="420" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k3" value="&lt;b&gt;kubernetes3&lt;/b&gt;&lt;br&gt;192.168.0.22&lt;br&gt;2C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+    <mxCell id="k3" value="&lt;b&gt;kubernetes3&lt;/b&gt;&lt;br&gt;192.168.0.22&lt;br&gt;2C/4T, 15 GiB&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
       <mxGeometry x="600" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k4" value="&lt;b&gt;kubernetes4&lt;/b&gt;&lt;br&gt;192.168.0.23&lt;br&gt;4C/4T, 7.7 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 1000 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
-      <mxGeometry x="780" y="40" width="145" height="120" as="geometry"/>
+    <mxCell id="k4" value="&lt;b&gt;kubernetes4&lt;/b&gt;&lt;br&gt;192.168.0.23&lt;br&gt;4C/4T, 7.7 GiB&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="nodepool">
+      <mxGeometry x="780" y="40" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k5" value="&lt;b&gt;kubernetes5&lt;/b&gt;&lt;br&gt;192.168.0.24&lt;br&gt;2C/4T, 7.7 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 1000 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
+    <mxCell id="k5" value="&lt;b&gt;kubernetes5&lt;/b&gt;&lt;br&gt;192.168.0.24&lt;br&gt;2C/4T, 7.7 GiB&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
       <mxGeometry x="240" y="200" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k6" value="&lt;b&gt;kubernetes6&lt;/b&gt;&lt;br&gt;192.168.0.25&lt;br&gt;2C/4T, 15 GiB&lt;br&gt;v1.34.5&lt;br&gt;NIC: 100 Mbps" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
+    <mxCell id="k6" value="&lt;b&gt;kubernetes6&lt;/b&gt;&lt;br&gt;192.168.0.25&lt;br&gt;2C/4T, 15 GiB&lt;br&gt;v1.34.5+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
       <mxGeometry x="420" y="200" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="k7" value="&lt;b&gt;kubernetes7&lt;/b&gt;&lt;br&gt;192.168.0.27&lt;br&gt;2C/4T, 7.7 GiB&lt;br&gt;v1.34.6&lt;br&gt;NIC: WiFi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
+    <mxCell id="k7" value="&lt;b&gt;kubernetes7&lt;/b&gt;&lt;br&gt;192.168.0.27&lt;br&gt;2C/4T, 7.7 GiB&lt;br&gt;v1.34.6+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
       <mxGeometry x="600" y="200" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="versions" value="Version state: 7 nodes on v1.34.5 + 1 node on v1.34.6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="nodepool">
-      <mxGeometry x="20" y="350" width="900" height="50" as="geometry"/>
+    <mxCell id="k8" value="&lt;b&gt;kubernetes8-debian&lt;/b&gt;&lt;br&gt;192.168.0.28&lt;br&gt;4C/4T, 3.8 GiB&lt;br&gt;v1.34.6+k3s1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="nodepool">
+      <mxGeometry x="780" y="200" width="165" height="120" as="geometry"/>
     </mxCell>
 
-    <mxCell id="apps" value="Application Namespaces" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="cluster">
-      <mxGeometry x="980" y="40" width="760" height="430" as="geometry"/>
+    <mxCell id="versions" value="Version state: 7 nodes on v1.34.5 + 2 nodes on v1.34.6" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="nodepool">
+      <mxGeometry x="20" y="350" width="920" height="50" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="apps" value="Application Namespaces" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;pointerEvents=0;" vertex="1" parent="cluster">
+      <mxGeometry x="1000" y="40" width="740" height="430" as="geometry"/>
     </mxCell>
 
     <mxCell id="ns_ai" value="&lt;b&gt;ai&lt;/b&gt;&lt;br&gt;openwebui + ollama&lt;br&gt;Ingress: openwebui.local" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="apps">
@@ -76,7 +80,7 @@
     </mxCell>
 
     <mxCell id="ns_default" value="&lt;b&gt;default&lt;/b&gt;&lt;br&gt;mysql, mssql, ldap, phpldapadmin&lt;br&gt;iiq (ImagePullBackOff)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="apps">
-      <mxGeometry x="520" y="40" width="220" height="110" as="geometry"/>
+      <mxGeometry x="520" y="40" width="200" height="110" as="geometry"/>
     </mxCell>
 
     <mxCell id="ns_media" value="&lt;b&gt;media&lt;/b&gt;&lt;br&gt;AudioBookShelf, Calibre-Web&lt;br&gt;Access: Tailscale MagicDNS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1" parent="apps">
@@ -88,10 +92,10 @@
     </mxCell>
 
     <mxCell id="svc_summary" value="Service types: 21 ClusterIP, 2 NodePort, 1 LoadBalancer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="apps">
-      <mxGeometry x="380" y="170" width="360" height="50" as="geometry"/>
+      <mxGeometry x="380" y="170" width="340" height="50" as="geometry"/>
     </mxCell>
 
-    <mxCell id="storage" value="Storage Layer" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="cluster">
+    <mxCell id="storage" value="Storage Layer" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;pointerEvents=0;" vertex="1" parent="cluster">
       <mxGeometry x="20" y="500" width="860" height="220" as="geometry"/>
     </mxCell>
 
@@ -107,11 +111,11 @@
       <mxGeometry x="420" y="50" width="200" height="80" as="geometry"/>
     </mxCell>
 
-    <mxCell id="sc_longhorn" value="Longhorn RWO&lt;br&gt;(Config Persistence)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="storage">
+    <mxCell id="sc_longhorn" value="Longhorn RWO/RWX&lt;br&gt;(Config Persistence)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="storage">
       <mxGeometry x="640" y="50" width="200" height="80" as="geometry"/>
     </mxCell>
 
-    <mxCell id="platform" value="Platform Components" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="cluster">
+    <mxCell id="platform" value="Platform Components" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;pointerEvents=0;" vertex="1" parent="cluster">
       <mxGeometry x="900" y="500" width="840" height="220" as="geometry"/>
     </mxCell>
 
@@ -127,7 +131,7 @@
       <mxGeometry x="20" y="175" width="780" height="35" as="geometry"/>
     </mxCell>
 
-    <mxCell id="risks" value="Current Risks / Action Queue" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="cluster">
+    <mxCell id="risks" value="Current Risks / Action Queue" style="swimlane;whiteSpace=wrap;html=1;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;pointerEvents=0;" vertex="1" parent="cluster">
       <mxGeometry x="20" y="740" width="1720" height="210" as="geometry"/>
     </mxCell>
 
@@ -139,7 +143,7 @@
       <mxGeometry x="580" y="40" width="540" height="45" as="geometry"/>
     </mxCell>
 
-    <mxCell id="r3" value="3) Align K3s versions (upgrade remaining v1.32.4 nodes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="risks">
+    <mxCell id="r3" value="3) Align K3s versions (upgrade remaining v1.34.5 nodes)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="risks">
       <mxGeometry x="1140" y="40" width="540" height="45" as="geometry"/>
     </mxCell>
 
