@@ -62,6 +62,8 @@ metadata:
   namespace: media
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: audiobookshelf
@@ -83,6 +85,8 @@ spec:
         env:
         - name: TZ
           value: "Europe/Berlin"
+        - name: ABS_METADATA_PATH
+          value: "/audiobooks/metadata"
         livenessProbe:
           httpGet: { path: /healthcheck, port: 80 }
           initialDelaySeconds: 30

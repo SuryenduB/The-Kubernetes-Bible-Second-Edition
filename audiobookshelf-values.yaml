@@ -1,5 +1,6 @@
 env:
   TZ: "Europe/Berlin"  # Correct timezone format
+  ABS_METADATA_PATH: "/audiobooks/metadata"
   AUDIOBOOKSHELF_UID: 1000
   AUDIOBOOKSHELF_GID: 1000
 
