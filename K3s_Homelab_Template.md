@@ -91,7 +91,13 @@ Stop-K3sHomelab
 | Node | OS | CPU | RAM | Disk (Root) | Status |
 |------|----|-----|-----|-------------|--------|
 | **NUC** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 109G (49% used) | ✅ Master |
-| **kubernetes1** | Ubuntu 24.04 | 4C/4T | 15Gi | 109G (22% used) | ✅ Worker |
+| **kubernetes1** | Ubuntu 24.04 | 4C/4T | 15Gi | 455G (36% used) | ✅ Worker |
+| **kubernetes2** | Ubuntu 24.04 | 4C/4T | 15Gi | 98G (66% used) | ✅ Worker |
+| **kubernetes3** | Ubuntu 24.04 | 2C/4T | 15Gi | 107G (46% used) | ✅ Worker |
+| **kubernetes4** | Ubuntu 24.04 | 4C/4T | 7.7Gi | 98G (60% used) | ✅ Worker |
+| **kubernetes5** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 98G (45% used) | ✅ Worker |
+| **kubernetes6** | Ubuntu 24.04 | 2C/4T | 15Gi | 98G (50% used) | ✅ Worker |
+| **kubernetes7** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 98G (46% used) | ✅ Worker |
 | **kubernetes8-debian** | Debian 13 | 4C/4T | 3.8Gi | 289G (2% used) | ✅ Worker |
 
 ---
