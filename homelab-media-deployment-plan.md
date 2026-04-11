@@ -188,6 +188,8 @@ spec:
         env:
         - name: TZ
           value: "Europe/Berlin"
+        - name: ABS_METADATA_PATH
+          value: "/audiobooks/metadata"
         livenessProbe:
           httpGet: { path: /healthcheck, port: 80 }
           initialDelaySeconds: 30
@@ -272,6 +274,8 @@ metadata:
   namespace: media
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: calibre-web
@@ -291,9 +295,28 @@ spec:
         command: ["sh", "-c"]
         args:
           - |
-            mkdir -p /library
+            mkdir -p /library /config
+            if [ ! -f /config/metadata.db ]; then
+              if [ -f /library/metadata.db ]; then
+                echo "Migrating existing metadata.db from NFS to local Longhorn storage..."
+                cp -p /library/metadata.db /config/metadata.db
+              else
+                echo "metadata.db not found, seeding from GitHub to local storage..."
+                apk add --no-cache wget sqlite
+                wget https://github.com/janeczku/calibre-web/raw/master/library/metadata.db -O /config/metadata.db
+                sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN isbn TEXT DEFAULT '';" || true
+                sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN flags INTEGER DEFAULT 0;" || true
+              fi
+            fi
+            # Create placeholder on NFS if it doesn't exist so subPath mount doesn't fail
+            if [ ! -f /library/metadata.db ]; then
+              touch /library/metadata.db
+            fi
             chown -R 1000:1000 /library
+            chown 1000:1000 /config/metadata.db
         volumeMounts:
+        - name: config
+          mountPath: /config
         - name: library
           mountPath: /library
       containers:
@@ -302,8 +325,8 @@ spec:
         ports:
         - containerPort: 8083
         resources:
-          requests: { cpu: 100m, memory: 256Mi }
-          limits: { cpu: "1", memory: 1Gi }
+          requests: { cpu: 500m, memory: 256Mi }
+          limits: { cpu: "2", memory: 1Gi }
         env:
         - name: PUID
           value: "1000"
@@ -315,7 +338,7 @@ spec:
         # Add back only if you need ebook format conversion (Kindle, etc).
         livenessProbe:
           httpGet: { path: /admin, port: 8083 }
-          initialDelaySeconds: 30
+          initialDelaySeconds: 60
           periodSeconds: 60
         readinessProbe:
           httpGet: { path: /admin, port: 8083 }
@@ -326,9 +349,11 @@ spec:
           mountPath: /config
         - name: library
           mountPath: /library
-      volumes:
-      - name: config
-        persistentVolumeClaim:
+        - name: config
+          mountPath: /library/metadata.db
+          subPath: metadata.db
+        volumes:
+        - name: config        persistentVolumeClaim:
           claimName: calibre-web-config
       - name: library
         nfs:
