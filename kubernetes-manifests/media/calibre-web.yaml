@@ -109,11 +109,11 @@ spec:
         - name: TZ
           value: "Europe/Berlin"
         livenessProbe:
-          httpGet: { path: /admin, port: 8083 }
+          httpGet: { path: /, port: 8083 }
           initialDelaySeconds: 60
           periodSeconds: 60
         readinessProbe:
-          httpGet: { path: /admin, port: 8083 }
+          httpGet: { path: /, port: 8083 }
           initialDelaySeconds: 10
           periodSeconds: 30
         volumeMounts:

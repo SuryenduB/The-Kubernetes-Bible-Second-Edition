@@ -337,11 +337,11 @@ spec:
         # DOCKER_MODS removed — adds ~1-2 min cold start.
         # Add back only if you need ebook format conversion (Kindle, etc).
         livenessProbe:
-          httpGet: { path: /admin, port: 8083 }
+          httpGet: { path: /, port: 8083 }
           initialDelaySeconds: 60
           periodSeconds: 60
         readinessProbe:
-          httpGet: { path: /admin, port: 8083 }
+          httpGet: { path: /, port: 8083 }
           initialDelaySeconds: 10
           periodSeconds: 30
         volumeMounts:
