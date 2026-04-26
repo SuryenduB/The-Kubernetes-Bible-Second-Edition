@@ -87,6 +87,10 @@
       <mxGeometry x="20" y="310" width="340" height="100" as="geometry"/>
     </mxCell>
 
+    <mxCell id="ns_monitoring" value="&lt;b&gt;monitoring&lt;/b&gt;&lt;br&gt;Beszel Hub + Agent (DaemonSet)&lt;br&gt;Access: Tailscale MagicDNS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" vertex="1" parent="apps">
+      <mxGeometry x="380" y="310" width="340" height="100" as="geometry"/>
+    </mxCell>
+
     <mxCell id="ing_hosts" value="Ingress hosts:&lt;br&gt;- openwebui.local&lt;br&gt;- identityiq.example.com&lt;br&gt;- phpldapadmin.example.com" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="apps">
       <mxGeometry x="20" y="170" width="340" height="120" as="geometry"/>
     </mxCell>
@@ -151,7 +155,7 @@
       <mxGeometry x="20" y="105" width="540" height="45" as="geometry"/>
     </mxCell>
 
-    <mxCell id="r5" value="5) Add Prometheus/Grafana/Loki for historical observability" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#b85450;" vertex="1" parent="risks">
+    <mxCell id="r5" value="5) Beszel deployed for lightweight monitoring (Prom/Grafana for historical ops)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="risks">
       <mxGeometry x="580" y="105" width="540" height="45" as="geometry"/>
     </mxCell>
 

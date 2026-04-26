@@ -72,6 +72,7 @@ Stop-K3sHomelab
 | **ActiveMQ UI** | [http://iiq-mq-admin:8161](http://iiq-mq-admin:8161) | http://192.168.0.21:30082 | Middleware Console |
 | **Mailpit UI** | [http://iiq-mail:8025](http://iiq-mail:8025) | http://192.168.0.21:30083 | Email Testing Dashboard |
 | **ArgoCD** | [https://argocd](https://argocd) | https://argocd.example.com | GitOps CD Platform |
+| **Beszel Hub** | [http://beszel](http://beszel) | http://beszel-hub.monitoring.svc | Lightweight Cluster Monitoring |
 | **Longhorn UI** | [http://nuc:30080](http://nuc:30080) | http://192.168.0.21:30080 | Storage Management |
 
 ### Infrastructure Services (Tailscale Access)
@@ -82,6 +83,7 @@ Stop-K3sHomelab
 | **MySQL** | `iiq-db-mysql` | 3306 | Plugin DB |
 | **LDAP** | `iiq-ldap` | 389 | Directory |
 | **SSH Jump** | `iiq-ssh` | 22 | Terminal Access |
+| **Beszel Agent**| N/A (Internal) | 45876 | Node Monitoring (DaemonSet) |
 | **Counter** | `iiq-counter` | 12345 | Demo Service |
 
 ---
@@ -111,12 +113,25 @@ Stop-K3sHomelab
 | **iiqstack** | `db-0` | `kubernetes1` | 42m | 2.1Gi |
 | **iiqstack** | `iiq-55d965997c-7vjd8` | `kubernetes2` | 28m | 1.8Gi |
 | **iiqstack** | `iiq-55d965997c-mp268` | `kubernetes3` | 26m | 1.8Gi |
-| **iiqstack** | `db-mysql-0` | `kubernetes7` | 18m | 450Mi |
+| **iiqstack** | `db-mysql-0` | `kubernetes6` | 22m | 840Mi |
 | **iiqstack** | `activemq-0` | `kubernetes3` | 12m | 256Mi |
 | **ai** | `ollama-*` | `kubernetes7` | 1m | 50Mi |
 | **ai** | `openwebui-*` | `kubernetes7` | 320m | 1.2Gi |
 | **media** | `audiobookshelf-*` | `kubernetes3` | 100m | 256Mi |
 | **media** | `calibre-web-*` | `kubernetes4` | 100m | 256Mi |
+| **monitoring** | `beszel-hub-*` | `kubernetes5` | 15m | 180Mi |
+| **monitoring** | `beszel-agent-*` | *(all nodes)* | 5m | 42Mi |
+
+---
+
+## 📈 Observability & Monitoring
+
+### Beszel (Lightweight Monitoring)
+The cluster uses **Beszel** for real-time performance tracking and container visibility. 
+- **Hub**: Runs in the `monitoring` namespace on `kubernetes5`. 
+- **Agents**: Deployed via DaemonSet to all 9 nodes (including Master).
+- **Socket Access**: Agents mount the K3s containerd socket (`/run/k3s/containerd/containerd.sock`) to provide per-container resource metrics.
+- **Optimization**: Workloads are periodically rebalanced (e.g., MySQL moved to `kubernetes6`) based on Beszel's "live pulse" to prevent node overloads.
 
 ---
 

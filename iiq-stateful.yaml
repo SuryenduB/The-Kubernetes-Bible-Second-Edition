@@ -583,6 +583,15 @@ spec:
       labels:
         app: db-mysql
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - kubernetes2
       enableServiceLinks: false
       # securityContext removed to allow MySQL 8.0 root initialization
       containers:

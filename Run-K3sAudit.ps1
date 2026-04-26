@@ -7,8 +7,8 @@ $Nodes = @(
     @{ Name = "kubernetes4";  IP = "192.168.0.23" },
     @{ Name = "kubernetes5";  IP = "192.168.0.24" },
     @{ Name = "kubernetes6";  IP = "192.168.0.25" },
-    @{ Name = "kubernetes7";  IP = "192.168.0.27" },
-    @{ Name = "kubernetes8-debian"; IP = "192.168.0.28" }
+    @{ Name = "kubernetes7";  IP = "192.168.0.26" },
+    @{ Name = "kubernetes8-debian"; IP = "192.168.0.27" }
 )
 
 $AuditDir = "$PSScriptRoot\k3s-audits"

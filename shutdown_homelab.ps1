@@ -23,7 +23,8 @@ $workerFallback = @(
     @{ Name = "kubernetes4"; IP = "192.168.0.23" },
     @{ Name = "kubernetes5"; IP = "192.168.0.24" },
     @{ Name = "kubernetes6"; IP = "192.168.0.25" },
-    @{ Name = "kubernetes8-debian"; IP = "192.168.0.28" }
+    @{ Name = "kubernetes7"; IP = "192.168.0.26" },
+    @{ Name = "kubernetes8-debian"; IP = "192.168.0.27" }
 )
 
 Write-Host "--- K3s Cluster Shutdown Sequence (v8) ---" -ForegroundColor Cyan
@@ -47,8 +48,8 @@ if ($Mode -eq "Fallback") {
         }
 
         $masterNode = $allNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
-        # Exclude master and kubernetes7 from worker list
-        $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name -and $_.metadata.name -ne 'kubernetes7' }
+        # Exclude only master from worker list
+        $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name }
 
         $masterIp = Get-IPv4 -addresses $masterNode.status.addresses
         foreach ($node in $workerNodes) {
@@ -97,8 +98,8 @@ foreach ($worker in $targets) {
     }
 
     Write-Host "  - Powering off..."
-    ssh -tt -o StrictHostKeyChecking=yes suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
+    ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
 }
 
 Write-Host "`n--- Powering off Master (NUC) ---" -ForegroundColor Red
-ssh -tt -o StrictHostKeyChecking=yes suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
+ssh -tt -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"

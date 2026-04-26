@@ -1,4 +1,5 @@
 resources:
+  - monitoring
   - base/activemq-deployment.yaml
   - base/activemq-service.yaml
   - base/counter-deployment.yaml
