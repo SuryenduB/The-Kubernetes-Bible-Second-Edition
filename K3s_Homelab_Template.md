@@ -126,11 +126,12 @@ Stop-K3sHomelab
 
 ## 📈 Observability & Monitoring
 
-### Beszel (Lightweight Monitoring)
-The cluster uses **Beszel** for real-time performance tracking and container visibility. 
+### Beszel (Multi-Platform Monitoring)
+The lab uses **Beszel** for real-time performance tracking and container visibility across all infrastructure layers.
 - **Hub**: Runs in the `monitoring` namespace on `kubernetes5`. 
-- **Agents**: Deployed via DaemonSet to all 9 nodes (including Master).
-- **Socket Access**: Agents mount the K3s containerd socket (`/run/k3s/containerd/containerd.sock`) to provide per-container resource metrics.
+- **K3s Agents**: Deployed via DaemonSet to all 9 nodes (including Master).
+- **NAS Agent**: Binary service running on QNAP ARMv7 (NASECDE55) via persistent `Enroll-NasMonitoring.ps1` logic.
+- **Workstation Agent**: Windows Service managed via `nssm`, reporting local desktop telemetry.
 - **Optimization**: Workloads are periodically rebalanced (e.g., MySQL moved to `kubernetes6`) based on Beszel's "live pulse" to prevent node overloads.
 
 ---

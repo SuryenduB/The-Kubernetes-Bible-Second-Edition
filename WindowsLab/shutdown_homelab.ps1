@@ -23,7 +23,6 @@ $workerFallback = @(
     @{ Name = "kubernetes4"; IP = "192.168.0.23" },
     @{ Name = "kubernetes5"; IP = "192.168.0.24" },
     @{ Name = "kubernetes6"; IP = "192.168.0.25" },
-    @{ Name = "kubernetes7"; IP = "192.168.0.26" },
     @{ Name = "kubernetes8-debian"; IP = "192.168.0.27" }
 )
 
@@ -48,8 +47,8 @@ if ($Mode -eq "Fallback") {
         }
 
         $masterNode = $allNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
-        # Exclude only master from worker list
-        $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name }
+        # Exclude master and kubernetes7 from worker list
+        $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name -and $_.metadata.name -ne 'kubernetes7' }
 
         $masterIp = Get-IPv4 -addresses $masterNode.status.addresses
         foreach ($node in $workerNodes) {
