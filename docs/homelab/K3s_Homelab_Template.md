@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-04-05 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.5+k3s1
+**Last Updated**: 2026-05-10 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.5+k3s1
 
 ---
 
@@ -50,7 +50,7 @@ Stop-K3sHomelab
 ### Cluster Configuration
 - **Kubernetes Version**: K3s v1.34.5+k3s1 (control plane: nuc) / v1.34.6+k3s1 (workers)
 - **Nodes**: 9 total (1 control-plane + 8 workers)
-- **Status**: ✅ All Ready (Verified 2026-04-10)
+- **Status**: ✅ All Ready (Verified 2026-05-10)
 - **Network**: Flat LAN (192.168.0.0/24)
 - **Storage**: Longhorn (Production) + QNAP NAS (Legacy/Backup)
 - **CNI**: Flannel (default K3s)
@@ -239,6 +239,18 @@ If Tailscale connectivity is lost:
 1. SSH into the node via local LAN IP (documented in Section 2).
 2. Run `tailscale status` to check node connectivity.
 3. If necessary, re-authenticate: `sudo tailscale up --auth-key <KEY>`.
+
+---
+
+## 🛠️ Troubleshooting
+
+### Common Issues & Resolutions
+
+| Issue | Symptom | Resolution |
+|-------|---------|------------|
+| **IIQ Init Stuck** | `iiq` pod remains in `Init:0/1` or `Pending` status. | **Cause**: NetworkPolicy blocking egress to K3s API on port `6443`. **Fix**: Update `iiqstack-allow-internal` to allow egress on port `6443`. |
+| **Beszel Agent Crash** | `beszel-agent` pods in `CrashLoopBackOff`. | **Cause**: Liveness probe failing in push mode (no local SSH server). **Fix**: Remove `livenessProbe` from the DaemonSet configuration. |
+| **Longhorn Mount Failure** | `MountVolume.SetUp failed` error in pod events. | Ensure the `longhorn-manager` and `csi-plugin` pods are healthy on the target node. Restarting the node or the manager pod often resolves transient CSI RPC timeouts. |
 
 ---
 
