@@ -81,6 +81,7 @@ metadata:
   namespace: monitoring
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "beszel"
     tailscale.com/tags: "tag:k8s"
 spec:

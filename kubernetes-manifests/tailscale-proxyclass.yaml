@@ -3,10 +3,17 @@ kind: ProxyClass
 metadata:
   name: tailscale-proxy
 spec:
-  tailscaleSSHListener: false
   statefulSet:
     labels:
       app.kubernetes.io/name: tailscale-services
+    pod:
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              tailscale.com/managed: "true"
 ---
 apiVersion: v1
 kind: Service
@@ -15,6 +22,7 @@ metadata:
   namespace: ai
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "openwebui"
 spec:
   type: ClusterIP
@@ -32,6 +40,7 @@ metadata:
   namespace: default
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq"
 spec:
   type: ClusterIP
@@ -49,6 +58,7 @@ metadata:
   namespace: default
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "phpldapadmin"
 spec:
   type: ClusterIP
@@ -66,6 +76,7 @@ metadata:
   namespace: argocd
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "argocd"
 spec:
   type: ClusterIP

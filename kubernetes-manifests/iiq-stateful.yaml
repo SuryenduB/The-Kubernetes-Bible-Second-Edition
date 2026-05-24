@@ -196,6 +196,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-counter"
 spec:
   selector:
@@ -246,6 +247,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-ssh"
 spec:
   selector:
@@ -326,6 +328,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-ldap"
 spec:
   selector:
@@ -376,6 +379,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-ldap-admin"
 spec:
   type: ClusterIP
@@ -441,6 +445,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-mq-admin"
 spec:
   type: ClusterIP
@@ -557,6 +562,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-db"
 spec:
   selector:
@@ -646,6 +652,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-db-mysql"
 spec:
   selector:
@@ -714,6 +721,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-mail"
 spec:
   type: ClusterIP
@@ -1041,6 +1049,7 @@ metadata:
   namespace: iiqstack
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "iiq-main"
 spec:
   type: ClusterIP

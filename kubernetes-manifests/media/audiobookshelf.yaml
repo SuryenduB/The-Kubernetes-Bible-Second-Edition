@@ -117,6 +117,7 @@ metadata:
   namespace: media
   annotations:
     tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
     tailscale.com/hostname: "audiobookshelf"
 spec:
   selector:
