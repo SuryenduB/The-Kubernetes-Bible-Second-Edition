@@ -108,22 +108,22 @@ Stop-K3sHomelab
 |--------|-------|------------|------------|-------------|
 | **Core Switch** | Netgear ProSafe GS716T | 192.168.0.99 | Web GUI | `32558068` |
 
-### 🔌 Physical Port Map (GS716T)
+### 🔌 Physical Port Map (GS716T) - ✅ Validated via LLDP
 
-| Port | Connected Device | MAC Address | Role |
-|:-----|:-----------------|:------------|:-----|
-| **g1** | Vodafone Router | `02:10:18:1C:F8:CC` | Uplink (Transit) |
-| **g2** | kubernetes6 | `90:1B:0E:56:D7:BB` | K3s Worker |
-| **g3** | kubernetes5 | `44:8A:5B:2C:B8:83` | K3s Worker |
-| **g4** | kubernetes1 | `90:1B:0E:89:B9:66` | K3s Worker |
-| **g5** | kubernetes4 | `64:00:6A:62:72:DC` | K3s Worker |
-| **g6** | kubernetes2 | `40:B0:76:0F:3C:72` | K3s Worker |
-| **g8** | NUC (Master) | `C0:3F:D5:6D:45:85` | K3s Master |
-| **g9** | TP-Link Device | `C8:D3:FF:6A:72:2E` | External/Access |
-| **g10** | kubernetes7 | `6C:C2:17:E9:A4:E5` | K3s Worker |
-| **g11** | HP-2 | `FC:3F:DB:86:1A:81` | Trusted Node |
-| **g12** | kubernetes8-debian | `00:14:0B:45:02:83` | K3s Worker |
-| **g15** | kubernetes3 | `40:8D:5C:AA:D9:1F` | K3s Worker |
+| Port | Connected Device | MAC Address | Role | Status |
+|:-----|:-----------------|:------------|:-----|:-------|
+| **g1** | Vodafone Router | `02:10:18:1C:F8:CC` | Uplink (Transit) | ✅ Active |
+| **g2** | kubernetes6 | `90:1B:0E:56:D7:BB` | K3s Worker | ✅ Verified (LLDP) |
+| **g3** | kubernetes5 | `44:8A:5B:2C:B8:83` | K3s Worker | ✅ Verified (LLDP) |
+| **g4** | kubernetes1 | `90:1B:0E:89:B9:66` | K3s Worker | ✅ Verified (LLDP) |
+| **g5** | kubernetes4 | `64:00:6A:62:72:DC` | K3s Worker | ✅ Verified (LLDP) |
+| **g6** | kubernetes2 | `40:B0:76:0F:3C:72` | K3s Worker | ✅ Verified (LLDP) |
+| **g8** | NUC (Master) | `C0:3F:D5:6D:45:85` | K3s Master | ✅ Verified (LLDP) |
+| **g9** | HP-1 | `C8:D3:FF:6A:72:2E` | Workstation (Registry) | ✅ Active |
+| **g10** | kubernetes7 | `6C:C2:17:E9:A4:E5` | K3s Worker | ✅ Verified (LLDP) |
+| **g11** | HP-2 | `FC:3F:DB:86:1A:81` | Trusted Node | ✅ Active |
+| **g12** | kubernetes8-debian | `00:14:0B:45:02:83` | K3s Worker | ✅ Verified (LLDP) |
+| **g15** | kubernetes3 | `40:8D:5C:AA:D9:1F` | K3s Worker | ✅ Verified (LLDP) |
 
 *Note: NASECDE55 (QNAP) is currently appearing on g1 (Uplink), indicating it is likely plugged into the router directly.*
 

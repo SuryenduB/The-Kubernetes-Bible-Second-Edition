@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K3s Homelab VLAN Architecture Design</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07080d;
+      --card-bg: rgba(18, 20, 32, 0.6);
+      --border-color: rgba(0, 240, 255, 0.2);
+      --neon-cyan: #00f0ff;
+      --neon-pink: #ff007f;
+      --neon-green: #39ff14;
+      --text-main: #f0f3ff;
+      --text-muted: #8ab4f8;
+      --glow-shadow: 0 0 15px rgba(0, 240, 255, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 10% 20%, rgba(0, 240, 255, 0.05) 0px, transparent 50%),
+        radial-gradient(at 90% 80%, rgba(255, 0, 127, 0.05) 0px, transparent 50%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 2rem;
+      position: relative;
+    }
+
+    header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: -0.05em;
+      color: #fff;
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+    }
+
+    header p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 50px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 1rem;
+      border: 1px solid var(--neon-cyan);
+      box-shadow: var(--glow-shadow);
+      background-color: rgba(0, 240, 255, 0.1);
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 1024px) {
+      .grid-container {
+        grid-template-columns: 1fr 1fr;
+      }
+      .full-width {
+        grid-column: span 2;
+      }
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 2rem;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--neon-cyan);
+      box-shadow: var(--glow-shadow);
+    }
+
+    .card.pink::before {
+      background: var(--neon-pink);
+      box-shadow: 0 0 15px rgba(255, 0, 127, 0.35);
+    }
+
+    .card.green::before {
+      background: var(--neon-green);
+      box-shadow: 0 0 15px rgba(57, 255, 20, 0.35);
+    }
+
+    .card:hover {
+      border-color: rgba(0, 240, 255, 0.4);
+      transform: translateY(-5px);
+    }
+
+    h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    h2 span {
+      color: var(--neon-cyan);
+    }
+
+    .card.pink h2 span {
+      color: var(--neon-pink);
+    }
+
+    .card.green h2 span {
+      color: var(--neon-green);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    tr:hover td {
+      background-color: rgba(255, 255, 255, 0.02);
+      color: #fff;
+    }
+
+    .highlight-cyan {
+      color: var(--neon-cyan);
+      font-weight: 600;
+    }
+
+    .highlight-pink {
+      color: var(--neon-pink);
+      font-weight: 600;
+    }
+
+    .highlight-green {
+      color: var(--neon-green);
+      font-weight: 600;
+    }
+
+    .diagram-container {
+      background: rgba(5, 5, 10, 0.8);
+      border-radius: 8px;
+      padding: 1.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 400px;
+    }
+
+    .mermaid {
+      width: 100%;
+      background: transparent !important;
+    }
+
+    ol, ul {
+      margin-left: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    li {
+      margin-bottom: 0.75rem;
+    }
+
+    .code-block {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 1rem;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 0.9rem;
+      color: #39ff14;
+      overflow-x: auto;
+      margin-top: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .alert {
+      background: rgba(255, 0, 127, 0.05);
+      border: 1px dashed var(--neon-pink);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+    }
+
+    .alert h4 {
+      color: var(--neon-pink);
+      font-family: 'Space Grotesk', sans-serif;
+      margin-bottom: 0.25rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>K3s Homelab Network Architecture</h1>
+    <p>Wire-Speed VLAN Isolation via Netgear GS716Tv3 Smart Layer 3 Routing</p>
+    <div class="badge">Production Topology Proposal v1.0</div>
+  </header>
+
+  <div class="grid-container">
+
+    <!-- Logical Topology Diagram -->
+    <div class="card full-width">
+      <h2><span>📡</span> Network Topology & Flow Map</h2>
+      <div class="diagram-container">
+        <pre class="mermaid">
+graph TD
+    classDef firewall fill:#ff3366,stroke:#ff007f,stroke-width:2px,color:#fff;
+    classDef switch fill:#00f0ff,stroke:#0088cc,stroke-width:2px,color:#000;
+    classDef subnet fill:#111222,stroke:#334466,stroke-width:1px,color:#8ab4f8;
+    classDef node fill:#1a1c32,stroke:#00f0ff,stroke-width:1px,color:#fff;
+
+    Internet((Internet)) --- Firewall[Firewall / Router Gateway 192.168.0.1]
+    Firewall ===|VLAN 1 Transit| Switch[Netgear GS716Tv3 Layer 3 Switch]
+    
+    subgraph VLAN10 ["VLAN 10: Management Subnet 192.168.10.0/24"]
+        Switch ===|Virtual SVI| Switch_SVI[Switch Management 192.168.10.99]
+    end
+    
+    subgraph VLAN20 ["VLAN 20: K3s Cluster Subnet 192.168.20.0/24"]
+        Switch -.->|Port g8 Access| NUC[NUC Master Node 192.168.20.21]
+        Switch -.->|Port g9 Access| HP1[HP-1 Docker Registry 192.168.20.236]
+        Switch -.->|Ports g2-g6,g10,g12,g15 Access| Workers[Worker Nodes kubernetes1-8]
+    end
+    
+    subgraph VLAN30 ["VLAN 30: Trusted LAN Subnet 192.168.30.0/24"]
+        Switch ===|Port g11 Access| HP2[HP-2 Workstation 192.168.30.122]
+    end
+
+    class Firewall firewall;
+    class Switch switch;
+    class VLAN10,VLAN20,VLAN30 subnet;
+    class NUC,Workers,HP1,HP2,Switch_SVI node;
+        </pre>
+      </div>
+    </div>
+
+    <!-- VLAN Segmentation Table -->
+    <div class="card">
+      <h2><span>🔒</span> VLAN Segments Definition</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>VLAN</th>
+            <th>Name</th>
+            <th>Subnet Range</th>
+            <th>Default Gateway (Switch IP)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight-cyan">VLAN 10</td>
+            <td>MGMT</td>
+            <td>192.168.10.0/24</td>
+            <td class="highlight-cyan">192.168.10.99</td>
+          </tr>
+          <tr>
+            <td class="highlight-green">VLAN 20</td>
+            <td>K3s-Prod</td>
+            <td>192.168.20.0/24</td>
+            <td class="highlight-green">192.168.20.99</td>
+          </tr>
+          <tr>
+            <td class="highlight-cyan">VLAN 30</td>
+            <td>Trusted LAN</td>
+            <td>192.168.30.0/24</td>
+            <td class="highlight-cyan">192.168.30.99</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">VLAN 40</td>
+            <td>IoT / Guest</td>
+            <td>192.168.40.0/24</td>
+            <td class="highlight-pink">192.168.40.99</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="alert">
+        <h4>🔒 Security Posture Note</h4>
+        VLAN 20 (K3s Production) is completely isolated at Layer 3. The switch will block any outbound connections from VLAN 20 to your Management VLAN 10 to ensure a compromised container cannot reach key systems.
+      </div>
+    </div>
+
+    <!-- Switch Physical Port Map -->
+    <div class="card pink">
+      <h2><span>🔌</span> Physical Switch Ports Allocation (GS716T)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Port</th>
+            <th>Link Status</th>
+            <th>Target VLAN (PVID)</th>
+            <th>Device Assignment / Host Name</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight-pink">g1</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td>VLAN 1 (Transit)</td>
+            <td>Vodafone Router (Default Gateway Link)</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g2</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes6</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g3</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes5</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g4</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes1</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g5</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes4</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g6</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes2</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g7</td>
+            <td class="highlight-pink">❌ Down</td>
+            <td>VLAN 1</td>
+            <td>Empty</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g8</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>NUC (Master Node)</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g9</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>HP-1 (Workstation & Docker Registry)</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g10</td>
+            <td class="highlight-pink">✅ Up (100M)*</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes7 <span style="font-size: 0.8rem; color: var(--neon-pink);">(Speed Warning - Check cable)</span></td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g11</td>
+            <td class="highlight-pink">✅ Up (100M)*</td>
+            <td class="highlight-cyan">VLAN 30 (PVID 30)</td>
+            <td>HP-2 <span style="font-size: 0.8rem; color: var(--neon-pink);">(Speed Warning)</span></td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g12</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes8-debian</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g13</td>
+            <td class="highlight-pink">❌ Down</td>
+            <td>VLAN 1</td>
+            <td>Empty</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g14</td>
+            <td class="highlight-pink">❌ Down</td>
+            <td>VLAN 1</td>
+            <td>Empty</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g15</td>
+            <td class="highlight-green">✅ Up (1000M)</td>
+            <td class="highlight-green">VLAN 20 (PVID 20)</td>
+            <td>kubernetes3</td>
+          </tr>
+          <tr>
+            <td class="highlight-pink">g16</td>
+            <td class="highlight-pink">❌ Down</td>
+            <td>VLAN 1</td>
+            <td>Empty</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Switch Routing configuration -->
+    <div class="card green">
+      <h2><span>⚙️</span> Switch L3 Configuration Steps</h2>
+      <p>Configure the following in the Netgear Switch Web Management GUI:</p>
+      <ol>
+        <li>
+          <strong>Enable Global IP Routing</strong>:
+          <p>Navigate to <em>Routing > IP > IP Configuration</em>, set <strong>Routing Mode</strong> to <strong>Enable</strong>, and click apply.</p>
+        </li>
+        <li>
+          <strong>Create Switched Virtual Interfaces (SVIs)</strong>:
+          <p>Go to <em>Routing > IP > IP Interface Configuration</em>, and create routing interface addresses for each VLAN:</p>
+          <ul>
+            <li>VLAN 1 Interface: <span class="highlight-green">192.168.0.99</span> (Subnet Mask: 255.255.255.0)</li>
+            <li>VLAN 10 Interface: <span class="highlight-green">192.168.10.99</span> (Subnet Mask: 255.255.255.0)</li>
+            <li>VLAN 20 Interface: <span class="highlight-green">192.168.20.99</span> (Subnet Mask: 255.255.255.0)</li>
+            <li>VLAN 30 Interface: <span class="highlight-green">192.168.30.99</span> (Subnet Mask: 255.255.255.0)</li>
+          </ul>
+        </li>
+        <li>
+          <strong>Set Default Route for Internet Egress</strong>:
+          <p>Navigate to <em>Routing > IP > Static Route Configuration</em> and add your gateway router static route:</p>
+          <div class="code-block">
+Route Type: Default
+Destination IP: 0.0.0.0
+Subnet Mask: 0.0.0.0
+Next Hop Gateway: 192.168.0.1 (Your main router IP)
+          </div>
+        </li>
+        <li>
+          <strong>DHCP Relay Settings</strong>:
+          <p>Enable DHCP relay helper under <em>System > Services > DHCP Relay</em> and point the helper address to <span class="highlight-green">192.168.0.1</span> so your router can serve DHCP leases dynamically for VLAN 20 and 30.</p>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Router configuration -->
+    <div class="card">
+      <h2><span>🌐</span> Router/Firewall Routing Tables (L3 Gateway)</h2>
+      <p>Your main gateway/firewall (192.168.0.1) must know how to route return packets back to your switch subnets. Configure these routes under your Router settings:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Destination Network</th>
+            <th>Subnet Mask</th>
+            <th>Next Hop Gateway</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight-cyan">192.168.10.0</td>
+            <td>255.255.255.0</td>
+            <td>192.168.0.99</td>
+            <td>Routes return traffic back to MGMT network</td>
+          </tr>
+          <tr>
+            <td class="highlight-green">192.168.20.0</td>
+            <td>255.255.255.0</td>
+            <td>192.168.0.99</td>
+            <td>Routes return traffic back to K3s Production network</td>
+          </tr>
+          <tr>
+            <td class="highlight-cyan">192.168.30.0</td>
+            <td>255.255.255.0</td>
+            <td>192.168.0.99</td>
+            <td>Routes return traffic back to Trusted Devices</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="alert" style="background: rgba(57, 255, 20, 0.03); border-color: var(--neon-green);">
+        <h4 style="color: var(--neon-green)">💡 Optimization Benefit</h4>
+        Because local inter-VLAN routing is handled inside the switch, a node on 192.168.20.19 sending database files to 192.168.20.128 routes at <strong>1 Gbps wire-speed</strong> without ever leaving the switch backbone!
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+</body>
+</html>

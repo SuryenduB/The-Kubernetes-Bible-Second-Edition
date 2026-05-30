@@ -11,6 +11,20 @@ $Nodes = @(
     @{ Name = "kubernetes8-debian"; IP = "192.168.0.27" }
 )
 
+# Load sudo password from encrypted credential file
+$credPath = Join-Path (Split-Path $PSScriptRoot -Parent) "cred.xml"
+if (-not (Test-Path $credPath)) {
+    $credPath = Join-Path $PSScriptRoot "cred.xml"
+}
+
+if (Test-Path $credPath) {
+    Write-Host "Reading password from encrypted credential file..." -ForegroundColor Cyan
+    $securePassword = Import-Clixml -Path $credPath
+} else {
+    $securePassword = Read-Host "Enter sudo password" -AsSecureString
+}
+$plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+
 Write-Host "--- K3s Cluster LLDP Deployment ---" -ForegroundColor Cyan
 Write-Host "This script will enable your switch to identify nodes by name." -ForegroundColor Gray
 
@@ -25,7 +39,7 @@ foreach ($Node in $Nodes) {
     # Execute installation via SSH with sudo
     Write-Host "  - Installing lldpd..." -ForegroundColor Gray
     # Using the sudo password pattern from your audit script
-    ssh -o StrictHostKeyChecking=no suryendub@$i "echo 558068 | sudo -S -p '' bash -c '$installCmd'"
+    ssh -o StrictHostKeyChecking=no suryendub@$i "echo $plainPass | sudo -S -p '' bash -c '$installCmd'"
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [+] SUCCESS: LLDP is now active on ${n}." -ForegroundColor Green
