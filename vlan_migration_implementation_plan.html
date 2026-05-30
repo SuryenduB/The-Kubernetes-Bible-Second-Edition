@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VLAN Migration & L3 Routing Plan</title>
+  <meta name="description" content="Detailed L3 VLAN segmentation architecture and step-by-step implementation guide using the Netgear GS716Tv3 and NUC NAT Gateway.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a15;
+      --card-bg: rgba(22, 24, 47, 0.7);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      
+      /* Neon Accents */
+      --cyan: #00f0ff;
+      --green: #10b981;
+      --pink: #ff007f;
+      --purple: #8b5cf6;
+      --yellow: #f59e0b;
+      
+      --cyan-glow: rgba(0, 240, 255, 0.15);
+      --green-glow: rgba(16, 185, 129, 0.15);
+      --pink-glow: rgba(255, 0, 127, 0.15);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(90, 40, 190, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.06) 0%, transparent 40%);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      position: relative;
+    }
+
+    header h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.03em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .badge-primary {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--cyan);
+      border: 1px solid var(--cyan);
+      background: var(--cyan-glow);
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (min-width: 900px) {
+      .grid-2 {
+        grid-template-columns: 1.2fr 0.8fr;
+      }
+      .grid-3 {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+    }
+
+    /* Card Styling */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 2rem;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      opacity: 0.5;
+    }
+
+    .card.green::before {
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+    }
+
+    .card.pink::before {
+      background: linear-gradient(90deg, transparent, var(--pink), transparent);
+    }
+
+    .card:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .card-title span {
+      font-size: 1.25rem;
+    }
+
+    /* Interactive Checklist */
+    .checklist {
+      list-style: none;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.75rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+    }
+
+    .checklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .checkbox {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 0.15rem;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .checklist-item.checked .checkbox {
+      background: var(--green);
+      border-color: var(--green);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+    }
+
+    .checkbox::after {
+      content: '✓';
+      color: #fff;
+      font-size: 0.8rem;
+      display: none;
+    }
+
+    .checklist-item.checked .checkbox::after {
+      display: block;
+    }
+
+    .checklist-content {
+      flex-grow: 1;
+    }
+
+    .checklist-title {
+      font-weight: 600;
+      font-size: 1.05rem;
+      transition: color 0.2s ease;
+    }
+
+    .checklist-item.checked .checklist-title {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .checklist-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    /* Alerts */
+    .alert {
+      background: rgba(255, 0, 127, 0.05);
+      border: 1px solid var(--pink);
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .alert h4 {
+      color: var(--pink);
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .alert-info {
+      background: rgba(0, 240, 255, 0.04);
+      border-color: var(--cyan);
+    }
+
+    .alert-info h4 {
+      color: var(--cyan);
+    }
+
+    .alert-warning {
+      background: rgba(245, 158, 11, 0.04);
+      border-color: var(--yellow);
+    }
+
+    .alert-warning h4 {
+      color: var(--yellow);
+    }
+
+    /* Table Styling */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      text-align: left;
+      font-size: 0.95rem;
+    }
+
+    th, td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .highlight-cyan { color: var(--cyan); font-weight: 600; }
+    .highlight-green { color: var(--green); font-weight: 600; }
+    .highlight-pink { color: var(--pink); font-weight: 600; }
+    .highlight-purple { color: var(--purple); font-weight: 600; }
+
+    /* Code Blocks */
+    pre, code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+    }
+
+    .code-block {
+      background: #04050e;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+      position: relative;
+    }
+
+    .code-block::after {
+      content: 'bash';
+      position: absolute;
+      top: 0.5rem;
+      right: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .code-block.yaml::after { content: 'yaml'; }
+    .code-block.router::after { content: 'switch console'; }
+
+    /* Accordion / Steps */
+    .step-section {
+      margin-bottom: 2rem;
+    }
+
+    .step-header {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s ease;
+    }
+
+    .step-header:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .step-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .step-num {
+      width: 28px;
+      height: 28px;
+      background: var(--cyan);
+      color: var(--bg);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+
+    .step-section.completed .step-num {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green-glow);
+    }
+
+    .step-content {
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      border-top: none;
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+      display: none;
+    }
+
+    .step-section.active .step-content {
+      display: block;
+    }
+
+    .step-arrow::after {
+      content: '▼';
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      transition: transform 0.2s ease;
+    }
+
+    .step-section.active .step-arrow::after {
+      transform: rotate(180deg);
+      display: inline-block;
+    }
+
+    /* Mermaid Container */
+    .mermaid-container {
+      background: #04050e;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      display: flex;
+      justify-content: center;
+      min-height: 200px;
+    }
+
+    .diagram-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: -1rem;
+      margin-bottom: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <header>
+      <div class="badge-primary">Option A.2 &bull; Active Implementation</div>
+      <h1>L3 VLAN Migration & NAT Gateway Setup</h1>
+      <p>Implementation guide to segment K3s homelab traffic using Netgear GS716Tv3 routing capability and NUC asymmetric NAT.</p>
+    </header>
+
+    <!-- Risks Warning Panel -->
+    <div class="alert">
+      <h4>⚠️ Critical Deployment Safeguards (Verify Before Commencing)</h4>
+      <p style="margin-bottom: 0.75rem;"><strong>1. Netgear Switch Save config:</strong> Netgear switches do not automatically save to NVRAM on application. After any settings adjustments, you must go to <em>Maintenance > Save Config</em>, tick the active slot, and click <strong>Apply</strong>.</p>
+      <p style="margin-bottom: 0.75rem;"><strong>2. K3s Node-IP Bindings:</strong> If node IPs change, Kubernetes certificates block communication. Service definitions on the master and workers must have <code>--node-ip</code> explicitly declared before rebooting.</p>
+      <p><strong>3. Switch Gateway Asymmetry:</strong> The default route of the switch points to the NUC's VLAN 1 IP (acting as NAT forwarding engine), which masquerades packets to the Vodafone Router.</p>
+    </div>
+
+    <div class="grid grid-2">
+      
+      <!-- Left Hand Side: Steps & Execution -->
+      <div>
+        
+        <!-- Phase 1: Pre-Migration -->
+        <div class="step-section completed" id="step-1">
+          <div class="step-header" onclick="toggleStep('step-1')">
+            <div class="step-title">
+              <div class="step-num">1</div>
+              <span>Phase 1: Pre-Migration Validation</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p style="margin-bottom: 1rem;">Deploy Link Layer Discovery Protocol to all cluster targets to map physical configurations.</p>
+            <div class="code-block">
+              pwsh -File .\WindowsLab\Install-LLDP.ps1
+            </div>
+            <div class="alert alert-warning" style="margin-top: 1rem; margin-bottom: 0;">
+              <h4>⚠️ BLOCKING HARDWARE TASK: Phase 1 Speed Mismatch</h4>
+              All K3s nodes responded via LLDP. However, speed warnings are registered on <strong>g10</strong> (kubernetes7) and <strong>g11</strong> (HP-2), which are bottlenecked at <strong>100M</strong>. This is a blocking hardware issue that must be resolved by swapping/checking cables before proceeding to Phase 2 of the migration to ensure storage and network health.
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2: Router configuration -->
+        <div class="step-section active" id="step-2">
+          <div class="step-header" onclick="toggleStep('step-2')">
+            <div class="step-title">
+              <div class="step-num">2</div>
+              <span>Phase 2: Router DHCP Reservations</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Since the Vodafone Router cannot perform static routing, it will only serve DHCP leases. Configure the DHCP pools and IP reservations:</p>
+            
+            <table>
+              <thead>
+                <tr>
+                  <th>Device</th>
+                  <th>MAC Address</th>
+                  <th>Subnet / VLAN</th>
+                  <th>Assigned IP</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>NUC Master (VLAN 1)</td>
+                  <td style="font-family: monospace;">C0:3F:D5:6D:45:85</td>
+                  <td class="highlight-cyan">VLAN 1 (Flat)</td>
+                  <td class="highlight-cyan">192.168.0.21</td>
+                </tr>
+                <tr>
+                  <td>NUC Master (VLAN 20)</td>
+                  <td style="font-family: monospace;">C0:3F:D5:6D:45:85</td>
+                  <td class="highlight-green">VLAN 20 (K3s)</td>
+                  <td class="highlight-green">192.168.20.21</td>
+                </tr>
+                <tr>
+                  <td>HP-1 Registry</td>
+                  <td style="font-family: monospace;">C8:D3:FF:6A:72:2E</td>
+                  <td class="highlight-green">VLAN 20 (K3s)</td>
+                  <td class="highlight-green">192.168.20.236</td>
+                </tr>
+                <tr>
+                  <td>HP-2 Workstation</td>
+                  <td style="font-family: monospace;">FC:3F:DB:86:1A:81</td>
+                  <td class="highlight-purple">VLAN 30 (Trusted)</td>
+                  <td class="highlight-purple">192.168.30.122</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="alert alert-warning">
+              <h4>⚠️ Static Route Verification Not Found</h4>
+              The Vodafone router routing panel is locked down. Proceed with NUC Next-Hop NAT translation architecture (Option A.2).
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3: Switch SVI & Global Setup -->
+        <div class="step-section" id="step-3">
+          <div class="step-header" onclick="toggleStep('step-3')">
+            <div class="step-title">
+              <div class="step-num">3</div>
+              <span>Phase 3: Switch L3 Interface Configuration</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Configure Switched Virtual Interfaces (SVIs) and Default Routing on the Netgear GS716Tv3 switch Web Interface:</p>
+            <ol style="margin-left: 1.5rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <li>Navigate to <strong>Routing > IP > IP Configuration</strong>, set <strong>Routing Mode</strong> to <strong>Enable</strong>, and click apply.</li>
+              <li>Go to <strong>Routing > IP > IP Interface Configuration</strong> and create routing interface addresses:
+                <ul>
+                  <li>VLAN 1: <code class="highlight-cyan">192.168.0.99</code> (Mask: 255.255.255.0)</li>
+                  <li>VLAN 10 (MGMT): <code class="highlight-purple">192.168.10.99</code></li>
+                  <li>VLAN 20 (K3s): <code class="highlight-green">192.168.20.99</code></li>
+                  <li>VLAN 30 (Trusted): <code class="highlight-purple">192.168.30.99</code></li>
+                </ul>
+              </li>
+              <li>Set default routing under <strong>Routing > IP > Static Route Configuration</strong>:
+                <div class="code-block router">
+Destination: 0.0.0.0
+Subnet Mask: 0.0.0.0
+Next Hop Gateway: 192.168.0.21 (NUC VLAN 1 Interface - NOT Vodafone Router)
+                </div>
+              </li>
+              <li>Configure DHCP relay under <strong>System > Services > DHCP Relay</strong>, point helper to <code>192.168.0.1</code>.</li>
+            </ol>
+            <div class="alert alert-warning" style="margin-top: 1rem; margin-bottom: 0;">
+              <h4>⚠️ Configuration Persistence Requirement</h4>
+              Go to <strong>Maintenance > Save Config</strong>, check the checkbox and click <strong>Apply</strong>, or your configuration will vanish upon next powercycle.
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 4: Port Memberships & Trunking -->
+        <div class="step-section" id="step-4">
+          <div class="step-header" onclick="toggleStep('step-4')">
+            <div class="step-title">
+              <div class="step-num">4</div>
+              <span>Phase 4: Port Memberships & Trunk Setup</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Assign VLAN IDs and adjust trunking configuration on the switch ports:</p>
+            <ol style="margin-left: 1.5rem; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <li>Navigate to <strong>Switching > VLAN > Basic > VLAN Configuration</strong> and create VLAN IDs <code>10, 20, 30</code>.</li>
+              <li>Set Port <strong>g8 (NUC Link)</strong> as trunk:
+                <ul>
+                  <li>VLAN 1: Set to <strong>Untagged (U)</strong>, PVID = 1.</li>
+                  <li>VLAN 20: Set to <strong>Tagged (T)</strong>.</li>
+                </ul>
+              </li>
+              <li>Set K3s nodes ports (g2-g6, g10, g12, g15) to VLAN 20:
+                <ul>
+                  <li>PVID Configuration: Set PVID to <strong>20</strong>.</li>
+                  <li>VLAN Membership: Set to <strong>Untagged (U)</strong> on VLAN 20.</li>
+                </ul>
+              </li>
+              <li>Set HP-2 (g11) to VLAN 30:
+                <ul>
+                  <li>PVID Configuration: Set PVID to <strong>30</strong>.</li>
+                  <li>VLAN Membership: Set to <strong>Untagged (U)</strong> on VLAN 30.</li>
+                </ul>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Phase 5: NUC NAT Configuration -->
+        <div class="step-section" id="step-5">
+          <div class="step-header" onclick="toggleStep('step-5')">
+            <div class="step-title">
+              <div class="step-num">5</div>
+              <span>Phase 5: NUC VLAN Tagging & IPTables Gateway</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Configure Netplan on the NUC to receive tagged VLAN 20 traffic and act as a NAT masquerade engine.</p>
+            
+            <p style="margin-top: 0.5rem;">1. Edit <code>/etc/netplan/01-netcfg.yaml</code> (or equivalent netplan config):</p>
+            <div class="code-block yaml">
+network:
+  version: 2
+  ethernets:
+    enp3s0:
+      dhcp4: true
+      routes:
+        - to: 192.168.10.0/24
+          via: 192.168.0.99
+        - to: 192.168.30.0/24
+          via: 192.168.0.99
+  vlans:
+    vlan20:
+      id: 20
+      link: enp3s0
+      addresses:
+        - 192.168.20.21/24
+            </div>
+            
+            <p style="margin-top: 1rem;">2. Apply netplan config:</p>
+            <div class="code-block">
+sudo netplan apply
+            </div>
+
+            <p style="margin-top: 1rem;">3. Enable IP Forwarding and NAT rules:</p>
+            <div class="code-block">
+# Enable forwarding instantly
+sudo sysctl -w net.ipv4.ip_forward=1
+echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
+
+# Add NAT masquerade rules
+sudo iptables -t nat -A POSTROUTING -o enp3s0 -j MASQUERADE
+sudo iptables -A FORWARD -i vlan20 -o enp3s0 -j ACCEPT
+sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+# Save iptables rules permanently
+sudo apt-get install iptables-persistent -y
+sudo iptables-save | sudo tee /etc/iptables/rules.v4
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 6: K3s Service Adjustments -->
+        <div class="step-section" id="step-6">
+          <div class="step-header" onclick="toggleStep('step-6')">
+            <div class="step-title">
+              <div class="step-num">6</div>
+              <span>Phase 6: K3s Node Settings Adjustment</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Adjust systemd configuration on K3s nodes to bind to the new VLAN 20 IPs.</p>
+            
+            <p style="margin-top: 0.5rem;"><strong>1. Master Node NUC configuration</strong> (<code>/etc/systemd/system/k3s.service</code>):</p>
+            <div class="code-block yaml">
+# Inside ExecStart command, append node-ip and advertise-address variables
+ExecStart=/usr/local/bin/k3s server \
+  --node-ip=192.168.20.21 \
+  --advertise-address=192.168.20.21 \
+  --flannel-backend=wireguard-native
+            </div>
+            
+            <p style="margin-top: 1rem;"><strong>2. Worker Node configuration</strong> (<code>/etc/systemd/system/k3s-agent.service.env</code> on e.g., kubernetes1):</p>
+            <div class="code-block yaml">
+K3S_URL="https://192.168.20.21:6443"
+K3S_TOKEN="K101..."
+K3S_AGENT_ARGS="--node-ip=192.168.20.22"
+            </div>
+
+            <p style="margin-top: 1rem;"><strong>3. Reload & Restart services:</strong></p>
+            <div class="code-block">
+sudo systemctl daemon-reload
+sudo systemctl restart k3s-agent # or k3s for master
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 7: Verification -->
+        <div class="step-section" id="step-7">
+          <div class="step-header" onclick="toggleStep('step-7')">
+            <div class="step-title">
+              <div class="step-num">7</div>
+              <span>Phase 7: Validation & Diagnostics</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Execute routing verification trace from your workstation (HP-2):</p>
+            <div class="code-block">
+tracert 192.168.20.22
+            </div>
+            <p>Verify paths are correctly localized (Hop 1: Switch SVI <code>192.168.30.99</code>, Hop 2: worker node <code>192.168.20.22</code>).</p>
+            
+            <p style="margin-top: 1rem;">Execute health checks on the cluster:</p>
+            <div class="code-block">
+pwsh -File .\Test-K3sClusterHealth.ps1
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Hand Side: Visual Mapping & Telemetry -->
+      <div>
+        
+        <div class="card green" style="margin-bottom: 2rem;">
+          <h3 class="card-title"><span>📊</span> Phase Checklist</h3>
+          <ul class="checklist">
+            <li class="checklist-item checked" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 1: Pre-Migration</div>
+                <div class="checklist-desc">LLDP verification and speed checks completed.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 2: Router Mapping</div>
+                <div class="checklist-desc">Set DHCP ranges and reservations.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 3: L3 Configuration</div>
+                <div class="checklist-desc">Enable Routing, add SVIs, and Next-Hop defaults.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 4: Port Memberships</div>
+                <div class="checklist-desc">Configure untagged and trunk configurations.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 5: NUC Gateway Setup</div>
+                <div class="checklist-desc">Install netplan VLAN tagging and NAT forwarder.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 6: K3s Node Settings</div>
+                <div class="checklist-desc">Update --node-ip flags and restart agents.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 7: Verification</div>
+                <div class="checklist-desc">Perform traceroute verification and health audit.</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card pink">
+          <h3 class="card-title"><span>🌐</span> Dynamic Asymmetric Routing Flow</h3>
+          <div class="mermaid-container">
+            <pre class="mermaid" style="background:transparent; color:#fff; font-size: 0.8rem; text-align: left; line-height: 1.4;">
+graph TD
+    Worker[Worker Node 192.168.20.22]
+    Switch[L3 Switch SVI 192.168.20.99]
+    NUC[NUC NAT Gateway 192.168.0.21]
+    Router[Vodafone Router 192.168.0.1]
+    Internet[Internet]
+
+    %% Outbound Route
+    Worker -->|1. Default Gateway| Switch
+    Switch -->|2. Next Hop 192.168.0.21| NUC
+    NUC -->|3. SNAT Masquerade| Router
+    Router -->|4. WAN Forward| Internet
+
+    %% Inbound Route
+    Internet -->|5. Return Traffic| Router
+    Router -->|6. Local LAN Forward| NUC
+    NUC -->|7. VLAN 20 Sub-Interface| Worker
+            </pre>
+          </div>
+          <div class="diagram-desc">Asymmetric Path: Outbound flows via L3 Switch to NUC Gateway; Inbound flows directly via Tagged interface to host.</div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
+  <script>
+    function toggleStep(stepId) {
+      const step = document.getElementById(stepId);
+      step.classList.toggle('active');
+    }
+
+    function toggleCheck(item) {
+      item.classList.toggle('checked');
+      const stepNum = item.querySelector('.checklist-title').textContent.split(':')[0].replace('Phase ', '');
+      const targetStep = document.getElementById('step-' + stepNum.trim());
+      if (targetStep) {
+        if (item.classList.contains('checked')) {
+          targetStep.classList.add('completed');
+        } else {
+          targetStep.classList.remove('completed');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

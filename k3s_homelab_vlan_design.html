@@ -274,10 +274,12 @@ graph TD
     
     subgraph VLAN10 ["VLAN 10: Management Subnet 192.168.10.0/24"]
         Switch ===|Virtual SVI| Switch_SVI[Switch Management 192.168.10.99]
+        Switch_SVI -.-> Switch_MGMT[Switch Management GUI]
+        Switch_SVI -.-> NUC[NUC Management Interface]
     end
     
     subgraph VLAN20 ["VLAN 20: K3s Cluster Subnet 192.168.20.0/24"]
-        Switch -.->|Port g8 Access| NUC[NUC Master Node 192.168.20.21]
+        Switch -.->|Port g8 Tagged| NUC[NUC Master Node 192.168.20.21]
         Switch -.->|Port g9 Access| HP1[HP-1 Docker Registry 192.168.20.236]
         Switch -.->|Ports g2-g6,g10,g12,g15 Access| Workers[Worker Nodes kubernetes1-8]
     end
@@ -342,6 +344,10 @@ graph TD
     <!-- Switch Physical Port Map -->
     <div class="card pink">
       <h2><span>🔌</span> Physical Switch Ports Allocation (GS716T)</h2>
+      <div class="alert" style="background: rgba(255, 0, 127, 0.08); border-color: var(--neon-pink); margin-top: 1rem;">
+        <h4 style="color: var(--neon-pink)">⚠️ BLOCKING HARDWARE TASK: Link Speed Inconsistencies</h4>
+        Ports <strong>g10</strong> (kubernetes7) and <strong>g11</strong> (HP-2) are currently negotiating at <strong>100M</strong> instead of <strong>1000M</strong>. This is a critical bottleneck that will degrade Longhorn storage replication and cluster health. <strong>Do not proceed to Phase 2 of the migration until cables are verified/replaced and gigabit speed is negotiated.</strong>
+      </div>
       <table>
         <thead>
           <tr>
@@ -473,12 +479,12 @@ graph TD
         </li>
         <li>
           <strong>Set Default Route for Internet Egress</strong>:
-          <p>Navigate to <em>Routing > IP > Static Route Configuration</em> and add your gateway router static route:</p>
+          <p>Navigate to <em>Routing > IP > Static Route Configuration</em> and add the NUC as the default gateway:</p>
           <div class="code-block">
 Route Type: Default
 Destination IP: 0.0.0.0
 Subnet Mask: 0.0.0.0
-Next Hop Gateway: 192.168.0.1 (Your main router IP)
+Next Hop Gateway: 192.168.0.21 (NUC VLAN 1 Interface - acting as NAT Gateway)
           </div>
         </li>
         <li>
@@ -490,14 +496,14 @@ Next Hop Gateway: 192.168.0.1 (Your main router IP)
 
     <!-- Router configuration -->
     <div class="card">
-      <h2><span>🌐</span> Router/Firewall Routing Tables (L3 Gateway)</h2>
-      <p>Your main gateway/firewall (192.168.0.1) must know how to route return packets back to your switch subnets. Configure these routes under your Router settings:</p>
+      <h2><span>🌐</span> NAT Gateway Routing Tables (NUC Config)</h2>
+      <p>Since the Vodafone Router (192.168.0.1) is locked down, return routing for VLAN 10 and 30 is handled by static routes on the NUC pointing to the switch (192.168.0.99). Configure these routes in your NUC netplan configuration:</p>
       <table>
         <thead>
           <tr>
             <th>Destination Network</th>
             <th>Subnet Mask</th>
-            <th>Next Hop Gateway</th>
+            <th>Next Hop Gateway (Switch IP)</th>
             <th>Description</th>
           </tr>
         </thead>
