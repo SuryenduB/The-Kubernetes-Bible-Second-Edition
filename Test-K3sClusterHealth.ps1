@@ -61,7 +61,7 @@ function Test-K3sClusterHealth {
         $uptime = ""; $rootDisk = ""
         if ($up -and $_.Role -ne 'desktop' -and $_.Role -ne 'nas') {
             try {
-                $sshCmdArray = @("-o", "ConnectTimeout=1", "-o", "StrictHostKeyChecking=no", "suryendub@$ip", "uptime -p; df -h / | tail -n 1")
+                $sshCmdArray = @("-o", "ConnectTimeout=1", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "suryendub@$ip", "uptime -p; df -h / | tail -n 1")
                 $sshRes = & ssh $sshCmdArray 2>$null
                 if ($sshRes -and $sshRes.Count -ge 2) {
                     $uptime = $sshRes[0] -replace '^up\s+',''
@@ -125,12 +125,22 @@ function Test-K3sClusterHealth {
             if ($parts.Count -ge 5) {
                 $memVal = $parts[3]
                 $memNum = if ($memVal -match '(\d+)Mi') { [int]$matches[1] } elseif ($memVal -match '(\d+)Gi') { [int]$matches[1]*1024 } else { 0 }
+                
+                $cpuVal = $parts[1] -replace 'm',''
+                $cpuNum = if ($cpuVal -match '^\d+$') { [int]$cpuVal } else { 0 }
+                
+                $cpuPctVal = $parts[2] -replace '%',''
+                $cpuPctNum = if ($cpuPctVal -match '^\d+$') { [int]$cpuPctVal } else { 0 }
+                
+                $memPctVal = $parts[4] -replace '%',''
+                $memPctNum = if ($memPctVal -match '^\d+$') { [int]$memPctVal } else { 0 }
+
                 $nodeResources += [PSCustomObject]@{
                     Node      = $parts[0]
-                    CPU       = [int]($parts[1] -replace 'm','')
-                    CPUPct    = [int]($parts[2] -replace '%','')
+                    CPU       = $cpuNum
+                    CPUPct    = $cpuPctNum
                     MemoryMB  = $memNum
-                    MemoryPct = [int]($parts[4] -replace '%','')
+                    MemoryPct = $memPctNum
                 }
             }
         }
@@ -150,7 +160,10 @@ function Test-K3sClusterHealth {
             $parts = $line -split '\s+', 9
             if ($parts.Count -ge 4) {
                 $ns = $parts[0]; $pod = $parts[1]; $status = $parts[3]; $restarts = 0
-                if ($parts.Count -ge 5) { $restarts = [int]($parts[4] -replace '[^0-9]', '') }
+                if ($parts.Count -ge 5) {
+                    $cleanRestarts = $parts[4] -replace '[^0-9]', ''
+                    $restarts = if ($cleanRestarts -match '^\d+$') { [int]$cleanRestarts } else { 0 }
+                }
                 $node = if ($parts.Count -ge 8) { $parts[7] } else { "" }
 
                 $totalPods++

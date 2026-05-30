@@ -100,7 +100,32 @@ Stop-K3sHomelab
 | **kubernetes5** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 98G (45% used) | ✅ Worker |
 | **kubernetes6** | Ubuntu 24.04 | 2C/4T | 15Gi | 98G (50% used) | ✅ Worker |
 | **kubernetes7** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 98G (46% used) | ✅ Worker |
-| **kubernetes8-debian** | Debian 13 | 4C/4T | 3.8Gi | 289G (2% used) | ✅ Worker |
+| kubernetes8-debian | Debian 13 | 4C/4T | 3.8Gi | 289G (2% used) | ✅ Worker |
+
+### 🌐 Network Infrastructure
+
+| Device | Model | IP Address | Management | Credentials |
+|--------|-------|------------|------------|-------------|
+| **Core Switch** | Netgear ProSafe GS716T | 192.168.0.99 | Web GUI | `32558068` |
+
+### 🔌 Physical Port Map (GS716T)
+
+| Port | Connected Device | MAC Address | Role |
+|:-----|:-----------------|:------------|:-----|
+| **g1** | Vodafone Router | `02:10:18:1C:F8:CC` | Uplink (Transit) |
+| **g2** | kubernetes6 | `90:1B:0E:56:D7:BB` | K3s Worker |
+| **g3** | kubernetes5 | `44:8A:5B:2C:B8:83` | K3s Worker |
+| **g4** | kubernetes1 | `90:1B:0E:89:B9:66` | K3s Worker |
+| **g5** | kubernetes4 | `64:00:6A:62:72:DC` | K3s Worker |
+| **g6** | kubernetes2 | `40:B0:76:0F:3C:72` | K3s Worker |
+| **g8** | NUC (Master) | `C0:3F:D5:6D:45:85` | K3s Master |
+| **g9** | TP-Link Device | `C8:D3:FF:6A:72:2E` | External/Access |
+| **g10** | kubernetes7 | `6C:C2:17:E9:A4:E5` | K3s Worker |
+| **g11** | HP-2 | `FC:3F:DB:86:1A:81` | Trusted Node |
+| **g12** | kubernetes8-debian | `00:14:0B:45:02:83` | K3s Worker |
+| **g15** | kubernetes3 | `40:8D:5C:AA:D9:1F` | K3s Worker |
+
+*Note: NASECDE55 (QNAP) is currently appearing on g1 (Uplink), indicating it is likely plugged into the router directly.*
 
 ---
 

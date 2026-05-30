@@ -77,7 +77,13 @@ Write-Host "Master: $masterIp"
 Write-Host "Workers: $($targets.Name -join ', ')"
 
 # 2. CREDENTIALS
-$password = Read-Host "Enter sudo password" -AsSecureString
+$credPath = Join-Path $PSScriptRoot "cred.xml"
+if (Test-Path $credPath) {
+    Write-Host "Reading password from encrypted credential file..." -ForegroundColor Cyan
+    $password = Import-Clixml -Path $credPath
+} else {
+    $password = Read-Host "Enter sudo password" -AsSecureString
+}
 $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
 $b64Pass = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($plainPass))
 

@@ -12,3 +12,7 @@ terraform/terraform.tfstate.backup
 
 # Sensitive deployment files (contain auth keys)
 TAILSCALE_DEPLOYMENT_GUIDE.md
+
+# Local Credentials
+cred.xml
+
