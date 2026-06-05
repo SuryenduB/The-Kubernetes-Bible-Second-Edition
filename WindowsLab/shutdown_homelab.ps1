@@ -125,8 +125,8 @@ foreach ($worker in $targets) {
     }
 
     Write-Host "  - Powering off..."
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
+    ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
 }
 
 Write-Host "`n--- Powering off Master (NUC) ---" -ForegroundColor Red
-ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
+ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
