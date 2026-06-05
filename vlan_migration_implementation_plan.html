@@ -426,6 +426,67 @@
       <p>Implementation guide to segment K3s homelab traffic using Netgear GS716Tv3 routing capability and NUC asymmetric NAT.</p>
     </header>
 
+    <!-- Migration Timeline Overview -->
+    <div class="card" style="margin-bottom: 2rem; border-color: var(--cyan); position: relative; background: var(--card-bg); border-radius: 12px; padding: 2rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);">
+      <h3 class="card-title" style="color: var(--cyan); font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 600; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; border: none; box-shadow: none; padding: 0;"><span>⏱️</span> Migration Timeline & Planning Estimates</h3>
+      <table style="margin-top: 0; width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">Phase</th>
+            <th style="padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">Task Description</th>
+            <th style="padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid var(--border-color); color: var(--text-muted);">Estimated Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 1</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">Pre-Migration Backup & Hardware Validation (WOL/LLDP check)</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">30 - 45 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 2</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">Router DHCP Static IP Reservations</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">15 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 3</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">Switch SVI & L3 IP Routing Configuration</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">20 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 4</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">Switch Port Memberships & Trunk/Access Port Assignment</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">15 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 5</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">Local Host Static IP Configuration (Linux Workers, Registry, Windows Workstation)</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">20 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 6</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">NUC VLAN Netplan Tagging & IPTables Gateway Setup</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">25 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);"><strong>Phase 7</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">K3s Nodes systemd Configuration & Sequencing Restarts</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); color: var(--cyan);">45 mins</td>
+          </tr>
+          <tr>
+            <td style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--border-color);"><strong>Phase 8</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--border-color);">Comprehensive Validation & Diagnostics</td>
+            <td style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--border-color); color: var(--cyan);">20 mins</td>
+          </tr>
+          <tr style="border-top: 2px solid var(--border-color);">
+            <td style="padding: 0.75rem 1rem; border-bottom: none;"><strong>Total</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: none;"><strong>Maintenance Window (with testing & buffer)</strong></td>
+            <td style="padding: 0.75rem 1rem; border-bottom: none; color: var(--green);"><strong>~ 3 Hours 20 Mins</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- Risks Warning Panel -->
     <div class="alert">
       <h4>⚠️ Critical Deployment Safeguards (Verify Before Commencing)</h4>
@@ -439,28 +500,49 @@
       <!-- Left Hand Side: Steps & Execution -->
       <div>
         
-        <!-- Phase 1: Pre-Migration -->
+        <!-- Phase 1: Pre-Migration Backups & Validation -->
         <div class="step-section completed" id="step-1">
           <div class="step-header" onclick="toggleStep('step-1')">
             <div class="step-title">
               <div class="step-num">1</div>
-              <span>Phase 1: Pre-Migration Validation</span>
+              <span>Phase 1: Pre-Migration Backups & Hardware Validation</span>
             </div>
             <div class="step-arrow"></div>
           </div>
           <div class="step-content">
-            <p style="margin-bottom: 1rem;">Deploy Link Layer Discovery Protocol to all cluster targets to map physical configurations.</p>
-            <div class="code-block">
+            <h5 style="margin-bottom: 0.5rem; font-weight: 600; color: var(--cyan);">1. Pre-Migration Backups</h5>
+            <p style="margin-bottom: 0.5rem;">Perform full backups before altering switch ports or node routing configuration:</p>
+            <ul>
+              <li><strong>Switch Config:</strong> Go to Netgear GUI: <em>Maintenance > Backup Manager > HTTP File Backup</em>. Download <code>config.cfg</code>.</li>
+              <li><strong>K3s Database:</strong> Run the manual backup script to save the cluster state to the QNAP NAS:
+                <div class="code-block" style="color: #39ff14;">sudo /usr/local/bin/k3s-backup-to-nas.sh</div>
+              </li>
+              <li><strong>Current Node Mapping:</strong> Capture a snapshot of working IPs and MACs:
+                <div class="code-block" style="color: #39ff14;">kubectl get nodes -o wide > k3s_nodes_pre_migration.txt</div>
+              </li>
+            </ul>
+
+            <h5 style="margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--cyan);">2. LLDP Topology Check & Hardware Diagnostics</h5>
+            <p style="margin-bottom: 0.5rem;">Deploy Link Layer Discovery Protocol to all cluster targets to map physical switch configurations:</p>
+            <div class="code-block" style="color: #39ff14;">
               pwsh -File .\WindowsLab\Install-LLDP.ps1
             </div>
+
             <div class="alert alert-warning" style="margin-top: 1rem; margin-bottom: 0;">
               <h4>⚠️ BLOCKING HARDWARE TASK: Phase 1 Speed Mismatch</h4>
-              All K3s nodes responded via LLDP. However, speed warnings are registered on <strong>g10</strong> (kubernetes7) and <strong>g11</strong> (HP-2), which are bottlenecked at <strong>100M</strong>. This is a blocking hardware issue that must be resolved by swapping/checking cables before proceeding to Phase 2 of the migration to ensure storage and network health.
+              All K3s nodes responded via LLDP. However, speed warnings are registered on <strong>g10</strong> (kubernetes7) and <strong>g11</strong> (HP-2), which are bottlenecked at <strong>100M</strong>.
+              <p style="margin-top: 0.5rem;"><strong>Cable Diagnostic Steps:</strong></p>
+              <ul style="margin-left: 1rem; margin-top: 0.25rem;">
+                <li>Verify cable is Cat5e/Cat6 (must support 8 wires; 4-wire cables will auto-negotiate to 100M).</li>
+                <li>Inspect port pins on the Netgear switch and node NICs for debris or bent pins.</li>
+                <li>Verify speed negotiation: Go to switch GUI <em>Monitoring > Ports</em> and check if the port is set to <strong>Auto</strong>. Do not force 1000M; if the link is bad, forcing it will disable the port entirely.</li>
+              </ul>
+              This is a blocking issue that must be resolved (must negotiate 1000M/Full) before proceeding to Phase 2 of the migration to ensure storage and network health.
             </div>
           </div>
         </div>
 
-        <!-- Phase 2: Router configuration -->
+        <!-- Phase 2: Router DHCP Reservations -->
         <div class="step-section active" id="step-2">
           <div class="step-header" onclick="toggleStep('step-2')">
             <div class="step-title">
@@ -470,13 +552,23 @@
             <div class="step-arrow"></div>
           </div>
           <div class="step-content">
-            <p>Since the Vodafone Router cannot perform static routing, it will only serve DHCP leases. Configure the DHCP pools and IP reservations:</p>
+            <div class="alert" style="background: rgba(245, 158, 11, 0.05); border-color: var(--yellow); margin-bottom: 1rem;">
+              <h4>⚠️ ROUTER DHCP LIMITATIONS & IP ASSIGNMENT</h4>
+              <strong>Important:</strong> Consumer ISP routers (like the Vodafone Router) are locked down and do not support serving multiple DHCP scopes/pools for custom VLANs, nor do they allow assigning multiple static IPs to a single MAC address. 
+              <br><br>
+              To work around this limitation:
+              <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                <li>Configure a **static DHCP reservation** on the Vodafone Router only for the NUC's VLAN 1 interface (<code>192.168.0.21</code>).</li>
+                <li>Statically configure all other IPs directly on the operating systems of the respective hosts (NUC VLAN 20 interface, workers, registry, and HP-2 workstation) rather than relying on DHCP.</li>
+              </ul>
+            </div>
+            <p>Configure the IP assignment mapping as follows:</p>
             
             <table>
               <thead>
                 <tr>
                   <th>Device</th>
-                  <th>MAC Address</th>
+                  <th>IP Assignment Type</th>
                   <th>Subnet / VLAN</th>
                   <th>Assigned IP</th>
                 </tr>
@@ -484,30 +576,32 @@
               <tbody>
                 <tr>
                   <td>NUC Master (VLAN 1)</td>
-                  <td style="font-family: monospace;">C0:3F:D5:6D:45:85</td>
+                  <td class="highlight-cyan">DHCP Static Reservation (Vodafone Router)</td>
                   <td class="highlight-cyan">VLAN 1 (Flat)</td>
                   <td class="highlight-cyan">192.168.0.21</td>
                 </tr>
                 <tr>
                   <td>NUC Master (VLAN 20)</td>
-                  <td style="font-family: monospace;">C0:3F:D5:6D:45:85</td>
+                  <td class="highlight-green">Static IP (Configured locally on NUC Netplan)</td>
                   <td class="highlight-green">VLAN 20 (K3s)</td>
                   <td class="highlight-green">192.168.20.21</td>
                 </tr>
                 <tr>
                   <td>HP-1 Registry</td>
-                  <td style="font-family: monospace;">C8:D3:FF:6A:72:2E</td>
+                  <td class="highlight-green">Static IP (Configured locally on Host)</td>
                   <td class="highlight-green">VLAN 20 (K3s)</td>
                   <td class="highlight-green">192.168.20.236</td>
                 </tr>
                 <tr>
                   <td>HP-2 Workstation</td>
-                  <td style="font-family: monospace;">FC:3F:DB:86:1A:81</td>
+                  <td class="highlight-purple">Static IP (Configured locally on Host)</td>
                   <td class="highlight-purple">VLAN 30 (Trusted)</td>
                   <td class="highlight-purple">192.168.30.122</td>
                 </tr>
               </tbody>
             </table>
+
+            <p style="margin-top: 1rem;">Verify the IP planning layout in the mapping table. Local static IP configuration procedures are detailed in <strong>Phase 5</strong> of the guide.</p>
 
             <div class="alert alert-warning">
               <h4>⚠️ Static Route Verification Not Found</h4>
@@ -544,7 +638,7 @@ Subnet Mask: 0.0.0.0
 Next Hop Gateway: 192.168.0.21 (NUC VLAN 1 Interface - NOT Vodafone Router)
                 </div>
               </li>
-              <li>Configure DHCP relay under <strong>System > Services > DHCP Relay</strong>, point helper to <code>192.168.0.1</code>.</li>
+              <li><strong>Skip DHCP Relay:</strong> Since the Vodafone Router cannot serve multiple DHCP scopes, DHCP Relay is not used. Ensure all nodes in VLAN 20 and 30 are configured with static IPs locally.</li>
             </ol>
             <div class="alert alert-warning" style="margin-top: 1rem; margin-bottom: 0;">
               <h4>⚠️ Configuration Persistence Requirement</h4>
@@ -588,12 +682,106 @@ Next Hop Gateway: 192.168.0.21 (NUC VLAN 1 Interface - NOT Vodafone Router)
           </div>
         </div>
 
-        <!-- Phase 5: NUC NAT Configuration -->
+        <!-- Phase 5: Local Host Static IP Configuration -->
         <div class="step-section" id="step-5">
           <div class="step-header" onclick="toggleStep('step-5')">
             <div class="step-title">
               <div class="step-num">5</div>
-              <span>Phase 5: NUC VLAN Tagging & IPTables Gateway</span>
+              <span>Phase 5: Local Host Static IP Configuration</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Configure the static IP addresses locally on each device to match their respective VLAN segments:</p>
+            
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; margin-bottom: 1rem;">
+              <!-- Linux Worker Nodes (VLAN 20) -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+                <strong style="color: var(--green); display: block; margin-bottom: 0.25rem;">1. Linux Worker Nodes (VLAN 20)</strong>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">For each worker node (<code>kubernetes1</code> to <code>kubernetes8</code>), edit the Netplan configuration file (typically <code>/etc/netplan/00-installer-config.yaml</code> or <code>50-cloud-init.yaml</code>):</p>
+                <div class="code-block" style="color: #39ff14; margin-bottom: 0.5rem;">sudo nano /etc/netplan/00-installer-config.yaml</div>
+                <div class="code-block yaml" style="margin-top: 0.5rem; color: #39ff14;">
+network:
+  version: 2
+  ethernets:
+    eth0:  # Note: verify interface name (e.g. eth0, enp3s0) using 'ip link'
+      addresses:
+        - 192.168.20.22/24  # Unique IP per worker (e.g. .22 for kubernetes1, .23 for kubernetes2, etc.)
+      routes:
+        - to: 0.0.0.0/0
+          via: 192.168.20.99  # Switch SVI IP as gateway
+      nameservers:
+        addresses: [192.168.20.99, 8.8.8.8]
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Apply the changes:</p>
+                <div class="code-block" style="color: #39ff14; margin-bottom: 0;">sudo netplan apply</div>
+              </div>
+
+              <!-- HP-1 Registry (VLAN 20) -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+                <strong style="color: var(--green); display: block; margin-bottom: 0.25rem;">2. HP-1 Registry Node (VLAN 20)</strong>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Edit the Netplan config on <code>HP-1</code> to configure the static IP <code>192.168.20.236</code>:</p>
+                <div class="code-block" style="color: #39ff14; margin-bottom: 0.5rem;">sudo nano /etc/netplan/00-installer-config.yaml</div>
+                <div class="code-block yaml" style="margin-top: 0.5rem; color: #39ff14;">
+network:
+  version: 2
+  ethernets:
+    eth0:  # Note: verify interface name (e.g. eth0, enp3s0) using 'ip link'
+      addresses:
+        - 192.168.20.236/24
+      routes:
+        - to: 0.0.0.0/0
+          via: 192.168.20.99  # Switch SVI IP as gateway
+      nameservers:
+        addresses: [192.168.20.99, 8.8.8.8]
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Apply the changes:</p>
+                <div class="code-block" style="color: #39ff14; margin-bottom: 0;">sudo netplan apply</div>
+              </div>
+
+              <!-- HP-2 Workstation (VLAN 30) -->
+              <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
+                <strong style="color: var(--purple); display: block; margin-bottom: 0.25rem;">3. HP-2 Windows Workstation (VLAN 30)</strong>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Configure the static IP <code>192.168.30.122</code> on HP-2 using either the Windows GUI or PowerShell:</p>
+                <ul style="font-size: 0.85rem; margin-left: 1rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem;">
+                  <li><strong>GUI Method:</strong>
+                    <ol style="margin-left: 1.5rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                      <li>Navigate to <em>Network & Internet > Advanced network settings > More network adapter options</em> (or run <code>ncpa.cpl</code>).</li>
+                      <li>Right-click your adapter (e.g., <em>Ethernet</em>) and select <strong>Properties</strong>.</li>
+                      <li>Double-click <strong>Internet Protocol Version 4 (TCP/IPv4)</strong>.</li>
+                      <li>Select <strong>Use the following IP address</strong>:
+                        <ul style="margin-left: 1.5rem; list-style-type: circle;">
+                          <li>IP address: <code>192.168.30.122</code></li>
+                          <li>Subnet mask: <code>255.255.255.0</code></li>
+                          <li>Default gateway: <code>192.168.30.99</code> (Switch SVI)</li>
+                        </ul>
+                      </li>
+                      <li>Select <strong>Use the following DNS server addresses</strong>:
+                        <ul style="margin-left: 1.5rem; list-style-type: circle;">
+                          <li>Preferred DNS server: <code>192.168.30.99</code></li>
+                          <li>Alternate DNS server: <code>8.8.8.8</code> (or <code>1.1.1.1</code>)</li>
+                        </ul>
+                      </li>
+                    </ol>
+                  </li>
+                  <li><strong>PowerShell Method (Run as Administrator):</strong>
+                    <div class="code-block powershell" style="margin-top: 0.25rem; color: #39ff14; margin-bottom: 0;">
+New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress "192.168.30.122" -PrefixLength 24 -DefaultGateway "192.168.30.99"
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses ("192.168.30.99", "8.8.8.8")
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 6: NUC NAT Configuration -->
+        <div class="step-section" id="step-6">
+          <div class="step-header" onclick="toggleStep('step-6')">
+            <div class="step-title">
+              <div class="step-num">6</div>
+              <span>Phase 6: NUC VLAN Tagging & IPTables Gateway Setup</span>
             </div>
             <div class="step-arrow"></div>
           </div>
@@ -633,7 +821,8 @@ echo "net.ipv4.ip_forward=1" | sudo tee -a /etc/sysctl.conf
 
 # Add NAT masquerade rules
 sudo iptables -t nat -A POSTROUTING -o enp3s0 -j MASQUERADE
-sudo iptables -A FORWARD -i vlan20 -o enp3s0 -j ACCEPT
+# Allow forwarding for all internal private subnets (VLAN 10, 20, 30) out to internet
+sudo iptables -A FORWARD -s 192.168.0.0/16 -o enp3s0 -j ACCEPT
 sudo iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
 # Save iptables rules permanently
@@ -643,16 +832,26 @@ sudo iptables-save | sudo tee /etc/iptables/rules.v4
           </div>
         </div>
 
-        <!-- Phase 6: K3s Service Adjustments -->
-        <div class="step-section" id="step-6">
-          <div class="step-header" onclick="toggleStep('step-6')">
+        <!-- Phase 7: K3s Node Settings Adjustment -->
+        <div class="step-section" id="step-7">
+          <div class="step-header" onclick="toggleStep('step-7')">
             <div class="step-title">
-              <div class="step-num">6</div>
-              <span>Phase 6: K3s Node Settings Adjustment</span>
+              <div class="step-num">7</div>
+              <span>Phase 7: K3s Node Settings Adjustment & Sequencing Restarts</span>
             </div>
             <div class="step-arrow"></div>
           </div>
           <div class="step-content">
+            <div class="alert alert-danger" style="margin-bottom: 1rem;">
+              <h4>⚠️ K3S RESTART SAFEGUARDS & ROLLOUT RISK</h4>
+              Do NOT restart all K3s master and worker services simultaneously. Doing so will drop cluster quorum, cause Longhorn storage volume disconnects, and lead to database corruption.
+              <p style="margin-top: 0.5rem;"><strong>Recommended Sequence:</strong></p>
+              <ol style="margin-left: 1rem; margin-top: 0.25rem;">
+                <li>Configure Netplan and update systemd on the Master Node (NUC). Restart the <code>k3s</code> master service first.</li>
+                <li>Verify the master is fully operational and the API server is responsive (<code>kubectl get nodes</code> should run).</li>
+                <li>Update and restart the worker node services <strong>one by one</strong>, starting with the database workers. Wait for each worker to reach <code>Ready</code> status before moving to the next.</li>
+              </ol>
+            </div>
             <p>Adjust systemd configuration on K3s nodes to bind to the new VLAN 20 IPs.</p>
             
             <p style="margin-top: 0.5rem;"><strong>1. Master Node NUC configuration</strong> (<code>/etc/systemd/system/k3s.service</code>):</p>
@@ -671,34 +870,157 @@ K3S_TOKEN="K101..."
 K3S_AGENT_ARGS="--node-ip=192.168.20.22"
             </div>
 
-            <p style="margin-top: 1rem;"><strong>3. Reload & Restart services:</strong></p>
+            <p style="margin-top: 1rem;"><strong>3. Reload & Restart services (Sequenced):</strong></p>
             <div class="code-block">
+# Run on NUC Master first, then sequentially on each worker
 sudo systemctl daemon-reload
-sudo systemctl restart k3s-agent # or k3s for master
+sudo systemctl restart k3s # or k3s-agent for workers
             </div>
           </div>
         </div>
 
-        <!-- Phase 7: Verification -->
-        <div class="step-section" id="step-7">
-          <div class="step-header" onclick="toggleStep('step-7')">
+        <!-- Phase 8: Comprehensive Validation & Diagnostics -->
+        <div class="step-section" id="step-8">
+          <div class="step-header" onclick="toggleStep('step-8')">
             <div class="step-title">
-              <div class="step-num">7</div>
-              <span>Phase 7: Validation & Diagnostics</span>
+              <div class="step-num">8</div>
+              <span>Phase 8: Comprehensive Validation & Diagnostics</span>
             </div>
             <div class="step-arrow"></div>
           </div>
           <div class="step-content">
-            <p>Execute routing verification trace from your workstation (HP-2):</p>
-            <div class="code-block">
+            <p>Perform these tests to verify that the VLAN routing and K3s cluster are stable:</p>
+            
+            <h5 style="margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--cyan);">1. Trace Routing Egress</h5>
+            <p>Execute routing verification trace from your workstation (HP-2) to a worker node:</p>
+            <div class="code-block" style="color: #39ff14;">
 tracert 192.168.20.22
             </div>
             <p>Verify paths are correctly localized (Hop 1: Switch SVI <code>192.168.30.99</code>, Hop 2: worker node <code>192.168.20.22</code>).</p>
             
-            <p style="margin-top: 1rem;">Execute health checks on the cluster:</p>
-            <div class="code-block">
-pwsh -File .\Test-K3sClusterHealth.ps1
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--cyan);">2. Inter-VLAN Connectivity Verification</h5>
+            <p>Verify that your workstation in VLAN 30 can ping the switch SVIs and K3s nodes in other VLANs:</p>
+            <div class="code-block" style="color: #39ff14;">
+# Ping SVIs
+ping 192.168.30.99 -c 3
+ping 192.168.20.99 -c 3
+# Ping worker
+ping 192.168.20.22 -c 3
             </div>
+
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--cyan);">3. DNS Resolution Checks</h5>
+            <p>Verify that DNS is working both internally within K3s (CoreDNS) and externally:</p>
+            <div class="code-block" style="color: #39ff14;">
+# Check external internet DNS resolution from K3s node
+nslookup google.com
+# Check internal K3s service discovery DNS resolution from K3s pod
+kubectl run dns-test --rm -it --image=busybox --restart=Never -- nslookup kubernetes.default
+            </div>
+
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--cyan);">4. Service Availability & Performance checks</h5>
+            <p>Verify that database and web app services are reachable on their new IP space:</p>
+            <div class="code-block" style="color: #39ff14;">
+# Verify Longhorn web console
+curl -I http://192.168.20.21:30080
+# Verify MySQL database accessibility
+nc -zv 192.168.20.21 30081
+            </div>
+
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--cyan);">5. Cluster Diagnostics</h5>
+            <p>Run the full automated cluster scan to generate a health dashboard:</p>
+            <div class="code-block" style="color: #39ff14;">
+pwsh -Command ". .\Test-K3sClusterHealth.ps1; Test-K3sClusterHealth"
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 9: Troubleshooting & Debugging -->
+        <div class="step-section" id="step-9">
+          <div class="step-header" onclick="toggleStep('step-9')">
+            <div class="step-title">
+              <div class="step-num">9</div>
+              <span>Phase 9: Troubleshooting & Debugging</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <p>Use these diagnostic guides if you experience common issues during migration:</p>
+            
+            <h5 style="margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--neon-pink);">1. Lost Connectivity to Switch</h5>
+            <p>If you lose access to the Netgear switch GUI after enabling routing:</p>
+            <ul>
+              <li><strong>Temporary Fix:</strong> Connect your workstation directly to port <strong>g16</strong> (which should remain in default VLAN 1 untagged) and statically configure your workstation IP to <code>192.168.0.100</code>. Navigate to <code>192.168.0.99</code>.</li>
+              <li><strong>Full Factory Reset:</strong> Press and hold the physical <strong>Reset</strong> button on the switch front panel for 10 seconds to restore factory defaults. Restore from the pre-migration <code>config.cfg</code> backup file.</li>
+            </ul>
+
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--neon-pink);">2. Netplan / IP Forwarding Issues</h5>
+            <p>If the NUC is not forwarding packets for other subnets, verify that the Linux kernel has IP forwarding enabled and netfilter modules loaded:</p>
+            <div class="code-block" style="color: #39ff14;">
+# Verify IP Forwarding is active (should output 1)
+cat /proc/sys/net/ipv4/ip_forward
+
+# Check if iptables-persistent is active at boot
+systemctl status iptables-persistent
+
+# Check active NAT forwarding rules
+sudo iptables -t nat -L -v -n
+            </div>
+
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--neon-pink);">3. K3s Certificate / TLS Errors</h5>
+            <p>If K3s agents display certificate validation errors or cannot join the control plane:</p>
+            <ul>
+              <li>Verify that the Master node's <code>k3s.service</code> configuration has <code>--node-ip=192.168.20.21</code> and <code>--advertise-address=192.168.20.21</code> explicitly set.</li>
+              <li>Verify that you can reach the API port <code>6443</code> on the master from workers:
+                <div class="code-block" style="color: #39ff14;">nc -zv 192.168.20.21 6443</div>
+              </li>
+              <li>If certificate errors persist, you may need to force-regenerate agent tokens or remove cached certificates on workers under <code>/var/lib/rancher/k3s/agent/</code>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Phase 10: Disaster Rollback Plan -->
+        <div class="step-section" id="step-10">
+          <div class="step-header" onclick="toggleStep('step-10')">
+            <div class="step-title">
+              <div class="step-num">10</div>
+              <span>Phase 10: Disaster Rollback Plan</span>
+            </div>
+            <div class="step-arrow"></div>
+          </div>
+          <div class="step-content">
+            <div class="alert alert-danger" style="margin-bottom: 1rem;">
+              <h4>🚨 DISASTER ROLLBACK PROCEDURE</h4>
+              If the cluster fails to converge or network routing is unstable, follow these steps to revert the entire lab back to the original flat configuration (<code>192.168.0.0/24</code>).
+            </div>
+            
+            <h5 style="margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">Step 1: Revert K3s Node Settings</h5>
+            <p>Revert K3s settings on all nodes to bind back to the flat IPs:</p>
+            <ol style="margin-left: 1rem; margin-bottom: 1rem;">
+              <li>On the NUC Master, restore <code>/etc/systemd/system/k3s.service</code> (remove <code>--node-ip</code> and <code>--advertise-address</code> flags).</li>
+              <li>On all Workers, restore <code>/etc/systemd/system/k3s-agent.service.env</code> to point back to the master at <code>https://192.168.0.21:6443</code> and set worker IPs back to <code>192.168.0.x</code>.</li>
+              <li>Run:
+                <div class="code-block" style="color: #39ff14;">sudo systemctl daemon-reload</div>
+              </li>
+            </ol>
+
+            <h5 style="margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">Step 2: Revert Netplan on the NUC</h5>
+            <p>Restore Netplan to its flat configuration by removing the VLAN 20 configuration block in <code>/etc/netplan/01-netcfg.yaml</code>, leaving only the primary network interface on DHCP or flat IP configuration. Then apply it:</p>
+            <div class="code-block" style="color: #39ff14;">
+sudo netplan apply
+            </div>
+
+            <h5 style="margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">Step 3: Revert Port Memberships and SVI on Switch</h5>
+            <p>Navigate to the Netgear Switch Web Management GUI:</p>
+            <ol style="margin-left: 1rem; margin-bottom: 1rem;">
+              <li>Go to <strong>Switching > VLAN > Advanced > VLAN Membership</strong>. Set all ports (g1 to g16) back to <strong>Untagged (U)</strong> on VLAN 1.</li>
+              <li>Set the PVID for all ports back to <strong>1</strong>.</li>
+              <li>Go to <strong>Routing > IP > IP Interface Configuration</strong> and delete SVI interfaces for VLAN 10, 20, and 30.</li>
+              <li>Go to <strong>Routing > IP > IP Configuration</strong>, set <strong>Routing Mode</strong> to <strong>Disable</strong>, and click apply.</li>
+              <li>Go to <strong>Maintenance > Save Config</strong>, check the checkbox and click <strong>Apply</strong> to commit rollback permanently.</li>
+            </ol>
+
+            <h5 style="margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">Step 4: Verify Flat Connectivity</h5>
+            <p>Run a ping trace from your workstation to confirm that all nodes are reachable directly at their <code>192.168.0.x</code> addresses on the flat network.</p>
           </div>
         </div>
 
@@ -741,22 +1063,43 @@ pwsh -File .\Test-K3sClusterHealth.ps1
             <li class="checklist-item" onclick="toggleCheck(this)">
               <div class="checkbox"></div>
               <div class="checklist-content">
-                <div class="checklist-title">Phase 5: NUC Gateway Setup</div>
+                <div class="checklist-title">Phase 5: Host Static IPs</div>
+                <div class="checklist-desc">Configure static IP addresses locally on hosts.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 6: NUC Gateway Setup</div>
                 <div class="checklist-desc">Install netplan VLAN tagging and NAT forwarder.</div>
               </div>
             </li>
             <li class="checklist-item" onclick="toggleCheck(this)">
               <div class="checkbox"></div>
               <div class="checklist-content">
-                <div class="checklist-title">Phase 6: K3s Node Settings</div>
+                <div class="checklist-title">Phase 7: K3s Node Settings</div>
                 <div class="checklist-desc">Update --node-ip flags and restart agents.</div>
               </div>
             </li>
             <li class="checklist-item" onclick="toggleCheck(this)">
               <div class="checkbox"></div>
               <div class="checklist-content">
-                <div class="checklist-title">Phase 7: Verification</div>
+                <div class="checklist-title">Phase 8: Verification</div>
                 <div class="checklist-desc">Perform traceroute verification and health audit.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 9: Troubleshooting</div>
+                <div class="checklist-desc">Monitor netplan, iptables, and certificate errors.</div>
+              </div>
+            </li>
+            <li class="checklist-item" onclick="toggleCheck(this)">
+              <div class="checkbox"></div>
+              <div class="checklist-content">
+                <div class="checklist-title">Phase 10: Rollback Plan</div>
+                <div class="checklist-desc">Revert nodes, switch, and gateway in case of failure.</div>
               </div>
             </li>
           </ul>
