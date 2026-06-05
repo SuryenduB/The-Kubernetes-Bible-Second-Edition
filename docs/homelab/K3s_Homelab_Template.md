@@ -6,39 +6,26 @@
 
 ## 📋 Table of Contents
 
-1. [Quick Start](#quick-start)
+1. [Operational Guides](#operational-guides)
 2. [Cluster Overview](#cluster-overview)
-3. [Application Access](#application-access)
-4. [System Infrastructure](#system-infrastructure)
+3. [Application Access & URLs](#application-access--urls)
+4. [System Infrastructure](#system-infrastructure-audit-snapshot)
 5. [Kubernetes Cluster Health](#kubernetes-cluster-health)
-6. [Storage Architecture](#storage-architecture)
-7. [Governance & Security](#governance--security)
-8. [Installed Components](#installed-components)
-9. [Deployment Manifests](#deployment-manifests)
-10. [Operations & Maintenance](#operations--maintenance)
+6. [Observability & Monitoring](#observability--monitoring)
+7. [Storage Architecture](#storage-architecture)
+8. [Governance & Security](#governance--security)
+9. [Local Docker Registry](#local-docker-registry)
+10. [Audit & Compliance Reference](#audit--compliance-reference)
 11. [Troubleshooting](#troubleshooting)
-12. [Audit & Compliance](#audit--compliance)
-13. [Documentation References](#documentation-references)
+12. [Documentation References](#documentation-references)
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Operational Guides
 
-### Start the Homelab Cluster
-```powershell
-# Power on all nodes and wait for cluster convergence
-Start-K3sHomelab
-
-# Verify cluster health
-kubectl get nodes
-kubectl get pods -A
-```
-
-### Stop the Homelab Cluster
-```powershell
-# Gracefully shut down cluster (waits for pod termination)
-Stop-K3sHomelab
-```
+For executing cluster tasks, refer to the following goal-oriented **How-to Guides**:
+* 🔌 [How to Manage Cluster Power](how-to-manage-homelab-power.md): Steps to safely power on, shut down, and manage SecretStore credentials.
+* 🛡️ [How to Audit and Recover Cluster](how-to-audit-homelab.md): Steps to trigger audits, check certificates, inspect the local registry, manage backups, and restore Tailscale VPN access.
 
 ---
 
@@ -221,16 +208,13 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 
 ---
 
-## 🛡️ Audit & Compliance
+## 🛡️ Audit & Compliance Reference
 
-The cluster undergoes regular production audits to ensure security posture, certificate validity, and system health.
+The cluster undergoes regular production audits to track security posture, certificate validity, and system health. For instructions on executing audits, rotating backups, or recovering Tailscale, see [How to Audit and Recover Cluster](how-to-audit-homelab.md).
 
-### 1. Audit Mechanism
-- **Orchestrator**: `Run-K3sAudit.ps1` (Executes in parallel via SSH).
-- **Execution Script**: `k3s-prod-audit.sh` (Node-level data collection).
-- **Output**: Tarball bundles (`.tar.gz`) stored in `k3s-audits/`.
+### 1. Audit Specification & Scope
+The audit system collects and packs node-level diagnostics into tarball bundles (`.tar.gz`) stored in `k3s-audits/`.
 
-### 2. Audit Categories
 | Category | Check | Target |
 |----------|-------|--------|
 | **System** | OS/Kernel/RAM/CPU usage | All Nodes |
@@ -241,29 +225,12 @@ The cluster undergoes regular production audits to ensure security posture, cert
 | **Registry** | Local registry (`192.168.0.236`) connectivity | All Nodes |
 | **Security** | Redacted `registries.yaml` verification | All Nodes |
 
-### 3. Running an Audit
-```powershell
-# Start parallel audit across all 9 nodes
-.\Run-K3sAudit.ps1
-```
-
-### 4. Certificate Tracking (Latest Audit)
+### 2. Certificate Expiry Reference (Audit Baseline)
 | Certificate | Expiry Date | Status |
 |-------------|-------------|--------|
 | **Kube API Server** | Apr 10, 2027 | ✅ Valid |
 | **Admin Client** | Mar 17, 2027 | ✅ Valid |
 | **Server CA** | May 14, 2035 | ✅ Valid |
-
-### 5. Data Safety & Rotation Policy
-- **Minio/S3 Backups**: Daily database dumps are synced to Minio.
-- **Rotation**: 30-day retention policy enforced via `mc ilm` (Minio Client).
-- **Manual Verification**: Audit bundles in `k3s-audits/` should be cleared monthly after review.
-
-### 6. Remote Access Recovery
-If Tailscale connectivity is lost:
-1. SSH into the node via local LAN IP (documented in Section 2).
-2. Run `tailscale status` to check node connectivity.
-3. If necessary, re-authenticate: `sudo tailscale up --auth-key <KEY>`.
 
 ---
 
