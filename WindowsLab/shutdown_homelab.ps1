@@ -125,8 +125,22 @@ foreach ($worker in $targets) {
     }
 
     Write-Host "  - Powering off..."
-    ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
+    $env:SSHPASS = $plainPass
+    if (Get-Command sshpass -ErrorAction SilentlyContinue) {
+        sshpass -e ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
+    } elseif (Test-Path "/usr/local/bin/sshpass") {
+        /usr/local/bin/sshpass -e ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
+    } else {
+        ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$($worker.IP) "echo $b64Pass | base64 -d | sudo -S poweroff"
+    }
 }
 
 Write-Host "`n--- Powering off Master (NUC) ---" -ForegroundColor Red
-ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
+$env:SSHPASS = $plainPass
+if (Get-Command sshpass -ErrorAction SilentlyContinue) {
+    sshpass -e ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
+} elseif (Test-Path "/usr/local/bin/sshpass") {
+    /usr/local/bin/sshpass -e ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
+} else {
+    ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
+}

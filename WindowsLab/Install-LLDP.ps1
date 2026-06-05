@@ -61,7 +61,14 @@ foreach ($Node in $Nodes) {
     # Execute installation via SSH with sudo
     Write-Host "  - Installing lldpd..." -ForegroundColor Gray
     # Using the sudo password pattern from your audit script
-    ssh -o StrictHostKeyChecking=no suryendub@$i "echo $plainPass | sudo -S -p '' bash -c '$installCmd'"
+    $env:SSHPASS = $plainPass
+    if (Get-Command sshpass -ErrorAction SilentlyContinue) {
+        sshpass -e ssh -n -o StrictHostKeyChecking=no suryendub@$i "echo $plainPass | sudo -S -p '' bash -c '$installCmd'"
+    } elseif (Test-Path "/usr/local/bin/sshpass") {
+        /usr/local/bin/sshpass -e ssh -n -o StrictHostKeyChecking=no suryendub@$i "echo $plainPass | sudo -S -p '' bash -c '$installCmd'"
+    } else {
+        ssh -n -o StrictHostKeyChecking=no suryendub@$i "echo $plainPass | sudo -S -p '' bash -c '$installCmd'"
+    }
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  [+] SUCCESS: LLDP is now active on ${n}." -ForegroundColor Green
