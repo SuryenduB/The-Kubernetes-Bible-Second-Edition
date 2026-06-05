@@ -18,12 +18,34 @@ if (-not (Test-Path $credPath)) {
 }
 
 if (Test-Path $credPath) {
-    Write-Host "Reading password from encrypted credential file..." -ForegroundColor Cyan
-    $securePassword = Import-Clixml -Path $credPath
+    Write-Host "Attempting to read password from credential file..." -ForegroundColor Cyan
+    try {
+        $securePassword = Import-Clixml -Path $credPath
+    } catch {
+        if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
+            try {
+                $securePassword = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
+                Write-Host "Loaded password from SecretStore vault." -ForegroundColor Green
+            } catch {
+                $securePassword = Read-Host "Enter sudo password" -AsSecureString
+            }
+        } else {
+            $securePassword = Read-Host "Enter sudo password" -AsSecureString
+        }
+    }
 } else {
-    $securePassword = Read-Host "Enter sudo password" -AsSecureString
+    if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
+        try {
+            $securePassword = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
+            Write-Host "Loaded password from SecretStore vault." -ForegroundColor Green
+        } catch {
+            $securePassword = Read-Host "Enter sudo password" -AsSecureString
+        }
+    } else {
+        $securePassword = Read-Host "Enter sudo password" -AsSecureString
+    }
 }
-$plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
+$plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword))
 
 Write-Host "--- K3s Cluster LLDP Deployment ---" -ForegroundColor Cyan
 Write-Host "This script will enable your switch to identify nodes by name." -ForegroundColor Gray

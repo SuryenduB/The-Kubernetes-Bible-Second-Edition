@@ -79,12 +79,34 @@ Write-Host "Workers: $($targets.Name -join ', ')"
 # 2. CREDENTIALS
 $credPath = Join-Path $PSScriptRoot "cred.xml"
 if (Test-Path $credPath) {
-    Write-Host "Reading password from encrypted credential file..." -ForegroundColor Cyan
-    $password = Import-Clixml -Path $credPath
+    Write-Host "Attempting to read password from credential file..." -ForegroundColor Cyan
+    try {
+        $password = Import-Clixml -Path $credPath
+    } catch {
+        if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
+            try {
+                $password = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
+                Write-Host "Loaded password from SecretStore vault." -ForegroundColor Green
+            } catch {
+                $password = Read-Host "Enter sudo password" -AsSecureString
+            }
+        } else {
+            $password = Read-Host "Enter sudo password" -AsSecureString
+        }
+    }
 } else {
-    $password = Read-Host "Enter sudo password" -AsSecureString
+    if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
+        try {
+            $password = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
+            Write-Host "Loaded password from SecretStore vault." -ForegroundColor Green
+        } catch {
+            $password = Read-Host "Enter sudo password" -AsSecureString
+        }
+    } else {
+        $password = Read-Host "Enter sudo password" -AsSecureString
+    }
 }
-$plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+$plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
 $b64Pass = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($plainPass))
 
 if (!$Force) {
