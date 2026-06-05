@@ -946,14 +946,14 @@ pwsh -Command ". .\Test-K3sClusterHealth.ps1; Test-K3sClusterHealth"
           <div class="step-content">
             <p>Use these diagnostic guides if you experience common issues during migration:</p>
             
-            <h5 style="margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--neon-pink);">1. Lost Connectivity to Switch</h5>
+            <h5 style="margin-top: 0.5rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">1. Lost Connectivity to Switch</h5>
             <p>If you lose access to the Netgear switch GUI after enabling routing:</p>
             <ul>
               <li><strong>Temporary Fix:</strong> Connect your workstation directly to port <strong>g16</strong> (which should remain in default VLAN 1 untagged) and statically configure your workstation IP to <code>192.168.0.100</code>. Navigate to <code>192.168.0.99</code>.</li>
               <li><strong>Full Factory Reset:</strong> Press and hold the physical <strong>Reset</strong> button on the switch front panel for 10 seconds to restore factory defaults. Restore from the pre-migration <code>config.cfg</code> backup file.</li>
             </ul>
 
-            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--neon-pink);">2. Netplan / IP Forwarding Issues</h5>
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">2. Netplan / IP Forwarding Issues</h5>
             <p>If the NUC is not forwarding packets for other subnets, verify that the Linux kernel has IP forwarding enabled and netfilter modules loaded:</p>
             <div class="code-block" style="color: #39ff14;">
 # Verify IP Forwarding is active (should output 1)
@@ -966,7 +966,7 @@ systemctl status iptables-persistent
 sudo iptables -t nat -L -v -n
             </div>
 
-            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--neon-pink);">3. K3s Certificate / TLS Errors</h5>
+            <h5 style="margin-top: 1rem; margin-bottom: 0.25rem; font-weight: 600; color: var(--pink);">3. K3s Certificate / TLS Errors</h5>
             <p>If K3s agents display certificate validation errors or cannot join the control plane:</p>
             <ul>
               <li>Verify that the Master node's <code>k3s.service</code> configuration has <code>--node-ip=192.168.20.21</code> and <code>--advertise-address=192.168.20.21</code> explicitly set.</li>
