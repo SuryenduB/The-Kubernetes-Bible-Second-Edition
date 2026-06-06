@@ -100,6 +100,9 @@ spec:
           mountPath: /config
         - name: books
           mountPath: /audiobooks
+        - name: books
+          mountPath: /metadata
+          subPath: metadata
       volumes:
       - name: config
         persistentVolumeClaim:
