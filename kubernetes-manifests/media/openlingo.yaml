@@ -1,0 +1,423 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openlingo
+  labels:
+    app.kubernetes.io/name: openlingo
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: openlingo
+  namespace: openlingo
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openlingo-secrets
+  namespace: openlingo
+type: Opaque
+stringData:
+  # Database credentials configuration (consumed by both Postgres and OpenLingo App)
+  POSTGRES_DB: "lingo"
+  POSTGRES_USER: "lingo"
+  POSTGRES_PASSWORD: "YOUR_DB_PASSWORD_PLACEHOLDER" # Replace with a secure password at deploy time
+  
+  # Better Auth Secret (must be a random 32-byte hex string)
+  BETTER_AUTH_SECRET: "YOUR_BETTER_AUTH_SECRET_PLACEHOLDER" # Generate via: openssl rand -hex 32
+  
+  # LLM Credentials (NVIDIA NIM)
+  OPENAI_API_KEY: "YOUR_NVIDIA_API_KEY_PLACEHOLDER" # Replace with your NVIDIA NIM API key
+  LLM_PROXY_URL: "https://integrate.api.nvidia.com/v1" # NVIDIA NIM endpoint
+  LLM_PROXY_API_KEY: "YOUR_NVIDIA_API_KEY_PLACEHOLDER" # Replace with your NVIDIA NIM API key
+
+---
+# Database PVC (Longhorn)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openlingo-db-data
+  namespace: openlingo
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# Database Deployment
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: openlingo-db
+  namespace: openlingo
+  labels:
+    app: openlingo-db
+spec:
+  serviceName: openlingo-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openlingo-db
+  template:
+    metadata:
+      labels:
+        app: openlingo-db
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: openlingo-secrets
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: openlingo-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openlingo-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: "/var/lib/postgresql/data/pgdata"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "lingo", "-d", "lingo"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "lingo", "-d", "lingo"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: openlingo-db-data
+
+---
+# Database Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: openlingo-db
+  namespace: openlingo
+spec:
+  type: ClusterIP
+  selector:
+    app: openlingo-db
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+
+---
+# OpenLingo App Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openlingo
+  namespace: openlingo
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: openlingo
+  template:
+    metadata:
+      labels:
+        app: openlingo
+    spec:
+      serviceAccountName: openlingo
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: openlingo
+          # Use your container registry (e.g. 192.168.0.236:5000/openlingo:latest for this homelab)
+          image: YOUR_DOCKER_REGISTRY/openlingo:latest
+          imagePullPolicy: IfNotPresent
+          # Run DB migration and seed on startup, then start OpenLingo server
+          command:
+            - sh
+            - -c
+            - "bun run db:migrate && bun run db:seed && bun run start"
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - secretRef:
+                name: openlingo-secrets
+          env:
+            - name: BETTER_AUTH_BASE_URL
+              value: "http://openlingo.tail35421d.ts.net"
+            - name: PORT
+              value: "3000"
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: openlingo-secrets
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: openlingo-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: openlingo-secrets
+                  key: POSTGRES_PASSWORD
+            - name: DATABASE_URL
+              value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@openlingo-db:5432/$(POSTGRES_DB)"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 60
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: next-cache
+              mountPath: /app/.next/cache
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: next-cache
+          emptyDir: {}
+
+---
+# Service with Tailscale Integration
+apiVersion: v1
+kind: Service
+metadata:
+  name: openlingo
+  namespace: openlingo
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "openlingo"
+spec:
+  selector:
+    app: openlingo
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+
+---
+# PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: openlingo-pdb
+  namespace: openlingo
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: openlingo
+
+---
+# Ingress for external routing (Traefik)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openlingo
+  namespace: openlingo
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: openlingo.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: openlingo
+                port:
+                  number: 80
+
+---
+# Default deny all ingress and egress in openlingo namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openlingo-default-deny
+  namespace: openlingo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Allow ingress to openlingo app from Traefik ingress controller and Tailscale
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openlingo-app-ingress
+  namespace: openlingo
+spec:
+  podSelector:
+    matchLabels:
+      app: openlingo
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from Traefik ingress controller in kube-system namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000
+    # Allow from Tailscale proxy pods or any pods in the same namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+        - namespaceSelector: {} # same namespace
+          podSelector: {} # allow all pods in the namespace (like Tailscale proxy)
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# Allow ingress to database from openlingo app only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openlingo-db-ingress
+  namespace: openlingo
+spec:
+  podSelector:
+    matchLabels:
+      app: openlingo-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: openlingo
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# Allow egress from openlingo app to db, dns, and external api
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openlingo-app-egress
+  namespace: openlingo
+spec:
+  podSelector:
+    matchLabels:
+      app: openlingo
+  policyTypes:
+    - Egress
+  egress:
+    # Egress to database
+    - to:
+        - podSelector:
+            matchLabels:
+              app: openlingo-db
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Egress to CoreDNS (DNS queries)
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Egress to external API (NVIDIA NIM on port 443)
+    - ports:
+        - protocol: TCP
+          port: 443
+
+---
+# Allow egress from database to DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: openlingo-db-egress
+  namespace: openlingo
+spec:
+  podSelector:
+    matchLabels:
+      app: openlingo-db
+  policyTypes:
+    - Egress
+  egress:
+    # Egress to CoreDNS
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
