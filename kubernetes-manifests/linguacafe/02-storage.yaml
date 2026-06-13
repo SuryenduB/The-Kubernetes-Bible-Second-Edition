@@ -1,0 +1,29 @@
+# Storage configuration for LinguaCafe
+# Using Longhorn for both DB and App Storage to ensure immediate availability.
+# You can move App Storage to NAS later once the NFS export is configured.
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: linguacafe-storage-pvc
+  namespace: linguacafe
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 20Gi
+  storageClassName: longhorn
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: linguacafe-mariadb-pvc
+  namespace: linguacafe
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: longhorn

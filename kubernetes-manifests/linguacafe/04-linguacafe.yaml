@@ -1,0 +1,132 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: linguacafe
+  namespace: linguacafe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: linguacafe
+  template:
+    metadata:
+      labels:
+        app: linguacafe
+    spec:
+      serviceAccountName: linguacafe-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+      - name: webserver
+        image: ghcr.io/simjanos-dev/linguacafe-webserver:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        env:
+        - name: DB_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: linguacafe-mariadb-secret
+              key: DB_NAME
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: linguacafe-mariadb-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: linguacafe-mariadb-secret
+              key: DB_PASSWORD
+        - name: DB_HOST
+          value: mariadb
+        - name: REDIS_HOST
+          value: redis
+        - name: REDIS_PASSWORD
+          value: linguacafe
+        - name: PYTHON_CONTAINER_NAME
+          value: localhost
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: storage
+          mountPath: /var/www/html/storage
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 120
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 60
+          periodSeconds: 10
+      - name: python
+        image: ghcr.io/simjanos-dev/linguacafe-python-service:latest
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
+        command: ["python3", "/app/tokenizer.py"]
+        env:
+        - name: PYTHONPATH
+          value: "/app"
+        ports:
+        - containerPort: 8678
+          name: python-nlp
+        volumeMounts:
+        - name: storage
+          mountPath: /var/www/html/storage
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        readinessProbe:
+          tcpSocket:
+            port: 8678
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: storage
+        persistentVolumeClaim:
+          claimName: linguacafe-storage-pvc
+      - name: tmp
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: linguacafe
+  namespace: linguacafe
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "linguacafe"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: linguacafe
