@@ -1,0 +1,178 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: freelingo-backend
+  namespace: freelingo
+  labels:
+    app: freelingo-backend
+    component: backend
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: freelingo-backend
+  template:
+    metadata:
+      labels:
+        app: freelingo-backend
+        component: backend
+    spec:
+      serviceAccountName: freelingo-backend
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+        - name: db-migration
+          image: ghcr.io/artcc/freelingo-backend@sha256:97bf70d449032f5a356fbf22f2136c725252b66a9f6fb3364b6407574a919c2f
+          command:
+            - sh
+            - -c
+            - "PYTHONPATH=/app alembic -c /app/alembic.ini upgrade head"
+          envFrom:
+            - secretRef:
+                name: freelingo-secrets
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: freelingo-secrets
+                  key: postgres-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: freelingo-secrets
+                  key: redis-password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: freelingo-secrets
+                  key: secret-key
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@freelingo-db:5432/$(POSTGRES_DB)"
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@freelingo-redis:6379/0"
+      containers:
+        - name: backend
+          image: ghcr.io/artcc/freelingo-backend@sha256:97bf70d449032f5a356fbf22f2136c725252b66a9f6fb3364b6407574a919c2f
+          command:
+            - uvicorn
+            - app.main:app
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "--workers"
+            - "1"
+          ports:
+            - name: http
+              containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: freelingo-secrets
+          env:
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: freelingo-secrets
+                  key: postgres-password
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: freelingo-secrets
+                  key: redis-password
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: freelingo-secrets
+                  key: secret-key
+            - name: DATABASE_URL
+              value: "postgresql+asyncpg://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@freelingo-db:5432/$(POSTGRES_DB)"
+            - name: REDIS_URL
+              value: "redis://:$(REDIS_PASSWORD)@freelingo-redis:6379/0"
+            - name: CORS_ORIGINS
+              value: '["http://freelingo.example.com","http://freelingo-frontend:3000"]'
+            - name: COOKIE_SECURE
+              value: "false"
+            - name: ALLOW_REGISTRATION
+              value: "true"
+            - name: FIRST_USER_IS_ADMIN
+              value: "true"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: APP_BASE_URL
+              value: "http://freelingo.example.com"
+            - name: LLM_PROVIDER
+              value: "openai"
+            - name: OPENAI_BASE_URL
+              value: "https://integrate.api.nvidia.com/v1"
+            - name: OPENAI_MODEL
+              value: "minimaxai/minimax-m3"
+            - name: TTS_PROVIDER
+              value: "local"
+            - name: TTS_BASE_URL
+              value: "http://kokoro:8880"
+            - name: STT_PROVIDER
+              value: "local"
+            - name: STT_BASE_URL
+              value: "http://whisper:9000"
+            - name: BLOCKED_EMAIL_DOMAINS
+              value: "[]"
+            - name: AVAILABLE_TARGET_LANGUAGES
+              value: '["en-US","en-GB"]'
+            - name: EMAIL_ENABLED
+              value: "false"
+            - name: STRIPE_ENABLED
+              value: "false"
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: backend-data
+              mountPath: /app/avatars
+              subPath: avatars
+            - name: backend-data
+              mountPath: /data/audio
+              subPath: audio
+            - name: backend-data
+              mountPath: /app/tts_previews
+              subPath: tts_previews
+            - name: tmp
+              mountPath: /tmp
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: backend-data
+          persistentVolumeClaim:
+            claimName: freelingo-backend-data
+        - name: tmp
+          emptyDir: {}

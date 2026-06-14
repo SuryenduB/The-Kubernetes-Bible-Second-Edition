@@ -29,6 +29,10 @@ stringData:
   # Better Auth Secret (must be a random 32-byte hex string)
   BETTER_AUTH_SECRET: "2691ad086787f34b6262744357d3ada8a40335bc2ea910d721480293843d3b23"
   
+  # OAuth Dummies
+  GOOGLE_CLIENT_ID: "dummy"
+  GOOGLE_CLIENT_SECRET: "dummy"
+  
   # LLM Credentials (NVIDIA NIM)
   OPENAI_API_KEY: "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"
   LLM_PROXY_URL: "https://integrate.api.nvidia.com/v1"
@@ -179,8 +183,8 @@ spec:
       containers:
         - name: openlingo
           # Use your container registry (e.g. 192.168.0.236:5000/openlingo:latest for this homelab)
-          image: 192.168.0.236:5000/openlingo:latest
-          imagePullPolicy: IfNotPresent
+          image: 192.168.0.236:5000/openlingo:v4-validated-stable
+          imagePullPolicy: Always
           # Run DB migration and seed on startup, then start OpenLingo server
           command:
             - sh
@@ -194,7 +198,7 @@ spec:
                 name: openlingo-secrets
           env:
             - name: BETTER_AUTH_BASE_URL
-              value: "http://openlingo.tail35421d.ts.net"
+              value: "http://100.93.223.48"
             - name: PORT
               value: "3000"
             - name: POSTGRES_DB
@@ -431,3 +435,28 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-to-internet
+  namespace: openlingo
+spec:
+  podSelector:
+    matchLabels:
+      app: openlingo
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    # Allow all external IPs (Public Internet)
+    # Exclude internal cluster ranges if you want to be stricter, 
+    # but for now we need NVIDIA NIM.
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except:
+        - 10.0.0.0/8
+        - 172.16.0.0/12
+        - 192.168.0.0/16
+    ports:
+    - protocol: TCP
+      port: 443

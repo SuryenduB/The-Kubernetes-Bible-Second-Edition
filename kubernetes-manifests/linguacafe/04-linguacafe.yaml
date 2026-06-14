@@ -63,25 +63,32 @@ spec:
           mountPath: /var/www/html/storage
         - name: tmp
           mountPath: /tmp
+        - name: patch-volume
+          mountPath: /var/www/html/app/Services/DictionaryImportService.php
+          subPath: DictionaryImportService.php
         resources:
           requests:
             cpu: 100m
             memory: 256Mi
           limits:
-            cpu: 500m
-            memory: 512Mi
+            cpu: 1
+            memory: 2Gi
         livenessProbe:
           httpGet:
             path: /
             port: 80
           initialDelaySeconds: 120
           periodSeconds: 20
+          timeoutSeconds: 30
+          failureThreshold: 50
         readinessProbe:
           httpGet:
             path: /
             port: 80
           initialDelaySeconds: 60
           periodSeconds: 10
+          timeoutSeconds: 30
+          failureThreshold: 50
       - name: python
         image: ghcr.io/simjanos-dev/linguacafe-python-service:latest
         securityContext:
@@ -118,6 +125,9 @@ spec:
           claimName: linguacafe-storage-pvc
       - name: tmp
         emptyDir: {}
+      - name: patch-volume
+        configMap:
+          name: linguacafe-patch
 ---
 apiVersion: v1
 kind: Service

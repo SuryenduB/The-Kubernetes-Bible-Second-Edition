@@ -1,0 +1,210 @@
+## Network Policies for FreeLingo Application
+# These implement "default-deny" with explicit allow rules
+
+# Default deny all ingress and egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-default-deny
+  namespace: freelingo
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# Allow ingress to frontend from ingress controller and tailscale
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-frontend-ingress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: freelingo-frontend
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow from Traefik ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: traefik
+      ports:
+        - protocol: TCP
+          port: 3000
+    # Allow from Tailscale proxy pods
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: tailscale
+      ports:
+        - protocol: TCP
+          port: 3000
+
+---
+# Allow ingress to backend from frontend only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-backend-ingress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: freelingo-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: freelingo-frontend
+      ports:
+        - protocol: TCP
+          port: 8000
+
+---
+# Allow ingress to database from backend only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-db-ingress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: freelingo-db
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: freelingo-backend
+      ports:
+        - protocol: TCP
+          port: 5432
+
+---
+# Allow ingress to redis from backend only
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-redis-ingress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: freelingo-redis
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: freelingo-backend
+      ports:
+        - protocol: TCP
+          port: 6379
+
+---
+# Allow ingress to mock GPU services from backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-mock-gpu-ingress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: mock-gpu-services
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: freelingo-backend
+      ports:
+        - protocol: TCP
+          port: 8880
+        - protocol: TCP
+          port: 9000
+
+---
+# Allow egress from frontend to backend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-frontend-egress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: freelingo-frontend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: freelingo-backend
+      ports:
+        - protocol: TCP
+          port: 8000
+    # Allow DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+
+---
+# Allow egress from backend to database and external APIs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: freelingo-backend-egress
+  namespace: freelingo
+spec:
+  podSelector:
+    matchLabels:
+      app: freelingo-backend
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: freelingo-db
+      ports:
+        - protocol: TCP
+          port: 5432
+    - to:
+        - podSelector:
+            matchLabels:
+              app: freelingo-redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    - to:
+        - podSelector:
+            matchLabels:
+              app: mock-gpu-services
+      ports:
+        - protocol: TCP
+          port: 8880
+        - protocol: TCP
+          port: 9000
+    # Allow DNS
+    - ports:
+        - protocol: UDP
+          port: 53
+    # Allow external API access (OpenRouter)
+    - ports:
+        - protocol: TCP
+          port: 443
