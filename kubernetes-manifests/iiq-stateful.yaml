@@ -96,10 +96,7 @@ spec:
             matchLabels:
               kubernetes.io/metadata.name: tailscale
     # FIX: Allow egress to Kubernetes API Server (required for Job polling)
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-      ports:
+    - ports:
         - protocol: TCP
           port: 443
 

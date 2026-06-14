@@ -280,7 +280,7 @@ graph TD
     
     subgraph VLAN20 ["VLAN 20: K3s Cluster Subnet 192.168.20.0/24"]
         Switch -.->|Port g8 Tagged| NUC[NUC Master Node 192.168.20.21]
-        Switch -.->|Port g9 Access| HP1[HP-1 Docker Registry 192.168.20.236]
+        Switch -.->|Port g9 Access| HP1["HP-1 (DESKTOP-32DRFM7) Docker Registry 192.168.20.236"]
         Switch -.->|Ports g2-g6,g10,g12,g15 Access| Workers[Worker Nodes kubernetes1-8]
     end
     
@@ -410,7 +410,7 @@ graph TD
             <td class="highlight-pink">g9</td>
             <td class="highlight-green">✅ Up (1000M)</td>
             <td class="highlight-green">VLAN 20 (PVID 20)</td>
-            <td>HP-1 (Workstation & Docker Registry)</td>
+            <td>HP-1 (DESKTOP-32DRFM7 Workstation & Docker Registry)</td>
           </tr>
           <tr>
             <td class="highlight-pink">g10</td>

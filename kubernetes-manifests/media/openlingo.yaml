@@ -183,7 +183,7 @@ spec:
       containers:
         - name: openlingo
           # Use your container registry (e.g. 192.168.0.236:5000/openlingo:latest for this homelab)
-          image: 192.168.0.236:5000/openlingo:v4-validated-stable
+          image: 192.168.0.236:5000/openlingo:v4-timeout-fix
           imagePullPolicy: Always
           # Run DB migration and seed on startup, then start OpenLingo server
           command:

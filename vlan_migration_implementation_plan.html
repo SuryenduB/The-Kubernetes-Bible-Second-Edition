@@ -587,7 +587,7 @@
                   <td class="highlight-green">192.168.20.21</td>
                 </tr>
                 <tr>
-                  <td>HP-1 Registry</td>
+                  <td>HP-1 (DESKTOP-32DRFM7) Registry</td>
                   <td class="highlight-green">Static IP (Configured locally on Host)</td>
                   <td class="highlight-green">VLAN 20 (K3s)</td>
                   <td class="highlight-green">192.168.20.236</td>
@@ -719,24 +719,40 @@ network:
 
               <!-- HP-1 Registry (VLAN 20) -->
               <div style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 6px; padding: 1rem;">
-                <strong style="color: var(--green); display: block; margin-bottom: 0.25rem;">2. HP-1 Registry Node (VLAN 20)</strong>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Edit the Netplan config on <code>HP-1</code> to configure the static IP <code>192.168.20.236</code>:</p>
-                <div class="code-block" style="color: #39ff14; margin-bottom: 0.5rem;">sudo nano /etc/netplan/00-installer-config.yaml</div>
-                <div class="code-block yaml" style="margin-top: 0.5rem; color: #39ff14;">
-network:
-  version: 2
-  ethernets:
-    eth0:  # Note: verify interface name (e.g. eth0, enp3s0) using 'ip link'
-      addresses:
-        - 192.168.20.236/24
-      routes:
-        - to: 0.0.0.0/0
-          via: 192.168.20.99  # Switch SVI IP as gateway
-      nameservers:
-        addresses: [192.168.20.99, 8.8.8.8]
-                </div>
-                <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem;">Apply the changes:</p>
-                <div class="code-block" style="color: #39ff14; margin-bottom: 0;">sudo netplan apply</div>
+                <strong style="color: var(--green); display: block; margin-bottom: 0.25rem;">2. HP-1 / DESKTOP-32DRFM7 Registry Node (VLAN 20)</strong>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Configure the static IP <code>192.168.20.236</code> on HP-1 (DESKTOP-32DRFM7) using either Windows PowerShell or the GUI:</p>
+                <ul style="font-size: 0.85rem; margin-left: 1rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem;">
+                  <li><strong>PowerShell Method (Run as Administrator):</strong>
+                    <div class="code-block" style="color: #39ff14; margin-top: 0.25rem; margin-bottom: 0.25rem;"># Find the correct interface name (e.g. "Ethernet")
+Get-NetAdapter
+
+# Set Static IP and Default Gateway (Switch SVI)
+New-NetIPAddress -InterfaceAlias "Ethernet" -IPAddress 192.168.20.236 -PrefixLength 24 -DefaultGateway 192.168.20.99
+
+# Configure DNS Servers
+Set-DnsClientServerAddress -InterfaceAlias "Ethernet" -ServerAddresses ("192.168.20.99", "8.8.8.8")</div>
+                  </li>
+                  <li><strong>GUI Method:</strong>
+                    <ol style="margin-left: 1.5rem; margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
+                      <li>Run <code>ncpa.cpl</code> to open Network Connections.</li>
+                      <li>Right-click your active adapter and select <strong>Properties</strong>.</li>
+                      <li>Double-click <strong>Internet Protocol Version 4 (TCP/IPv4)</strong>.</li>
+                      <li>Select <strong>Use the following IP address</strong>:
+                        <ul style="margin-left: 1.5rem; list-style-type: circle;">
+                          <li>IP address: <code>192.168.20.236</code></li>
+                          <li>Subnet mask: <code>255.255.255.0</code></li>
+                          <li>Default gateway: <code>192.168.20.99</code></li>
+                        </ul>
+                      </li>
+                      <li>Select <strong>Use the following DNS server addresses</strong>:
+                        <ul style="margin-left: 1.5rem; list-style-type: circle;">
+                          <li>Preferred DNS: <code>192.168.20.99</code></li>
+                          <li>Alternate DNS: <code>8.8.8.8</code></li>
+                        </ul>
+                      </li>
+                    </ol>
+                  </li>
+                </ul>
               </div>
 
               <!-- HP-2 Workstation (VLAN 30) -->
