@@ -61,6 +61,9 @@ For executing cluster tasks, refer to the following goal-oriented **How-to Guide
 | **ArgoCD** | [https://argocd](https://argocd) | https://argocd.example.com | GitOps CD Platform |
 | **Beszel Hub** | [http://beszel](http://beszel) | http://beszel-hub.monitoring.svc | Lightweight Cluster Monitoring |
 | **Longhorn UI** | [http://nuc:30080](http://nuc:30080) | http://192.168.0.21:30080 | Storage Management |
+| **AI-Language-Learning**| [http://lang-tutor](http://lang-tutor) | http://ai-lang-backend.ai-language-learning.svc | Custom AI Language Tutor |
+| **OpenLingo** | [http://openlingo](http://openlingo) | http://openlingo.openlingo.svc | Structured Language Platform |
+| **LinguaCafe** | [http://linguacafe](http://linguacafe) | http://linguacafe.linguacafe.svc | Self-hosted Language Reading App |
 
 ### Infrastructure Services (Tailscale Access)
 
@@ -106,7 +109,7 @@ For executing cluster tasks, refer to the following goal-oriented **How-to Guide
 | **g5** | kubernetes4 | `64:00:6A:62:72:DC` | K3s Worker | ✅ Verified (LLDP) |
 | **g6** | kubernetes2 | `40:B0:76:0F:3C:72` | K3s Worker | ✅ Verified (LLDP) |
 | **g8** | NUC (Master) | `C0:3F:D5:6D:45:85` | K3s Master | ✅ Verified (LLDP) |
-| **g9** | HP-1 | `C8:D3:FF:6A:72:2E` | Workstation (Registry) | ✅ Active |
+| **g9** | HP-1 (DESKTOP-32DRFM7) | `f0:d5:bf:26:11:be` | Workstation (Registry) | ✅ Active |
 | **g10** | kubernetes7 | `6C:C2:17:E9:A4:E5` | K3s Worker | ✅ Verified (LLDP) |
 | **g11** | HP-2 | `FC:3F:DB:86:1A:81` | Trusted Node | ✅ Active |
 | **g12** | kubernetes8-debian | `00:14:0B:45:02:83` | K3s Worker | ✅ Verified (LLDP) |
