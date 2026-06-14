@@ -47,6 +47,12 @@ spec:
           value: redis
         - name: REDIS_PASSWORD
           value: linguacafe
+        - name: QUEUE_CONNECTION
+          value: redis
+        - name: CACHE_DRIVER
+          value: redis
+        - name: BACKUP_INTERVAL
+          value: "0 0 * * *"
         - name: PYTHON_CONTAINER_NAME
           value: localhost
         ports:
