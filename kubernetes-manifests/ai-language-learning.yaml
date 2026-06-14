@@ -112,7 +112,7 @@ metadata:
     tailscale.com/hostname: "lang-tutor"
 spec:
   ports:
-  - port: 3000
+  - port: 80
     targetPort: 3000
   selector:
     app: ai-lang-backend
