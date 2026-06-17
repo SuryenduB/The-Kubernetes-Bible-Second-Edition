@@ -168,7 +168,11 @@ function Test-K3sClusterHealth {
 
                 $totalPods++
                 $podCountByNs[$ns] = ($podCountByNs[$ns] ?? 0) + 1
-                if ($node -ne "" -and $node -ne "<none>") {
+                # Exclude DaemonSet and Tailscale proxy pods from load balancing counts
+                # (DaemonSet pods are pinned 1-per-node; Tailscale proxies are PV-bound StatefulSets)
+                $isDaemonSet = $pod -match '^(registry-fixer|svclb-|csi-|engine-image-|longhorn-|instance-manager|share-manager|beszel-agent)-'
+                $isTailscaleProxy = $ns -eq 'tailscale'
+                if ($node -ne "" -and $node -ne "<none>" -and -not $isDaemonSet -and -not $isTailscaleProxy) {
                     $podCountByNode[$node] = ($podCountByNode[$node] ?? 0) + 1
                 }
 
@@ -314,10 +318,10 @@ function Test-K3sClusterHealth {
     }
 
     if ($overloadedNodes.Count -gt 0) {
-        $recommendations += "CRITICAL WORKLOAD IMBALANCE: Nodes carrying disproportionate load: $($overloadedNodes -join ', '). Consider cordoning/draining or performing rolling restarts on workloads to redistribute to underutilized nodes."
+        $recommendations += "CRITICAL WORKLOAD IMBALANCE: Nodes carrying disproportionate movable load: $($overloadedNodes -join ', '). DaemonSet and Tailscale proxy pods excluded from calculation."
     }
     if ($underloadedNodes.Count -gt 0) {
-        $recommendations += "UNDERUTILIZED NODES: $($underloadedNodes -join ', '). Average load is $avgPodsPerWorker pods/node."
+        $recommendations += "UNDERUTILIZED NODES: $($underloadedNodes -join ', '). Average movable load is $avgPodsPerWorker pods/node (excl. DaemonSets & Tailscale)."
     }
 
     # General Recommendations
