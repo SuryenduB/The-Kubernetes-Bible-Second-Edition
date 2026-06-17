@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-05-10 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.5+k3s1
+**Last Updated**: 2026-06-17 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.6+k3s1
 
 ---
 
@@ -47,23 +47,25 @@ For executing cluster tasks, refer to the following goal-oriented **How-to Guide
 
 ## 🌐 Application Access & URLs
 
-### Web Applications (Tailscale / LAN)
+### Web Applications (Tailscale MagicDNS)
 
-| Application | Tailscale URL | Internal LAN URL | Description |
-|-------------|---------------|------------------|-------------|
-| **IdentityIQ** | [http://iiq-main/identityiq](http://iiq-main/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
-| **AudioBookShelf**| [http://audiobookshelf](http://audiobookshelf) | http://audiobookshelf.media.svc | Media Server (Audiobooks/Podcasts) |
-| **Calibre-Web** | [http://calibre-web:8083](http://calibre-web:8083) | http://calibre-web.media.svc:8083 | Ebook Management |
-| **OpenWebUI** | [http://openwebui:8080](http://openwebui:8080) | http://openwebui.local | AI Chat Interface |
-| **phpLDAPadmin** | [http://iiq-ldap-admin](http://iiq-ldap-admin) | http://192.168.0.21:30081 | LDAP Directory Manager |
-| **ActiveMQ UI** | [http://iiq-mq-admin:8161](http://iiq-mq-admin:8161) | http://192.168.0.21:30082 | Middleware Console |
-| **Mailpit UI** | [http://iiq-mail:8025](http://iiq-mail:8025) | http://192.168.0.21:30083 | Email Testing Dashboard |
-| **ArgoCD** | [https://argocd](https://argocd) | https://argocd.example.com | GitOps CD Platform |
-| **Beszel Hub** | [http://beszel](http://beszel) | http://beszel-hub.monitoring.svc | Lightweight Cluster Monitoring |
+All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
+
+| Application | MagicDNS URL | Internal LAN URL | Description |
+|-------------|-------------|------------------|-------------|
+| **IdentityIQ** | [http://iiq.tail35421d.ts.net:8080/identityiq](http://iiq.tail35421d.ts.net:8080/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
+| **AudioBookShelf**| [http://audiobookshelf.tail35421d.ts.net](http://audiobookshelf.tail35421d.ts.net) | http://audiobookshelf.media.svc | Media Server (Audiobooks/Podcasts) |
+| **Calibre-Web** | [http://calibre-web.tail35421d.ts.net:8083](http://calibre-web.tail35421d.ts.net:8083) | http://calibre-web.media.svc:8083 | Ebook Management |
+| **OpenWebUI** | [http://openwebui.tail35421d.ts.net:8080](http://openwebui.tail35421d.ts.net:8080) | http://openwebui.local | AI Chat Interface |
+| **phpLDAPadmin** | [http://phpldapadmin.tail35421d.ts.net](http://phpldapadmin.tail35421d.ts.net) | http://192.168.0.21:30081 | LDAP Directory Manager |
+| **ActiveMQ UI** | [http://iiq-mq-admin.tail35421d.ts.net:8161](http://iiq-mq-admin.tail35421d.ts.net:8161) | http://192.168.0.21:30082 | Middleware Console |
+| **Mailpit UI** | [http://iiq-mail.tail35421d.ts.net:8025](http://iiq-mail.tail35421d.ts.net:8025) | http://192.168.0.21:30083 | Email Testing Dashboard |
+| **ArgoCD** | [https://argocd.tail35421d.ts.net](https://argocd.tail35421d.ts.net) | https://argocd.example.com | GitOps CD Platform |
+| **Beszel Hub** | [http://beszel.tail35421d.ts.net](http://beszel.tail35421d.ts.net) | http://beszel-hub.monitoring.svc | Lightweight Cluster Monitoring |
 | **Longhorn UI** | [http://nuc:30080](http://nuc:30080) | http://192.168.0.21:30080 | Storage Management |
-| **AI-Language-Learning**| [http://lang-tutor](http://lang-tutor) | http://ai-lang-backend.ai-language-learning.svc | Custom AI Language Tutor |
-| **OpenLingo** | [http://openlingo](http://openlingo) | http://openlingo.openlingo.svc | Structured Language Platform |
-| **LinguaCafe** | [http://linguacafe](http://linguacafe) | http://linguacafe.linguacafe.svc | Self-hosted Language Reading App |
+| **AI-Language-Learning**| [http://lang-tutor.tail35421d.ts.net](http://lang-tutor.tail35421d.ts.net) | http://ai-lang-backend.ai-language-learning.svc | Custom AI Language Tutor |
+| **OpenLingo** | [http://openlingo.tail35421d.ts.net](http://openlingo.tail35421d.ts.net) | http://openlingo.openlingo.svc | Structured Language Platform |
+| **LinguaCafe** | [http://linguacafe.tail35421d.ts.net](http://linguacafe.tail35421d.ts.net) | http://linguacafe.linguacafe.svc | Self-hosted Language Reading App |
 
 ### Infrastructure Services (Tailscale Access)
 
@@ -246,6 +248,7 @@ The audit system collects and packs node-level diagnostics into tarball bundles 
 | **IIQ Init Stuck** | `iiq` pod remains in `Init:0/1` or `Pending` status. | **Cause**: NetworkPolicy blocking egress to K3s API on port `6443`. **Fix**: Update `iiqstack-allow-internal` to allow egress on port `6443`. |
 | **Beszel Agent Crash** | `beszel-agent` pods in `CrashLoopBackOff`. | **Cause**: Liveness probe failing in push mode (no local SSH server). **Fix**: Remove `livenessProbe` from the DaemonSet configuration. |
 | **Longhorn Mount Failure** | `MountVolume.SetUp failed` error in pod events. | Ensure the `longhorn-manager` and `csi-plugin` pods are healthy on the target node. Restarting the node or the manager pod often resolves transient CSI RPC timeouts. |
+| **MagicDNS Fails on macOS** | `curl: (6) Could not resolve host: *.tail35421d.ts.net` while `dig` works. | **Cause**: Known Tailscale bug ([#18510](https://github.com/tailscale/tailscale/issues/18510)) — `tailscaled` writes `/etc/resolver/search.tailscale` without `nameserver`. **Fix**: `echo 'nameserver 100.100.100.100' \| sudo tee /etc/resolver/ts.net` (TLD-based resolver, not search domain). The search domain approach is broken on macOS. |
 
 ---
 
