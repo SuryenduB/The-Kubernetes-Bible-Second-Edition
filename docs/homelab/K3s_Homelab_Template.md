@@ -62,6 +62,7 @@ All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
 | **Mailpit UI** | [http://iiq-mail.tail35421d.ts.net:8025](http://iiq-mail.tail35421d.ts.net:8025) | http://192.168.0.21:30083 | Email Testing Dashboard |
 | **ArgoCD** | [https://argocd.tail35421d.ts.net](https://argocd.tail35421d.ts.net) | https://argocd.example.com | GitOps CD Platform |
 | **Beszel Hub** | [http://beszel.tail35421d.ts.net](http://beszel.tail35421d.ts.net) | http://beszel-hub.monitoring.svc | Lightweight Cluster Monitoring |
+| **Homepage** | [http://homepage-homepage.tail35421d.ts.net](http://homepage-homepage.tail35421d.ts.net) | http://homepage.homepage.svc | Homelab Dashboard |
 | **Longhorn UI** | [http://nuc:30080](http://nuc:30080) | http://192.168.0.21:30080 | Storage Management |
 | **AI-Language-Learning**| [http://lang-tutor.tail35421d.ts.net](http://lang-tutor.tail35421d.ts.net) | http://ai-lang-backend.ai-language-learning.svc | Custom AI Language Tutor |
 | **OpenLingo** | [http://openlingo.tail35421d.ts.net](http://openlingo.tail35421d.ts.net) | http://openlingo.openlingo.svc | Structured Language Platform |
