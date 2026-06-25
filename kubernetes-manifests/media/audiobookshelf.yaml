@@ -85,7 +85,7 @@ spec:
         env:
         - name: TZ
           value: "Europe/Berlin"
-        - name: ABS_METADATA_PATH
+        - name: METADATA_PATH
           value: "/audiobooks/metadata"
         livenessProbe:
           httpGet: { path: /healthcheck, port: 80 }
