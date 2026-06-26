@@ -1,47 +1,86 @@
+# AudioBookShelf Values - Aligned with Live K3s Deployment
+# This configuration matches the actual production deployment using NAS NFS for audiobooks
+# and Longhorn for configuration storage
+
 env:
-  TZ: "Europe/Berlin"  # Correct timezone format
-  ABS_METADATA_PATH: "/audiobooks/metadata"
+  TZ: "Europe/Berlin"
+  METADATA_PATH: "/config/metadata"  # Metadata stored in config PVC
   AUDIOBOOKSHELF_UID: 1000
   AUDIOBOOKSHELF_GID: 1000
 
 service:
   main:
-    type: NodePort
+    type: ClusterIP
     ports:
       http:
         port: 80
+        targetPort: 80
 
-ingress:
-  main:
-    enabled: true
-    annotations:
-      kubernetes.io/ingress.class: "traefik"
-    hosts:
-      - host: "audiobookshelf.local"  # Matches all hosts
-        paths:
-          - path: /audiobook
-            pathType: Prefix
-    tls: []  # You can add TLS if required
+# Tailscale integration for external access
+tailscale:
+  enabled: true
+  hostname: "audiobookshelf"
+  proxyClass: "tailscale-proxy"
 
+# Pod disruption budget for high availability
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 0
 
+# Resource limits matching live deployment
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+# Health checks matching live deployment
+livenessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 80
+  initialDelaySeconds: 30
+  periodSeconds: 60
+
+readinessProbe:
+  httpGet:
+    path: /healthcheck
+    port: 80
+  initialDelaySeconds: 10
+  periodSeconds: 30
+
+# Storage configuration matching live deployment
 persistence:
+  # Config storage using Longhorn (RWO)
   config:
     enabled: true
     mountPath: /config
-    size: 1Gi
+    size: 2Gi
     accessMode: ReadWriteOnce
-    storageClass: local-path
+    storageClass: longhorn
 
-  metadata:
-    enabled: true
-    mountPath: /metadata
-    size: 1Gi
-    accessMode: ReadWriteOnce
-    storageClass: local-path
-
+  # Audiobooks using NAS NFS (RWX) - Read-only mount
   media:
     enabled: true
     mountPath: /audiobooks
-    size: 10Gi
-    accessMode: ReadWriteOnce
-    storageClass: local-path
+    readOnly: true
+    # NFS configuration for NAS
+    nfs:
+      server: 192.168.0.128
+      path: /share/Public/audiobooks
+      mountOptions:
+        - nfsvers=3
+        - nolock
+        - noatime
+    size: 500Gi  # NAS storage capacity
+    accessMode: ReadWriteMany
+
+# Security context matching live deployment
+podSecurityContext:
+  fsGroup: 1000
+
+# Deployment strategy
+strategy:
+  type: Recreate
