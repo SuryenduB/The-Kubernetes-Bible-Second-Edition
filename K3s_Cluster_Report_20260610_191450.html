@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>K3s Nexus // Cluster Diagnostics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root { 
+    --bg-dark: #0f1115; --bg-panel: #16191f; 
+    --accent: #ff5722; --accent-hover: #ff784e;
+    --text-main: #d1d5db; --text-muted: #6b7280; 
+    --text-heading: #f3f4f6;
+    --border: #2d3139; --border-light: rgba(255,255,255,0.08);
+    --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+  }
+  
+  body { 
+    font-family: 'JetBrains Mono', monospace; background-color: var(--bg-dark); color: var(--text-main); 
+    margin: 0; padding: 40px; 
+    background-image: 
+      radial-gradient(circle at top right, rgba(255, 87, 34, 0.05), transparent 40%),
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), 
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 20px 20px, 20px 20px;
+    font-size: 12px; line-height: 1.5;
+  }
+
+  h1, h2, h3 { font-family: 'Inter', sans-serif; letter-spacing: -0.5px; color: var(--text-heading); font-weight: 600; margin: 0; }
+  
+  .header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 40px; border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+  h1 { font-size: 28px; }
+  h1 span { color: var(--text-muted); font-weight: 400; font-family: 'JetBrains Mono'; font-size: 14px; margin-left: 10px; }
+  .sys-info { text-align: right; color: var(--text-muted); line-height: 1.6; }
+
+  .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; margin-bottom: 40px; }
+  
+  .card, .panel {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 24px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2); position: relative;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  }
+  .card:hover, .panel:hover { border-color: var(--text-muted); box-shadow: 0 6px 12px rgba(0,0,0,0.3); transform: translateY(-2px); }
+  
+  .card::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+    background: var(--border); transition: background 0.2s; border-radius: 6px 0 0 6px;
+  }
+  .card:hover::before { background: var(--accent); }
+
+  .stat-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; margin-bottom: 8px; }
+  .stat-value { font-size: 32px; font-family: 'Inter', sans-serif; font-weight: 700; color: var(--text-heading); }
+  .stat-success { color: var(--success); }
+  .stat-danger { color: var(--danger); }
+  .stat-warning { color: var(--warning); }
+  
+  .layout-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 4fr); gap: 24px; align-items: start; }
+  @media(max-width: 1200px) { .layout-grid { grid-template-columns: 1fr; } }
+
+  h2 { font-size: 15px; border-bottom: 1px solid var(--border-light); padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+  table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+  th { padding: 12px 10px; color: var(--text-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; border-bottom: 1px solid var(--border); letter-spacing: 0.5px; white-space: nowrap; }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--border-light); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; font-size: 10px; font-weight: 600; border-radius: 12px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .badge-success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); }
+  .badge-danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+  .badge-warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); }
+  .badge-muted { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+
+  .progress-container { display: flex; align-items: center; gap: 12px; }
+  .progress-text { width: 35px; text-align: right; font-size: 11px; color: var(--text-muted); }
+  .progress-bar { flex: 1; height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--success); border-radius: 2px; }
+  .fill-warning { background: var(--warning); }
+  .fill-danger { background: var(--danger); }
+
+  .recommendations { list-style: none; padding: 0; margin: 0; }
+  .recommendations li { padding: 12px 16px; margin-bottom: 8px; background: rgba(255, 87, 34, 0.05); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; color: var(--text-heading); }
+  .text-highlight { color: var(--text-heading); font-weight: 600; font-family: 'Inter', sans-serif; }
+  
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>K3s_Nexus <span>// INDUSTRIAL_DIAGNOSTICS</span></h1>
+  <div class="sys-info">
+    SCAN_TIME: Jun 10, 2026 19:14<br>
+    KCT_VER: v1.35.3<br>
+    SRV_VER: v1.34.6+k3s1
+  </div>
+</div>
+
+<div class="dashboard">
+  <div class="card">
+    <div class="stat-label">Nodes Ready</div>
+    <div class="stat-value stat-danger">8 / 9</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Active Pods</div>
+    <div class="stat-value stat-success">125</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Avg Pods / Worker</div>
+    <div class="stat-value stat-warning">9.4</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Anomalies</div>
+    <div class="stat-value stat-success">0</div>
+  </div>
+</div>
+
+<div class="layout-grid">
+  <div class="column">
+    <div class="panel" style="margin-bottom: 24px;">
+      <h2>[01] Infrastructure Matrix</h2>
+      <div style="overflow-x: auto;">
+        <table>
+          <tr><th>Node_ID</th><th>Role</th><th style='text-align:center'>Status</th><th>K3s_Ver</th><th>Pods</th><th>Int_IP</th><th>Uptime</th><th>Disk</th></tr>
+          <tr><td><span class='text-highlight'>kubernetes1</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style=''>7</td><td>192.168.0.19</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes2</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style='color: var(--danger); font-weight: bold;'>15</td><td>192.168.0.20</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes3</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style='color: var(--danger); font-weight: bold;'>18</td><td>192.168.0.22</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes4</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style=''>12</td><td>192.168.0.23</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes5</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style=''>7</td><td>192.168.0.24</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes6</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style=''>8</td><td>192.168.0.25</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes7</span></td><td>worker</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style=''>8</td><td>192.168.0.26</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>kubernetes8-debian</span></td><td>&lt;none&gt;</td><td style='text-align:center'><span class='badge badge-muted'>NotReady</span></td><td>v1.34.6+k3s1</td><td style=''>0</td><td>192.168.0.27</td><td>-</td><td>-</td></tr>
+<tr><td><span class='text-highlight'>nuc</span></td><td>control-plane,master</td><td style='text-align:center'><span class='badge badge-success'>Ready</span></td><td>v1.34.6+k3s1</td><td style=''>0</td><td>192.168.0.21</td><td>-</td><td>-</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom: 24px;">
+      <h2>[02] Compute Telemetry</h2>
+      <div style="overflow-x: auto;">
+        <table>
+          <tr><th>Target</th><th>CPU_Load</th><th>Mem_Allocation</th></tr>
+          <tr><td><span class='text-highlight'>kubernetes7</span></td><td>245m (<div class='progress-container'><span class='progress-text'>6%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:6%'></div></div></div>)</td><td>3501Mi (<div class='progress-container'><span class='progress-text'>44%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:44%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>nuc</span></td><td>287m (<div class='progress-container'><span class='progress-text'>14%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:14%'></div></div></div>)</td><td>2476Mi (<div class='progress-container'><span class='progress-text'>31%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:31%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes5</span></td><td>196m (<div class='progress-container'><span class='progress-text'>4%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:4%'></div></div></div>)</td><td>2414Mi (<div class='progress-container'><span class='progress-text'>30%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:30%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes4</span></td><td>164m (<div class='progress-container'><span class='progress-text'>4%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:4%'></div></div></div>)</td><td>1694Mi (<div class='progress-container'><span class='progress-text'>21%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:21%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes1</span></td><td>180m (<div class='progress-container'><span class='progress-text'>4%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:4%'></div></div></div>)</td><td>3163Mi (<div class='progress-container'><span class='progress-text'>19%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:19%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes3</span></td><td>461m (<div class='progress-container'><span class='progress-text'>11%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:11%'></div></div></div>)</td><td>2550Mi (<div class='progress-container'><span class='progress-text'>16%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:16%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes6</span></td><td>167m (<div class='progress-container'><span class='progress-text'>4%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:4%'></div></div></div>)</td><td>2425Mi (<div class='progress-container'><span class='progress-text'>15%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:15%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes2</span></td><td>151m (<div class='progress-container'><span class='progress-text'>3%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:3%'></div></div></div>)</td><td>1943Mi (<div class='progress-container'><span class='progress-text'>12%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:12%'></div></div></div>)</td></tr>
+<tr><td><span class='text-highlight'>kubernetes8-debian</span></td><td>0m (<div class='progress-container'><span class='progress-text'>0%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:0%'></div></div></div>)</td><td>0Mi (<div class='progress-container'><span class='progress-text'>0%</span><div class='progress-bar'><div class='progress-fill fill-success' style='width:0%'></div></div></div>)</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>[03] Critical Process Restarts (Top 20)</h2>
+      <div style="overflow-x: auto;">
+        <table>
+          <tr><th>Entity</th><th>Sector (NS)</th><th style='text-align:center'>Faults</th><th>State</th><th>Host</th></tr>
+          <tr><td><span class='text-highlight'>registry-fixer-dl6wm</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>835</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-rjnrm</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>209</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-bwzr2</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>208</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-qwbpt</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>199</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-2gm2j</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>198</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-8jzft</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>198</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-9px5c</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>198</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-qfsff</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>198</span></td><td>Running</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-v98hv</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>135</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-kx69v</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>135</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-dww7w</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>128</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-skk82</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>128</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-zzf6v</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>123</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-hgbbj</span></td><td>kube-system</td><td style='text-align:center'><span class='badge badge-danger'>114</span></td><td>Running</td><td>60d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-cjns9</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>114</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-r9bq7</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>51</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-n8956</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>47</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-8pdwg</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>46</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-6b6fb</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>45</span></td><td>Running</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-q25dg</span></td><td>longhorn-system</td><td style='text-align:center'><span class='badge badge-danger'>43</span></td><td>Running</td><td>67d</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="column">
+    <div class="panel" style="margin-bottom: 24px; border-color: var(--accent); box-shadow: 0 4px 12px rgba(255, 87, 34, 0.1);">
+      <h2 style="color: var(--text-heading);">[!] Recommendations</h2>
+      <ul class="recommendations">
+        <li>CRITICAL WORKLOAD IMBALANCE: Nodes carrying disproportionate load: kubernetes2 (15 pods), kubernetes3 (18 pods). Consider cordoning/draining or performing rolling restarts on workloads to redistribute to underutilized nodes.</li>
+<li>UNDERUTILIZED NODES: kubernetes8-debian (0 pods). Average load is 9.4 pods/node.</li>
+      </ul>
+    </div>
+
+    <div class="panel" style="margin-bottom: 24px;">
+      <h2>[04] Load Balancers / Ingress</h2>
+      <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted);">Total Ingress Routes: 1</div>
+      <div style="overflow-x: auto;">
+        <table>
+          <tr><th>Service</th><th>Namespace</th><th>Ext_IP</th></tr>
+          <tr><td><span class='text-highlight'>traefik</span></td><td>kube-system</td><td>192.168.0.19,192.168.0.20,192.168.0.22,192.168.0.23,192.168.0.24,192.168.0.25,192.168.0.26</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>[05] Sector Density (Pods/NS)</h2>
+      <div style="max-height: 250px; overflow-y: auto;">
+        <table>
+          <tr><td><span class='text-highlight'>longhorn-system</span></td><td style='text-align:right'>47</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td style='text-align:right'>21</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td style='text-align:right'>20</td></tr>
+<tr><td><span class='text-highlight'>monitoring</span></td><td style='text-align:right'>12</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td style='text-align:right'>11</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td style='text-align:right'>7</td></tr>
+<tr><td><span class='text-highlight'>media</span></td><td style='text-align:right'>2</td></tr>
+<tr><td><span class='text-highlight'>ai</span></td><td style='text-align:right'>2</td></tr>
+<tr><td><span class='text-highlight'>default</span></td><td style='text-align:right'>1</td></tr>
+<tr><td><span class='text-highlight'>cnpg-system</span></td><td style='text-align:right'>1</td></tr>
+<tr><td><span class='text-highlight'>homepage</span></td><td style='text-align:right'>1</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 24px; margin-bottom: 24px;">
+  <h2>[06] Application Matrix</h2>
+  <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted);">Total Apps: 60</div>
+  <div style="max-height: 400px; overflow-y: auto;">
+    <table>
+      <tr><th>Namespace</th><th>Type</th><th>Application Name</th><th style='text-align:center'>Ready</th><th>Age</th></tr>
+      <tr><td><span class='text-highlight'>ai</span></td><td>Deployment</td><td><span class='text-highlight'>ollama</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>388d</td></tr>
+<tr><td><span class='text-highlight'>ai</span></td><td>Deployment</td><td><span class='text-highlight'>openwebui</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>388d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>Deployment</td><td><span class='text-highlight'>argocd-applicationset-controller</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>Deployment</td><td><span class='text-highlight'>argocd-dex-server</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>Deployment</td><td><span class='text-highlight'>argocd-notifications-controller</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>Deployment</td><td><span class='text-highlight'>argocd-redis</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>Deployment</td><td><span class='text-highlight'>argocd-repo-server</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>Deployment</td><td><span class='text-highlight'>argocd-server</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>argocd</span></td><td>StatefulSet</td><td><span class='text-highlight'>argocd-application-controller</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>379d</td></tr>
+<tr><td><span class='text-highlight'>cnpg-system</span></td><td>Deployment</td><td><span class='text-highlight'>cnpg-controller-manager</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>293d</td></tr>
+<tr><td><span class='text-highlight'>default</span></td><td>Deployment</td><td><span class='text-highlight'>nfs-provisioner-nfs-subdir-external-provisioner</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>homepage</span></td><td>Deployment</td><td><span class='text-highlight'>homepage</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>70d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>Deployment</td><td><span class='text-highlight'>counter</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>Deployment</td><td><span class='text-highlight'>iiq</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>2/2</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>Deployment</td><td><span class='text-highlight'>phpldapadmin</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>Deployment</td><td><span class='text-highlight'>ssh</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>StatefulSet</td><td><span class='text-highlight'>activemq</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>StatefulSet</td><td><span class='text-highlight'>db</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>StatefulSet</td><td><span class='text-highlight'>db-mysql</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>StatefulSet</td><td><span class='text-highlight'>ldap</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>iiqstack</span></td><td>StatefulSet</td><td><span class='text-highlight'>mail</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td>DaemonSet</td><td><span class='text-highlight'>registry-fixer</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>8</td><td>68d</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td>DaemonSet</td><td><span class='text-highlight'>svclb-traefik-6ce42ebc</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>7</td><td>390d</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td>Deployment</td><td><span class='text-highlight'>coredns</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>390d</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td>Deployment</td><td><span class='text-highlight'>local-path-provisioner</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>390d</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td>Deployment</td><td><span class='text-highlight'>metrics-server</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>390d</td></tr>
+<tr><td><span class='text-highlight'>kube-system</span></td><td>Deployment</td><td><span class='text-highlight'>traefik</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>390d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>DaemonSet</td><td><span class='text-highlight'>engine-image-ei-db6c2b6f</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>7</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>DaemonSet</td><td><span class='text-highlight'>longhorn-csi-plugin</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>7</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>DaemonSet</td><td><span class='text-highlight'>longhorn-manager</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>7</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>Deployment</td><td><span class='text-highlight'>csi-attacher</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>3/3</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>Deployment</td><td><span class='text-highlight'>csi-provisioner</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>3/3</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>Deployment</td><td><span class='text-highlight'>csi-resizer</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>3/3</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>Deployment</td><td><span class='text-highlight'>csi-snapshotter</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>3/3</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>Deployment</td><td><span class='text-highlight'>longhorn-driver-deployer</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>longhorn-system</span></td><td>Deployment</td><td><span class='text-highlight'>longhorn-ui</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>2/2</td><td>67d</td></tr>
+<tr><td><span class='text-highlight'>media</span></td><td>Deployment</td><td><span class='text-highlight'>audiobookshelf</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>media</span></td><td>Deployment</td><td><span class='text-highlight'>calibre-web</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>monitoring</span></td><td>DaemonSet</td><td><span class='text-highlight'>beszel-agent</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>8</td><td>45d</td></tr>
+<tr><td><span class='text-highlight'>monitoring</span></td><td>Deployment</td><td><span class='text-highlight'>beszel-hub</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>45d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>Deployment</td><td><span class='text-highlight'>operator</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>71d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-activemq-2855r</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-argocd-server-mswrv</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>70d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-argocd-server-tailscale-tfd9g</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>70d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-audiobookshelf-t5wcf</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-beszel-hub-mx9pv</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>45d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-calibre-web-wx752</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-counter-pl28x</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-db-7ltn8</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-db-mysql-cksgr</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-homepage-97ccs</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>70d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-iiq-dspm8</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-iiq-tailscale-6lbvp</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>16d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-ldap-4qqsc</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-mail-4pnjj</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-openwebui-2z9gj</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>70d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-openwebui-tailscale-6c2ss</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>70d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-phpldapadmin-tailscale-2jrxj</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>16d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-phpldapadmin-vjg5d</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+<tr><td><span class='text-highlight'>tailscale</span></td><td>StatefulSet</td><td><span class='text-highlight'>ts-ssh-grmpb</span></td><td style='color: var(--success); font-weight:bold; text-align:center;'>1/1</td><td>66d</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 24px; margin-bottom: 40px;">
+  <h2>[07] Active Pod Diagnostics</h2>
+  <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted);">Total Running Pods: 122</div>
+  <div style="max-height: 400px; overflow-y: auto;">
+    <table>
+      <tr><th>Pod Name</th><th>Namespace</th><th>Node</th><th style='text-align:center'>Restarts</th></tr>
+      <tr><td><span class='text-highlight'>ollama-6b69dd5485-8bbs4</span></td><td>ai</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>openwebui-67dfc47f96-4w2jf</span></td><td>ai</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-application-controller-0</span></td><td>argocd</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-applicationset-controller-7d77659b87-vtjwc</span></td><td>argocd</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-dex-server-5b64fbd5c5-hlj9l</span></td><td>argocd</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-notifications-controller-5d7db9f84d-d4nt4</span></td><td>argocd</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-redis-5dfbd48d45-td7s8</span></td><td>argocd</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-repo-server-6b5689fc64-hzcwb</span></td><td>argocd</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>argocd-server-6576dc67b8-xxklp</span></td><td>argocd</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>cnpg-controller-manager-c76b668f6-xjs7m</span></td><td>cnpg-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>nfs-provisioner-nfs-subdir-external-provisioner-79cfcf759fkf8gp</span></td><td>default</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>homepage-56944f8675-trxqx</span></td><td>homepage</td><td>kubernetes5</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>activemq-0</span></td><td>iiqstack</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>counter-6668d89b79-z2ssp</span></td><td>iiqstack</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>db-0</span></td><td>iiqstack</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>db-mysql-0</span></td><td>iiqstack</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>iiq-5948448c9f-7bfm7</span></td><td>iiqstack</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>iiq-5948448c9f-nk29t</span></td><td>iiqstack</td><td>20h</td><td style='text-align:center'><span class='badge badge-success'>38</span></td></tr>
+<tr><td><span class='text-highlight'>ldap-0</span></td><td>iiqstack</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>mail-0</span></td><td>iiqstack</td><td>kubernetes5</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>phpldapadmin-5465578dd8-rsbpl</span></td><td>iiqstack</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ssh-568546dbcf-8nj6m</span></td><td>iiqstack</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>coredns-7f4bc48cc6-c2n56</span></td><td>kube-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>local-path-provisioner-5b497dcc6-dckl5</span></td><td>kube-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>metrics-server-6b7d5f4788-9xc5v</span></td><td>kube-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-2gm2j</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>198</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-8jzft</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>198</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-9px5c</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>198</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-bwzr2</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>208</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-dl6wm</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>835</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-hgbbj</span></td><td>kube-system</td><td>60d</td><td style='text-align:center'><span class='badge badge-success'>114</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-qfsff</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>198</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-qwbpt</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>199</span></td></tr>
+<tr><td><span class='text-highlight'>registry-fixer-rjnrm</span></td><td>kube-system</td><td>68d</td><td style='text-align:center'><span class='badge badge-success'>209</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-7rnbd</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>12</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-7rrj9</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>12</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-drmm4</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>2</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-gfq6l</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>12</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-lt7qn</span></td><td>kube-system</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-rzllv</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>12</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-zjqst</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>12</span></td></tr>
+<tr><td><span class='text-highlight'>svclb-traefik-6ce42ebc-znkhx</span></td><td>kube-system</td><td>16d</td><td style='text-align:center'><span class='badge badge-success'>12</span></td></tr>
+<tr><td><span class='text-highlight'>traefik-7f48db7d74-4mzwj</span></td><td>kube-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-attacher-676dbdd6c8-4wxkl</span></td><td>longhorn-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-attacher-676dbdd6c8-nwc99</span></td><td>longhorn-system</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-attacher-676dbdd6c8-xfb2v</span></td><td>longhorn-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-provisioner-7d868699bb-5q6kb</span></td><td>longhorn-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-provisioner-7d868699bb-d4tmk</span></td><td>longhorn-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-provisioner-7d868699bb-nr4sq</span></td><td>longhorn-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-resizer-7858f898d9-h42gp</span></td><td>longhorn-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-resizer-7858f898d9-ml9wp</span></td><td>longhorn-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-resizer-7858f898d9-rfl8q</span></td><td>longhorn-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-snapshotter-748bf8c744-f4jlt</span></td><td>longhorn-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-snapshotter-748bf8c744-fbq5m</span></td><td>longhorn-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>csi-snapshotter-748bf8c744-fpqnz</span></td><td>longhorn-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-4j6kv</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>22</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-4qq48</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>21</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-7wtsg</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>21</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-9xzbw</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>21</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-nqs9c</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>21</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-pg5bn</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>21</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-vfhg6</span></td><td>longhorn-system</td><td>60d</td><td style='text-align:center'><span class='badge badge-success'>13</span></td></tr>
+<tr><td><span class='text-highlight'>engine-image-ei-db6c2b6f-vg7l6</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>5</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-3b89e5eba33fc10c4d1ae50b1f841573</span></td><td>longhorn-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-53467141777d9d39da664b763fce07cc</span></td><td>longhorn-system</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-7a9f755771501021a64aaf8e4a2a003b</span></td><td>longhorn-system</td><td>kubernetes5</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-86af481e17c6b11c6edac4a93172f9da</span></td><td>longhorn-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-a1d327ec648bcfccfb774bc4967dd906</span></td><td>longhorn-system</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-a99d4103eb273c05dec72ed4a492e88e</span></td><td>longhorn-system</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704</span></td><td>longhorn-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-cjns9</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>114</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-d5lsk</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>24</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-dww7w</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>128</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-kx69v</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>135</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-skk82</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>128</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-v2rnf</span></td><td>longhorn-system</td><td>60d</td><td style='text-align:center'><span class='badge badge-success'>42</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-v98hv</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>135</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-csi-plugin-zzf6v</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>123</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-driver-deployer-64c448fb65-scllt</span></td><td>longhorn-system</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-6b6fb</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>45</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-8pdwg</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>46</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-bdjr7</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>11</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-fvc9r</span></td><td>longhorn-system</td><td>60d</td><td style='text-align:center'><span class='badge badge-success'>24</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-lddpf</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>42</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-n8956</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>47</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-q25dg</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>43</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-manager-r9bq7</span></td><td>longhorn-system</td><td>67d</td><td style='text-align:center'><span class='badge badge-success'>51</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-ui-6d9dbbdc97-69sc4</span></td><td>longhorn-system</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>longhorn-ui-6d9dbbdc97-hlscc</span></td><td>longhorn-system</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>share-manager-pvc-af6bb19d-b87a-4f61-951c-392a8af9ca87</span></td><td>longhorn-system</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>audiobookshelf-7dd5d7655f-m22nr</span></td><td>media</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>calibre-web-686df984f5-j28wk</span></td><td>media</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-9whfl</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>10</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-h26qr</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>10</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-l8wh2</span></td><td>monitoring</td><td>11d</td><td style='text-align:center'><span class='badge badge-success'>5</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-ntcc7</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>10</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-p2k6h</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>5</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-q4vsn</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>10</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-tp55j</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>10</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-w9m44</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>11</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-agent-wrqlb</span></td><td>monitoring</td><td>31d</td><td style='text-align:center'><span class='badge badge-success'>1</span></td></tr>
+<tr><td><span class='text-highlight'>beszel-hub-6b785584d-97g7s</span></td><td>monitoring</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>operator-6ffb7ddf78-c7gc8</span></td><td>tailscale</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-activemq-2855r-0</span></td><td>tailscale</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-argocd-server-mswrv-0</span></td><td>tailscale</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-argocd-server-tailscale-tfd9g-0</span></td><td>tailscale</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-audiobookshelf-t5wcf-0</span></td><td>tailscale</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-beszel-hub-mx9pv-0</span></td><td>tailscale</td><td>kubernetes2</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-calibre-web-wx752-0</span></td><td>tailscale</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-counter-pl28x-0</span></td><td>tailscale</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-db-7ltn8-0</span></td><td>tailscale</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-db-mysql-cksgr-0</span></td><td>tailscale</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-homepage-97ccs-0</span></td><td>tailscale</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-iiq-dspm8-0</span></td><td>tailscale</td><td>kubernetes4</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-iiq-tailscale-6lbvp-0</span></td><td>tailscale</td><td>kubernetes5</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-ldap-4qqsc-0</span></td><td>tailscale</td><td>kubernetes6</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-mail-4pnjj-0</span></td><td>tailscale</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-openwebui-2z9gj-0</span></td><td>tailscale</td><td>kubernetes5</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-openwebui-tailscale-6c2ss-0</span></td><td>tailscale</td><td>kubernetes3</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-phpldapadmin-tailscale-2jrxj-0</span></td><td>tailscale</td><td>kubernetes7</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-phpldapadmin-vjg5d-0</span></td><td>tailscale</td><td>kubernetes5</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+<tr><td><span class='text-highlight'>ts-ssh-grmpb-0</span></td><td>tailscale</td><td>kubernetes1</td><td style='text-align:center'><span class='badge badge-success'>0</span></td></tr>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

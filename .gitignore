@@ -16,3 +16,12 @@ TAILSCALE_DEPLOYMENT_GUIDE.md
 # Local Credentials
 cred.xml
 
+# Google Cloud
+**/gcloud/**
+*gcloud*
+**/google-cloud/**
+*google-cloud*
+*-service-account.json
+*-sa-key.json
+*-gcloud-key.json
+

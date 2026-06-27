@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-06-17 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.6+k3s1
+**Last Updated**: 2026-06-27 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.6+k3s1
 
 ---
 
@@ -54,8 +54,7 @@ All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
 | Application | MagicDNS URL | Internal LAN URL | Description |
 |-------------|-------------|------------------|-------------|
 | **IdentityIQ** | [http://iiq.tail35421d.ts.net:8080/identityiq](http://iiq.tail35421d.ts.net:8080/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
-| **AudioBookShelf**| [http://audiobookshelf.tail35421d.ts.net](http://audiobookshelf.tail35421d.ts.net) | http://audiobookshelf.media.svc | Media Server (Audiobooks/Podcasts) |
-| **Calibre-Web** | [http://calibre-web.tail35421d.ts.net:8083](http://calibre-web.tail35421d.ts.net:8083) | http://calibre-web.media.svc:8083 | Ebook Management |
+| **AudioBookShelf**| [http://audiobookshelf.tail35421d.ts.net](http://audiobookshelf.tail35421d.ts.net) | http://audiobookshelf.media.svc | Media Server (Audiobooks) |
 | **OpenWebUI** | [http://openwebui.tail35421d.ts.net:8080](http://openwebui.tail35421d.ts.net:8080) | http://openwebui.local | AI Chat Interface |
 | **phpLDAPadmin** | [http://phpldapadmin.tail35421d.ts.net](http://phpldapadmin.tail35421d.ts.net) | http://192.168.0.21:30081 | LDAP Directory Manager |
 | **ActiveMQ UI** | [http://iiq-mq-admin.tail35421d.ts.net:8161](http://iiq-mq-admin.tail35421d.ts.net:8161) | http://192.168.0.21:30082 | Middleware Console |
@@ -100,6 +99,7 @@ All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
 | Device | Model | IP Address | Management | Credentials |
 |--------|-------|------------|------------|-------------|
 | **Core Switch** | Netgear ProSafe GS716T | 192.168.0.99 | Web GUI | `32558068` |
+| **QNAP NAS** | NASECDE55 (ARMv7l) | 192.168.0.128 | SSH (`admin`/`558068`) | Tailscale: `100.70.79.12` |
 
 ### 🔌 Physical Port Map (GS716T) - ✅ Validated via LLDP
 
@@ -136,7 +136,6 @@ All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
 | **ai** | `ollama-*` | `kubernetes7` | 1m | 50Mi |
 | **ai** | `openwebui-*` | `kubernetes7` | 320m | 1.2Gi |
 | **media** | `audiobookshelf-*` | `kubernetes3` | 100m | 256Mi |
-| **media** | `calibre-web-*` | `kubernetes4` | 100m | 256Mi |
 | **monitoring** | `beszel-hub-*` | `kubernetes5` | 15m | 180Mi |
 | **monitoring** | `beszel-agent-*` | *(all nodes)* | 5m | 42Mi |
 
@@ -149,6 +148,7 @@ The lab uses **Beszel** for real-time performance tracking and container visibil
 - **Hub**: Runs in the `monitoring` namespace on `kubernetes5`. 
 - **K3s Agents**: Deployed via DaemonSet to all 9 nodes (including Master).
 - **NAS Agent**: Binary service running on QNAP ARMv7 (NASECDE55) via persistent `Enroll-NasMonitoring.ps1` logic.
+- **NAS Tailscale**: Tailscale 1.80.3 (arm) installed natively on NAS for direct Tailscale access to audiobooks without traversing the cluster. Runs in userspace-networking mode (no TUN driver available on ARM kernel 3.2.26). Init script at `/etc/init.d/tailscale.sh`.
 - **Workstation Agent**: Windows Service managed via `nssm`, reporting local desktop telemetry.
 - **Optimization**: Workloads are periodically rebalanced (e.g., MySQL moved to `kubernetes6`) based on Beszel's "live pulse" to prevent node overloads.
 
@@ -172,8 +172,18 @@ Used for databases (MSSQL, MySQL) and middleware (ActiveMQ, LDAP).
 ### 2. NAS-Backed Storage (Hybrid/Bulk)
 **NAS Server**: NASECDE55  
 **Address**: 192.168.0.128  
+**Tailscale IP**: `100.70.79.12`  
 **Protocol**: NFS v3  
-**Use Case**: Used for bulk media data (Audiobooks, Ebooks) via the **media** namespace. This hybrid strategy offloads large static files from Longhorn replication to save cluster disk space while maintaining high performance for app configurations on Longhorn.
+**Use Case**: Used for bulk media data (Audiobooks) via the **media** namespace. AudioBookShelf PV is defined as a static NFS PV bound to `/share/Public/audiobooks` — not managed via Longhorn. This hybrid strategy offloads large static files from Longhorn replication to save cluster disk space while maintaining high performance for app configurations on Longhorn.
+
+#### NAS Tailscale (Native)
+Tailscale 1.80.3 (arm) runs directly on the QNAP NAS to enable direct Tailscale access to audiobooks and NAS management without Kubernetes ingress:
+- **Mode**: Userspace-networking (no TUN driver; ARM kernel 3.2.26 lacks `tun.ko`)
+- **State**: Persistent to `/share/CACHEDEV1_DATA/.tailscale.state`
+- **Init**: `/etc/init.d/tailscale.sh` (start/stop/restart)
+- **Auth**: Authenticated via Tailscale login URL (one-time browser step)
+- **Socket**: `/tmp/tailscale/tailscaled.sock`
+- **CLI**: `/usr/bin/tailscale`, daemon at `/usr/bin/tailscaled`
 
 ---
 
@@ -250,11 +260,14 @@ The audit system collects and packs node-level diagnostics into tarball bundles 
 | **Beszel Agent Crash** | `beszel-agent` pods in `CrashLoopBackOff`. | **Cause**: Liveness probe failing in push mode (no local SSH server). **Fix**: Remove `livenessProbe` from the DaemonSet configuration. |
 | **Longhorn Mount Failure** | `MountVolume.SetUp failed` error in pod events. | Ensure the `longhorn-manager` and `csi-plugin` pods are healthy on the target node. Restarting the node or the manager pod often resolves transient CSI RPC timeouts. |
 | **MagicDNS Fails on macOS** | `curl: (6) Could not resolve host: *.tail35421d.ts.net` while `dig` works. | **Cause**: Known Tailscale bug ([#18510](https://github.com/tailscale/tailscale/issues/18510)) — `tailscaled` writes `/etc/resolver/search.tailscale` without `nameserver`. **Fix**: `echo 'nameserver 100.100.100.100' \| sudo tee /etc/resolver/ts.net` (TLD-based resolver, not search domain). The search domain approach is broken on macOS. |
+| **NAS Tailscale No Socket** | `Error: connect: no such file or directory` when running `tailscale` on QNAP. | **Cause**: Default socket is `/tmp/tailscale/tailscaled.sock` but CLI search paths may differ. **Fix**: Use explicit `--socket=/tmp/tailscale/tailscaled.sock` with all `tailscale` commands, or set `TS_SOCKET` env var. |
+| **NAS Tailscale No TUN** | `tun: open(/dev/net/tun): no such file or directory` on QNAP NAS. | **Cause**: ARM kernel 3.2.26 has no TUN driver. **Fix**: Always run `tailscaled` with `--tun=userspace-networking` flag. No performance penalty for low-bandwidth NAS use. |
 
 ---
 
 ## 📚 Documentation References
 
 - **[IDENTITYIQ_K3S_FINAL_SPEC.md](IDENTITYIQ_K3S_FINAL_SPEC.md)** - Authoritative reference for the IdentityIQ 8.5 stack.
-- **[homelab-media-deployment-plan.md](homelab-media-deployment-plan.md)** - Detailed plan for AudioBookShelf and Calibre-Web.
+- **[homelab-media-deployment-plan.md](homelab-media-deployment-plan.md)** - Detailed plan for AudioBookShelf.
+- **[audiobookshelf.yaml](../../kubernetes-manifests/media/audiobookshelf.yaml)** - AudioBookShelf deployment manifest (static NFS PV, config PVC via Longhorn).
 - **[CLUSTER_FIXES_2026-03-30.md](CLUSTER_FIXES_2026-03-30.md)** - Historical troubleshooting logs.

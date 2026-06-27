@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kubernetes Security & Best Practices Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-panel: #1e293b;
+      --text-main: #cbd5e1;
+      --text-heading: #f8fafc;
+      --accent-cyan: #06b6d4;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --border-color: #334155;
+    }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--bg-panel);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+    }
+    
+    h1, h2, h3, h4 {
+      color: var(--text-heading);
+      font-weight: 600;
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      border-bottom: 2px solid var(--accent-cyan);
+      padding-bottom: 12px;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+    
+    a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      color: #e2e8f0;
+      border: 1px solid #1e293b;
+    }
+    
+    pre {
+      background: #090d16;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+    }
+    
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: #f1f5f9;
+      font-size: 0.85em;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    th {
+      background-color: rgba(51, 65, 85, 0.5);
+      color: var(--text-heading);
+      font-weight: 500;
+    }
+    
+    tr:hover {
+      background-color: rgba(51, 65, 85, 0.2);
+    }
+    
+    /* Alerts */
+    .alert {
+      display: flex;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 24px 0;
+      border-left: 4px solid;
+    }
+    
+    .alert-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    
+    .alert-content {
+      margin: 0;
+    }
+    
+    .alert-warning {
+      background: rgba(249, 115, 22, 0.1);
+      border-color: var(--accent-orange);
+      color: #ffedd5;
+    }
+    
+    .alert-caution {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: var(--accent-red);
+      color: #fee2e2;
+    }
+    
+    .alert-note {
+      background: rgba(6, 182, 212, 0.1);
+      border-color: var(--accent-cyan);
+      color: #ecfeff;
+    }
+    
+    /* Priority badges */
+    .priority-critical {
+      color: var(--accent-red);
+      font-weight: bold;
+    }
+    
+    .priority-warning {
+      color: var(--accent-orange);
+      font-weight: bold;
+    }
+    
+    .priority-info {
+      color: var(--accent-cyan);
+    }
+    
+    hr {
+      border: 0;
+      border-top: 1px solid var(--border-color);
+      margin: 32px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>☸️ Kubernetes Security &amp; Best Practices Analysis Report</h1>
+<p><strong>Date</strong>: June 09, 2026 | <strong>Auditor</strong>: Antigravity (using <code>kubernetes-specialist</code> skill) | <strong>Target Directory</strong>: <code>kubernetes-manifests/base/</code></p>
+<hr>
+<h2>📋 Executive Summary</h2>
+<p>An audit of the core homelab manifests (<code>iiqstack</code>) was conducted using the <strong>Kubernetes Specialist</strong> standards. While these manifests function correctly for a local developer environment, they contain several production anti-patterns and security vulnerabilities:</p>
+<ul>
+<li><strong>Hardcoded Credentials</strong>: Plaintext passwords are exposed directly in environment variables.</li>
+<li><strong>Lack of Resource Limits</strong>: Containers run without CPU/Memory limits, leaving the nodes vulnerable to starvation or out-of-memory (OOM) crashes.</li>
+<li><strong>Over-privileged Security Contexts</strong>: Database init containers and workloads run as root with privilege escalation enabled.</li>
+<li><strong>Missing Probes</strong>: Key components (e.g., MSSQL database) lack liveness or readiness health checks.</li>
+<li><strong>Default Namespaces</strong>: All base manifests are deployed to the <code>default</code> namespace instead of logical isolation.</li>
+</ul>
+<hr>
+<h2>🚨 Key Findings</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Finding</th>
+<th align="left">Priority</th>
+<th align="left">Manifest File(s)</th>
+<th align="left">Description</th>
+<th align="left">Violation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Plaintext Secrets</strong></td>
+<td align="left"><span class="priority-critical">🔴 CRITICAL</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/iiq-deployment.yaml">iiq-deployment.yaml</a><br><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/db-mssql-deployment.yaml">db-mssql-deployment.yaml</a></td>
+<td align="left">Sensitive database passwords (<code>MSSQL_PASS</code>, <code>MSSQL_SA_PASSWORD</code>) are hardcoded in environment variables.</td>
+<td align="left"><em>MUST NOT: Store secrets as plain environment variables.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>No Resource Quotas</strong></td>
+<td align="left"><span class="priority-warning">🟡 WARNING</span></td>
+<td align="left"><em>All Deployment/StatefulSet files</em></td>
+<td align="left">No containers specify <code>resources.requests</code> or <code>resources.limits</code>.</td>
+<td align="left"><em>MUST DO: Set resource requests and limits on all containers.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>Root Containers</strong></td>
+<td align="left"><span class="priority-warning">🟡 WARNING</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/db-mssql-deployment.yaml">db-mssql-deployment.yaml</a></td>
+<td align="left">MSSQL and busiest init-containers run explicitly as root (<code>runAsUser: 0</code>) with <code>allowPrivilegeEscalation: true</code>.</td>
+<td align="left"><em>MUST NOT: Run containers as root without justification.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>Missing Liveness Probes</strong></td>
+<td align="left"><span class="priority-warning">🟡 WARNING</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/iiq-deployment.yaml">iiq-deployment.yaml</a><br><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/db-mssql-deployment.yaml">db-mssql-deployment.yaml</a></td>
+<td align="left">DB has no health checks; IIQ only defines startup and readiness probes but lacks a liveness probe.</td>
+<td align="left"><em>MUST DO: Include liveness and readiness probes.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>Use of <code>latest</code> Tags</strong></td>
+<td align="left"><span class="priority-info">🔵 INFO</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/iiq-deployment.yaml">iiq-deployment.yaml</a><br><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/db-mssql-deployment.yaml">db-mssql-deployment.yaml</a></td>
+<td align="left">Workloads deploy using <code>:latest</code> or <code>:2019-latest</code> tags, leading to non-deterministic rollouts.</td>
+<td align="left"><em>MUST NOT: Use latest tag for production images.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>No Network Segmentation</strong></td>
+<td align="left"><span class="priority-info">🔵 INFO</span></td>
+<td align="left"><em>All files</em></td>
+<td align="left">No <code>NetworkPolicy</code> objects are defined. All pods allow unrestricted ingress/egress.</td>
+<td align="left"><em>MUST DO: Implement NetworkPolicies for network segmentation.</em></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>🔍 Detailed Audits</h2>
+<h3>1. IdentityIQ Workload (<a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/iiq-deployment.yaml">iiq-deployment.yaml</a>)</h3>
+<div class="alert alert-warning"><span class="alert-icon">⚠️</span><div class="alert-content"><strong>WARNING:</strong> This deployment suffers from major security exposures due to credential leakage and root filesystem mutability.</div></div>
+<ul>
+<li><strong>Hardcoded DB Credentials</strong>:<pre><code class="language-yaml">- name: MSSQL_PASS
+  value: Id3nt!tyIQ2026
+</code></pre>
+</li>
+<li><strong>No Resource Limits</strong>: If Java garbage collection or memory leaks occur, the container can consume all node RAM, causing the K3s host to crash.</li>
+<li><strong>Missing Liveness Probe</strong>: If the Tomcat server locks up, Kubernetes won&#39;t auto-restart the container because only <code>readinessProbe</code> and <code>startupProbe</code> are configured.</li>
+</ul>
+<h3>2. MSSQL Database Workload (<a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/db-mssql-deployment.yaml">db-mssql-deployment.yaml</a>)</h3>
+<div class="alert alert-caution"><span class="alert-icon">🚫</span><div class="alert-content"><strong>CAUTION:</strong> Running stateful databases via standard <code>Deployment</code> instead of <code>StatefulSet</code> risks database corruption during rescheduling.</div></div>
+<ul>
+<li><strong>Deployment vs. StatefulSet</strong>: Deployments do not guarantee a single instance or stable network storage binding during node failures. This can cause split-brain data corruption when scaling or moving the pod.</li>
+<li><strong>Over-Privileged Permission Fix</strong>:<pre><code class="language-bash">chmod 777 /var/opt/mssql
+</code></pre>
+Setting directory permissions to <code>777</code> allows any container running on the host or inside the pod to read/write database files.</li>
+</ul>
+<hr>
+<h2>🛠️ Refactoring Recommendations</h2>
+<p>To align your manifests with the <strong>Kubernetes Specialist</strong> standard, implement the following changes:</p>
+<h3>A. Extract Credentials into a Kubernetes Secret</h3>
+<p>Create a secret named <code>db-secrets.yaml</code>:</p>
+<pre><code class="language-yaml">apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secrets
+  namespace: iiqstack
+type: Opaque
+stringData:
+  mssql-pass: &quot;Id3nt!tyIQ2026&quot;
+</code></pre>
+<p>And mount it securely in the workload manifests:</p>
+<pre><code class="language-yaml">- name: MSSQL_PASS
+  valueFrom:
+    secretKeyRef:
+      name: db-secrets
+      key: mssql-pass
+</code></pre>
+<h3>B. Add Resource Specifications and Probes</h3>
+<p>Apply constraints and full health checks to <a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/base/iiq-deployment.yaml">iiq-deployment.yaml</a>:</p>
+<pre><code class="language-yaml">resources:
+  requests:
+    cpu: &quot;250m&quot;
+    memory: &quot;1Gi&quot;
+  limits:
+    cpu: &quot;1000m&quot;
+    memory: &quot;2Gi&quot;
+livenessProbe:
+  httpGet:
+    path: /identityiq
+    port: 8080
+  initialDelaySeconds: 90
+  periodSeconds: 20
+</code></pre>
+<h3>C. Restrict Pod Security Contexts</h3>
+<p>Update the security context to run containers as non-root and restrict permissions:</p>
+<pre><code class="language-yaml">securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  fsGroup: 2000
+</code></pre>
+
+
+  </div>
+</body>
+</html>

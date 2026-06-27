@@ -1,0 +1,577 @@
+--- K3s Cluster Shutdown Sequence (v8) ---
+Attempting dynamic node discovery...
+Active Mode: DYNAMIC
+Master: 192.168.0.21
+Workers: kubernetes1, kubernetes2, kubernetes3, kubernetes4, kubernetes5, kubernetes6, kubernetes8-debian
+Loaded password from SecretStore vault.
+
+--- Node: kubernetes1 ---
+  - Draining...
+node/kubernetes1 already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-qfsff, kube-system/svclb-traefik-6ce42ebc-7rrj9, longhorn-system/engine-image-ei-db6c2b6f-4qq48, longhorn-system/longhorn-csi-plugin-zzf6v, longhorn-system/longhorn-manager-q25dg, monitoring/beszel-agent-h26qr
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-0
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+evicting pod iiqstack/db-0
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-0
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+evicting pod media/calibre-web-659686ff57-kmwb6
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-0
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod iiqstack/db-0
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/calibre-web-659686ff57-kmwb6
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+evicting pod iiqstack/db-0
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-53467141777d9d39da664b763fce07cc
+evicting pod iiqstack/db-0
+evicting pod media/calibre-web-659686ff57-kmwb6
+There are pending pods in node "kubernetes1" when an error occurred: [error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system": global timeout reached: 1m0s, error when evicting pods/"db-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media": global timeout reached: 1m0s]
+pod/db-0
+pod/instance-manager-53467141777d9d39da664b763fce07cc
+pod/calibre-web-659686ff57-kmwb6
+error: unable to drain node "kubernetes1" due to error: [error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system": global timeout reached: 1m0s, error when evicting pods/"db-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media": global timeout reached: 1m0s], continuing command...
+There are pending nodes to be drained:
+ kubernetes1
+error when evicting pods/"instance-manager-53467141777d9d39da664b763fce07cc" -n "longhorn-system": global timeout reached: 1m0s
+error when evicting pods/"db-0" -n "iiqstack": global timeout reached: 1m0s
+error when evicting pods/"calibre-web-659686ff57-kmwb6" -n "media": global timeout reached: 1m0s
+  - Powering off...
+Warning: Permanently added '192.168.0.19' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 
+--- Node: kubernetes2 ---
+  - Draining...
+node/kubernetes2 already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-2gm2j, kube-system/svclb-traefik-6ce42ebc-gfq6l, longhorn-system/engine-image-ei-db6c2b6f-pg5bn, longhorn-system/longhorn-csi-plugin-kx69v, longhorn-system/longhorn-manager-n8956, monitoring/beszel-agent-9whfl
+evicting pod argocd/argocd-server-5b8fbbcbd6-m4r6w
+evicting pod argocd/argocd-applicationset-controller-654cf6854b-p6jlc
+evicting pod iiqstack/iiq-5bcbf7c74f-q7rjg
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+evicting pod iiqstack/activemq-0
+evicting pod tailscale/ts-argocd-server-mswrv-0
+evicting pod iiqstack/counter-5879f9fdd5-89cfc
+evicting pod tailscale/ts-audiobookshelf-t5wcf-0
+evicting pod tailscale/ts-phpldapadmin-vjg5d-0
+evicting pod argocd/argocd-repo-server-848ccb9677-8qlbw
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+I0605 23:42:44.469586   17347 request.go:752] "Waited before sending request" delay="1.08038958s" reason="client-side throttling, not priority and fairness" verb="GET" URL="https://192.168.0.21:6443/api/v1/namespaces/argocd/pods/argocd-repo-server-848ccb9677-8qlbw"
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+evicting pod iiqstack/activemq-0
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/ts-audiobookshelf-t5wcf-0 evicted
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/ts-argocd-server-mswrv-0 evicted
+pod/counter-5879f9fdd5-89cfc evicted
+pod/argocd-server-5b8fbbcbd6-m4r6w evicted
+pod/iiq-5bcbf7c74f-q7rjg evicted
+pod/argocd-repo-server-848ccb9677-8qlbw evicted
+pod/argocd-applicationset-controller-654cf6854b-p6jlc evicted
+pod/ts-phpldapadmin-vjg5d-0 evicted
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+evicting pod iiqstack/activemq-0
+error when evicting pods/"activemq-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/activemq-0
+evicting pod longhorn-system/instance-manager-86af481e17c6b11c6edac4a93172f9da
+There are pending pods in node "kubernetes2" when an error occurred: [error when evicting pods/"activemq-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system": global timeout reached: 1m0s]
+pod/activemq-0
+pod/instance-manager-86af481e17c6b11c6edac4a93172f9da
+error: unable to drain node "kubernetes2" due to error: [error when evicting pods/"activemq-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system": global timeout reached: 1m0s], continuing command...
+There are pending nodes to be drained:
+ kubernetes2
+error when evicting pods/"activemq-0" -n "iiqstack": global timeout reached: 1m0s
+error when evicting pods/"instance-manager-86af481e17c6b11c6edac4a93172f9da" -n "longhorn-system": global timeout reached: 1m0s
+  - Powering off...
+Warning: Permanently added '192.168.0.20' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 
+--- Node: kubernetes3 ---
+  - Draining...
+node/kubernetes3 already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-9px5c, kube-system/svclb-traefik-6ce42ebc-zjqst, longhorn-system/engine-image-ei-db6c2b6f-7wtsg, longhorn-system/longhorn-csi-plugin-v98hv, longhorn-system/longhorn-manager-6b6fb, monitoring/beszel-agent-q4vsn
+evicting pod tailscale/ts-openwebui-2z9gj-0
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod tailscale/ts-audiobookshelf-t5wcf-0
+evicting pod argocd/argocd-notifications-controller-587cc49f7-h9zhr
+evicting pod argocd/argocd-server-5b8fbbcbd6-t4g2q
+evicting pod argocd/argocd-repo-server-848ccb9677-gjrxl
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+evicting pod argocd/argocd-redis-69686bbd69-75rvw
+evicting pod iiqstack/mail-0
+evicting pod homepage/homepage-7dbd6dcfcd-qdh6r
+evicting pod tailscale/ts-db-7ltn8-0
+evicting pod tailscale/ts-db-mysql-cksgr-0
+evicting pod monitoring/beszel-hub-5cf64bcf86-wrq4b
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+I0605 23:43:59.338214   17371 request.go:752] "Waited before sending request" delay="1.11315783s" reason="client-side throttling, not priority and fairness" verb="GET" URL="https://192.168.0.21:6443/api/v1/namespaces/argocd/pods/argocd-repo-server-848ccb9677-gjrxl"
+pod/argocd-notifications-controller-587cc49f7-h9zhr evicted
+pod/ts-audiobookshelf-t5wcf-0 evicted
+pod/ts-openwebui-2z9gj-0 evicted
+pod/homepage-7dbd6dcfcd-qdh6r evicted
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+pod/ts-db-mysql-cksgr-0 evicted
+pod/argocd-server-5b8fbbcbd6-t4g2q evicted
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/argocd-repo-server-848ccb9677-gjrxl evicted
+evicting pod iiqstack/mail-0
+pod/ts-db-7ltn8-0 evicted
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/beszel-hub-5cf64bcf86-wrq4b evicted
+pod/argocd-redis-69686bbd69-75rvw evicted
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/mail-0
+error when evicting pods/"mail-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+evicting pod iiqstack/iiq-5bcbf7c74f-qdl7k
+evicting pod iiqstack/mail-0
+There are pending pods in node "kubernetes3" when an error occurred: [error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system": global timeout reached: 1m0s, error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"mail-0" -n "iiqstack": global timeout reached: 1m0s]
+pod/iiq-5bcbf7c74f-qdl7k
+pod/mail-0
+pod/instance-manager-3b89e5eba33fc10c4d1ae50b1f841573
+error: unable to drain node "kubernetes3" due to error: [error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system": global timeout reached: 1m0s, error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"mail-0" -n "iiqstack": global timeout reached: 1m0s], continuing command...
+There are pending nodes to be drained:
+ kubernetes3
+error when evicting pods/"instance-manager-3b89e5eba33fc10c4d1ae50b1f841573" -n "longhorn-system": global timeout reached: 1m0s
+error when evicting pods/"iiq-5bcbf7c74f-qdl7k" -n "iiqstack": global timeout reached: 1m0s
+error when evicting pods/"mail-0" -n "iiqstack": global timeout reached: 1m0s
+  - Powering off...
+Warning: Permanently added '192.168.0.22' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 
+--- Node: kubernetes4 ---
+  - Draining...
+node/kubernetes4 already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-qwbpt, kube-system/svclb-traefik-6ce42ebc-rzllv, longhorn-system/engine-image-ei-db6c2b6f-4j6kv, longhorn-system/longhorn-csi-plugin-cjns9, longhorn-system/longhorn-manager-8pdwg, monitoring/beszel-agent-w9m44
+evicting pod tailscale/ts-ssh-grmpb-0
+evicting pod iiqstack/ssh-5878744b4d-lbpds
+evicting pod argocd/argocd-dex-server-fbfb679d4-2hrjh
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+evicting pod argocd/argocd-redis-69686bbd69-z74zb
+evicting pod iiqstack/db-mysql-0
+evicting pod iiqstack/phpldapadmin-6bbff9ff68-5mzst
+evicting pod tailscale/ts-calibre-web-wx752-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+evicting pod tailscale/ts-db-7ltn8-0
+evicting pod tailscale/ts-audiobookshelf-t5wcf-0
+evicting pod tailscale/ts-ldap-4qqsc-0
+evicting pod iiqstack/ldap-0
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/ts-calibre-web-wx752-0 evicted
+pod/phpldapadmin-6bbff9ff68-5mzst evicted
+pod/ts-db-7ltn8-0 evicted
+I0605 23:45:04.857193   17459 request.go:752] "Waited before sending request" delay="1.038987593s" reason="client-side throttling, not priority and fairness" verb="GET" URL="https://192.168.0.21:6443/api/v1/namespaces/tailscale/pods/ts-audiobookshelf-t5wcf-0"
+pod/ts-audiobookshelf-t5wcf-0 evicted
+pod/ts-ldap-4qqsc-0 evicted
+pod/argocd-dex-server-fbfb679d4-2hrjh evicted
+pod/ssh-5878744b4d-lbpds evicted
+pod/argocd-redis-69686bbd69-z74zb evicted
+evicting pod iiqstack/ldap-0
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/ts-ssh-grmpb-0 evicted
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+evicting pod iiqstack/ldap-0
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+evicting pod iiqstack/db-mysql-0
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+evicting pod iiqstack/db-mysql-0
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+evicting pod iiqstack/ldap-0
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"ldap-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/db-mysql-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+error when evicting pods/"db-mysql-0" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/ldap-0
+evicting pod media/audiobookshelf-669c8f7cbd-xbpmg
+evicting pod iiqstack/db-mysql-0
+evicting pod longhorn-system/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+There are pending pods in node "kubernetes4" when an error occurred: [error when evicting pods/"ldap-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media": global timeout reached: 1m0s, error when evicting pods/"db-mysql-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system": global timeout reached: 1m0s]
+pod/db-mysql-0
+pod/ldap-0
+pod/instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704
+pod/audiobookshelf-669c8f7cbd-xbpmg
+error: unable to drain node "kubernetes4" due to error: [error when evicting pods/"ldap-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media": global timeout reached: 1m0s, error when evicting pods/"db-mysql-0" -n "iiqstack": global timeout reached: 1m0s, error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system": global timeout reached: 1m0s], continuing command...
+There are pending nodes to be drained:
+ kubernetes4
+error when evicting pods/"ldap-0" -n "iiqstack": global timeout reached: 1m0s
+error when evicting pods/"audiobookshelf-669c8f7cbd-xbpmg" -n "media": global timeout reached: 1m0s
+error when evicting pods/"db-mysql-0" -n "iiqstack": global timeout reached: 1m0s
+error when evicting pods/"instance-manager-d3ebe6840b9673c9c0ae36b2bd42c704" -n "longhorn-system": global timeout reached: 1m0s
+  - Powering off...
+Warning: Permanently added '192.168.0.23' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 
+--- Node: kubernetes5 ---
+  - Draining...
+node/kubernetes5 already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-bwzr2, kube-system/svclb-traefik-6ce42ebc-znkhx, longhorn-system/engine-image-ei-db6c2b6f-9xzbw, longhorn-system/longhorn-csi-plugin-skk82, longhorn-system/longhorn-manager-lddpf, monitoring/beszel-agent-tp55j
+evicting pod tailscale/ts-ssh-grmpb-0
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+evicting pod tailscale/ts-openwebui-2z9gj-0
+evicting pod tailscale/ts-homepage-97ccs-0
+evicting pod tailscale/ts-argocd-server-tailscale-tfd9g-0
+evicting pod tailscale/ts-iiq-dspm8-0
+evicting pod tailscale/ts-argocd-server-mswrv-0
+evicting pod iiqstack/ssh-5878744b4d-tctxp
+evicting pod iiqstack/counter-5879f9fdd5-ltv5v
+evicting pod iiqstack/phpldapadmin-6bbff9ff68-4jsfh
+evicting pod tailscale/ts-phpldapadmin-tailscale-2jrxj-0
+evicting pod monitoring/beszel-hub-5cf64bcf86-znhm8
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/beszel-hub-5cf64bcf86-znhm8 evicted
+I0605 23:46:09.976806   17581 request.go:752] "Waited before sending request" delay="1.067401684s" reason="client-side throttling, not priority and fairness" verb="GET" URL="https://192.168.0.21:6443/api/v1/namespaces/tailscale/pods/ts-openwebui-2z9gj-0"
+pod/ts-phpldapadmin-tailscale-2jrxj-0 evicted
+pod/ts-iiq-dspm8-0 evicted
+pod/ssh-5878744b4d-tctxp evicted
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+pod/ts-argocd-server-mswrv-0 evicted
+pod/ts-homepage-97ccs-0 evicted
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+pod/phpldapadmin-6bbff9ff68-4jsfh evicted
+pod/ts-argocd-server-tailscale-tfd9g-0 evicted
+pod/ts-openwebui-2z9gj-0 evicted
+pod/counter-5879f9fdd5-ltv5v evicted
+pod/ts-ssh-grmpb-0 evicted
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system" (will retry after 5s): Cannot evict pod as it would violate the pod's disruption budget.
+evicting pod longhorn-system/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+evicting pod iiqstack/iiq-5bcbf7c74f-q22qc
+There are pending pods in node "kubernetes5" when an error occurred: [error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system": global timeout reached: 1m0s, error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack": global timeout reached: 1m0s]
+pod/iiq-5bcbf7c74f-q22qc
+pod/instance-manager-7a9f755771501021a64aaf8e4a2a003b
+error: unable to drain node "kubernetes5" due to error: [error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system": global timeout reached: 1m0s, error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack": global timeout reached: 1m0s], continuing command...
+There are pending nodes to be drained:
+ kubernetes5
+error when evicting pods/"instance-manager-7a9f755771501021a64aaf8e4a2a003b" -n "longhorn-system": global timeout reached: 1m0s
+error when evicting pods/"iiq-5bcbf7c74f-q22qc" -n "iiqstack": global timeout reached: 1m0s
+  - Powering off...
+Warning: Permanently added '192.168.0.24' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 
+--- Node: kubernetes6 ---
+  - Draining...
+node/kubernetes6 already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-8jzft, kube-system/svclb-traefik-6ce42ebc-7rnbd, longhorn-system/engine-image-ei-db6c2b6f-nqs9c, longhorn-system/longhorn-csi-plugin-dww7w, longhorn-system/longhorn-manager-r9bq7, monitoring/beszel-agent-ntcc7
+evicting pod tailscale/ts-phpldapadmin-vjg5d-0
+evicting pod tailscale/ts-calibre-web-wx752-0
+evicting pod homepage/homepage-7dbd6dcfcd-djm92
+evicting pod argocd/argocd-redis-69686bbd69-hb5rr
+evicting pod argocd/argocd-repo-server-848ccb9677-zf5z5
+evicting pod argocd/argocd-applicationset-controller-654cf6854b-8pkk6
+evicting pod argocd/argocd-dex-server-fbfb679d4-hkkkn
+evicting pod tailscale/ts-iiq-tailscale-6lbvp-0
+evicting pod tailscale/ts-activemq-2855r-0
+evicting pod tailscale/ts-iiq-dspm8-0
+evicting pod monitoring/beszel-hub-5cf64bcf86-v7wbf
+evicting pod argocd/argocd-notifications-controller-587cc49f7-d88zh
+evicting pod tailscale/ts-openwebui-2z9gj-0
+evicting pod default/nfs-provisioner-nfs-subdir-external-provisioner-6d7f55b8c-m8v4r
+evicting pod iiqstack/ssh-5878744b4d-v8xv7
+evicting pod argocd/argocd-server-5b8fbbcbd6-qn8pc
+evicting pod tailscale/ts-openwebui-tailscale-6c2ss-0
+evicting pod tailscale/ts-homepage-97ccs-0
+evicting pod tailscale/ts-argocd-server-mswrv-0
+evicting pod tailscale/ts-audiobookshelf-t5wcf-0
+evicting pod ai/ollama-68cf97bbf4-d5v68
+evicting pod iiqstack/phpldapadmin-6bbff9ff68-fghp9
+evicting pod ai/openwebui-555f69b64b-2d6c7
+evicting pod iiqstack/counter-5879f9fdd5-zgm86
+evicting pod longhorn-system/instance-manager-a99d4103eb273c05dec72ed4a492e88e
+I0605 23:47:12.985832   17607 request.go:752] "Waited before sending request" delay="1.200011994s" reason="client-side throttling, not priority and fairness" verb="POST" URL="https://192.168.0.21:6443/api/v1/namespaces/argocd/pods/argocd-server-5b8fbbcbd6-qn8pc/eviction"
+pod/ts-activemq-2855r-0 evicted
+pod/homepage-7dbd6dcfcd-djm92 evicted
+pod/ts-calibre-web-wx752-0 evicted
+pod/argocd-redis-69686bbd69-hb5rr evicted
+pod/ts-openwebui-tailscale-6c2ss-0 evicted
+pod/nfs-provisioner-nfs-subdir-external-provisioner-6d7f55b8c-m8v4r evicted
+I0605 23:47:23.086759   17607 request.go:752] "Waited before sending request" delay="4.61239524s" reason="client-side throttling, not priority and fairness" verb="GET" URL="https://192.168.0.21:6443/api/v1/namespaces/tailscale/pods/ts-homepage-97ccs-0"
+pod/ts-iiq-tailscale-6lbvp-0 evicted
+pod/ollama-68cf97bbf4-d5v68 evicted
+pod/beszel-hub-5cf64bcf86-v7wbf evicted
+pod/phpldapadmin-6bbff9ff68-fghp9 evicted
+pod/ts-iiq-dspm8-0 evicted
+pod/ts-phpldapadmin-vjg5d-0 evicted
+pod/argocd-notifications-controller-587cc49f7-d88zh evicted
+pod/openwebui-555f69b64b-2d6c7 evicted
+pod/ts-openwebui-2z9gj-0 evicted
+pod/instance-manager-a99d4103eb273c05dec72ed4a492e88e evicted
+pod/argocd-applicationset-controller-654cf6854b-8pkk6 evicted
+pod/argocd-repo-server-848ccb9677-zf5z5 evicted
+pod/argocd-dex-server-fbfb679d4-hkkkn evicted
+pod/ssh-5878744b4d-v8xv7 evicted
+pod/argocd-server-5b8fbbcbd6-qn8pc evicted
+pod/ts-argocd-server-mswrv-0 evicted
+pod/ts-homepage-97ccs-0 evicted
+pod/ts-audiobookshelf-t5wcf-0 evicted
+pod/counter-5879f9fdd5-zgm86 evicted
+node/kubernetes6 drained
+  - Powering off...
+Warning: Permanently added '192.168.0.25' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 
+--- Node: kubernetes8-debian ---
+  - Draining...
+node/kubernetes8-debian already cordoned
+Warning: ignoring DaemonSet-managed Pods: kube-system/registry-fixer-hgbbj, kube-system/svclb-traefik-6ce42ebc-drmm4, longhorn-system/engine-image-ei-db6c2b6f-vfhg6, longhorn-system/longhorn-csi-plugin-v2rnf, longhorn-system/longhorn-manager-fvc9r, monitoring/beszel-agent-p2k6h
+node/kubernetes8-debian drained
+  - Powering off...
+ssh: connect to host 192.168.0.27 port 22: Operation timed out
+
+--- Powering off Master (NUC) ---
+Warning: Permanently added '192.168.0.21' (ED25519) to the list of known hosts.
+[sudo] password for suryendub: 

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "find-a-product": {
+      "source": "/Users/macbookpro/.config/browserbase/skills/ebay.com/find-a-product-ef49sf",
+      "sourceType": "local",
+      "computedHash": "bb7dfad240f6c8850b2b98e9f2b862580cafc7c028d46534bc7eee9a078595b9"
+    }
+  }
+}

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kubernetes Security & Best Practices Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-panel: #1e293b;
+      --text-main: #cbd5e1;
+      --text-heading: #f8fafc;
+      --accent-cyan: #06b6d4;
+      --accent-orange: #f97316;
+      --accent-red: #ef4444;
+      --border-color: #334155;
+    }
+    
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 40px 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--bg-panel);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+    }
+    
+    h1, h2, h3, h4 {
+      color: var(--text-heading);
+      font-weight: 600;
+    }
+    
+    h1 {
+      font-size: 2.2rem;
+      border-bottom: 2px solid var(--accent-cyan);
+      padding-bottom: 12px;
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 32px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
+    }
+    
+    a {
+      color: var(--accent-cyan);
+      text-decoration: none;
+    }
+    
+    a:hover {
+      text-decoration: underline;
+    }
+    
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      background: #0f172a;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      color: #e2e8f0;
+      border: 1px solid #1e293b;
+    }
+    
+    pre {
+      background: #090d16;
+      padding: 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      border: 1px solid var(--border-color);
+    }
+    
+    pre code {
+      background: transparent;
+      padding: 0;
+      border: none;
+      color: #f1f5f9;
+      font-size: 0.85em;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+    }
+    
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    th {
+      background-color: rgba(51, 65, 85, 0.5);
+      color: var(--text-heading);
+      font-weight: 500;
+    }
+    
+    tr:hover {
+      background-color: rgba(51, 65, 85, 0.2);
+    }
+    
+    /* Alerts */
+    .alert {
+      display: flex;
+      gap: 16px;
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 24px 0;
+      border-left: 4px solid;
+    }
+    
+    .alert-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    
+    .alert-content {
+      margin: 0;
+    }
+    
+    .alert-warning {
+      background: rgba(249, 115, 22, 0.1);
+      border-color: var(--accent-orange);
+      color: #ffedd5;
+    }
+    
+    .alert-caution {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: var(--accent-red);
+      color: #fee2e2;
+    }
+    
+    .alert-note {
+      background: rgba(6, 182, 212, 0.1);
+      border-color: var(--accent-cyan);
+      color: #ecfeff;
+    }
+    
+    /* Priority badges */
+    .priority-critical {
+      color: var(--accent-red);
+      font-weight: bold;
+    }
+    
+    .priority-warning {
+      color: var(--accent-orange);
+      font-weight: bold;
+    }
+    
+    .priority-info {
+      color: var(--accent-cyan);
+    }
+    
+    hr {
+      border: 0;
+      border-top: 1px solid var(--border-color);
+      margin: 32px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>☸️ Media Stack - Kubernetes Security &amp; Best Practices Analysis Report</h1>
+<p><strong>Date</strong>: June 09, 2026 | <strong>Auditor</strong>: Antigravity (using <code>kubernetes-specialist</code> skill) | <strong>Target Directory</strong>: <code>kubernetes-manifests/media/</code></p>
+<hr>
+<h2>📋 Executive Summary</h2>
+<p>An audit of the media stack manifests (<code>audiobookshelf</code> and <code>calibre-web</code>) was conducted using the <strong>Kubernetes Specialist</strong> guidelines. </p>
+<p>Compared to the base <code>iiqstack</code> manifests, the media stack is <strong>significantly better configured</strong>:</p>
+<ul>
+<li><strong>Dedicated Namespace</strong>: Deploys in an isolated <code>media</code> namespace.</li>
+<li><strong>Probes and Health Checks</strong>: Fully defines liveness and readiness probes.</li>
+<li><strong>Resource Controls</strong>: Sets resource requests and limits on core containers.</li>
+<li><strong>Deterministic Rollouts</strong>: Uses specific versions instead of <code>latest</code> tags (e.g. <code>2.35.1</code> and <code>0.6.25-ls358</code>).</li>
+</ul>
+<p>However, two critical anti-patterns were discovered within the initialization logic of <code>calibre-web.yaml</code> that can block pod startups and violate isolation.</p>
+<hr>
+<h2>🚨 Key Findings</h2>
+<table>
+<thead>
+<tr>
+<th align="left">Finding</th>
+<th align="left">Priority</th>
+<th align="left">Manifest File(s)</th>
+<th align="left">Description</th>
+<th align="left">Violation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left"><strong>Runtime Package Install in Init</strong></td>
+<td align="left"><span class="priority-critical">🔴 CRITICAL</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/media/calibre-web.yaml">calibre-web.yaml</a></td>
+<td align="left">The init container <code>init-library</code> downloads packages dynamically (<code>apk add wget sqlite</code>) at startup.</td>
+<td align="left"><em>MUST NOT: Introduce external network dependencies for startup.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>Expensive Disk Operations</strong></td>
+<td align="left"><span class="priority-warning">🟡 WARNING</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/media/calibre-web.yaml">calibre-web.yaml</a></td>
+<td align="left">The init container runs <code>chown -R</code> on a 500Gi NFS library mount, which can cause startup timeout failures.</td>
+<td align="left"><em>MUST NOT: Perform expensive recursive I/O in block/mount init steps.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>Default ServiceAccount</strong></td>
+<td align="left"><span class="priority-info">🔵 INFO</span></td>
+<td align="left"><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/media/audiobookshelf.yaml">audiobookshelf.yaml</a><br><a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/media/calibre-web.yaml">calibre-web.yaml</a></td>
+<td align="left">Both workloads run under the implicit <code>default</code> service account of the namespace.</td>
+<td align="left"><em>MUST NOT: Use default ServiceAccount for application pods.</em></td>
+</tr>
+<tr>
+<td align="left"><strong>No Network Policies</strong></td>
+<td align="left"><span class="priority-info">🔵 INFO</span></td>
+<td align="left"><em>All files</em></td>
+<td align="left">The stack lacks network policies, permitting unrestricted container-to-container communication.</td>
+<td align="left"><em>MUST DO: Implement NetworkPolicies for network segmentation.</em></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>🔍 Detailed Audits</h2>
+<h3>1. Calibre-Web Workload (<a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/media/calibre-web.yaml">calibre-web.yaml</a>)</h3>
+<div class="alert alert-warning"><span class="alert-icon">⚠️</span><div class="alert-content"><strong>WARNING:</strong> While Calibre-Web is properly resource-constrained and monitored, the custom init container poses a major reliability bottleneck.</div></div>
+<ul>
+<li><strong>Startup Network Blockers</strong>:<pre><code class="language-bash">apk add --no-cache wget sqlite
+wget https://github.com/janeczku/calibre-web/raw/master/library/metadata.db ...
+</code></pre>
+If the cluster runs in an air-gapped environment, experiences a temporary DNS outage, or GitHub/Alpine repositories are down, the init container will crash, causing a perpetual <code>Init:CrashLoopBackOff</code> loop.</li>
+<li><strong>NFS I/O Bottlenecks</strong>:<pre><code class="language-bash">chown -R 1000:1000 /library
+</code></pre>
+Running recursive ownership changes on a network-shared file system (NFS) with hundreds of gigabytes of files results in massive I/O load and extremely slow startup times, which can exceed the Kubelet container startup limits.</li>
+</ul>
+<h3>2. Audiobookshelf Workload (<a href="file:///Users/macbookpro/Documents/The-Kubernetes-Bible-Second-Edition/kubernetes-manifests/media/audiobookshelf.yaml">audiobookshelf.yaml</a>)</h3>
+<div class="alert alert-tip"><span class="alert-icon">💡</span><div class="alert-content"><strong>TIP:</strong> This manifest is a textbook example of a well-configured container, featuring healthy resource limits, probes, and an integrated PodDisruptionBudget.</div></div>
+<ul>
+<li><strong>Excellent Features</strong>:<ul>
+<li><strong>Resource Boundaries</strong>: Requests <code>100m</code>/<code>256Mi</code> and limits <code>1</code>/<code>1Gi</code>.</li>
+<li><strong>Probes</strong>: Configures robust liveness and readiness endpoints on <code>/healthcheck</code>.</li>
+<li><strong>Resilience</strong>: Configures a <code>PodDisruptionBudget</code> ensuring high availability during node drainage.</li>
+</ul>
+</li>
+</ul>
+<hr>
+<h2>🛠️ Refactoring Recommendations</h2>
+<p>To align the media stack with the <strong>Kubernetes Specialist</strong> guidelines:</p>
+<h3>A. Pre-package the Init Container Image</h3>
+<p>Avoid running package managers at startup. Build a custom mini-image containing <code>sqlite</code> and <code>wget</code> beforehand, and push it to your local registry (e.g. <code>192.168.0.236:5000/calibre-init:1.0</code>):</p>
+<pre><code class="language-dockerfile">FROM alpine:3.21
+RUN apk add --no-cache sqlite wget
+</code></pre>
+<p>Then use this deterministic image in <code>calibre-web.yaml</code>:</p>
+<pre><code class="language-yaml">initContainers:
+  - name: init-library
+    image: 192.168.0.236:5000/calibre-init:1.0
+    command: [&quot;sh&quot;, &quot;-c&quot;]
+    # Removed apk add wget sqlite
+</code></pre>
+<h3>B. Eliminate Expensive <code>chown</code></h3>
+<p>Rather than running <code>chown -R</code> on network storage, use K3s/Kubernetes native security context to map volume ownership at the pod level:</p>
+<pre><code class="language-yaml">securityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+</code></pre>
+<p>This forces the container runtime to handle permissions on mounting without recursive traversal over network volumes.</p>
+
+
+  </div>
+</body>
+</html>
