@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Drive Duplicate Files Report</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-panel: rgba(30, 41, 59, 0.4);
+      --bg-card: rgba(15, 23, 42, 0.8);
+      --text-main: #94a3b8;
+      --text-light: #e2e8f0;
+      --text-white: #f8fafc;
+      --accent-violet: #8b5cf6;
+      --accent-cyan: #06b6d4;
+      --accent-rose: #f43f5e;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --border-color: rgba(51, 65, 85, 0.5);
+      --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #090d16 60%);
+      color: var(--text-main);
+      font-family: 'Outfit', sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--text-white);
+      margin: 0 0 10px 0;
+      background: linear-gradient(to right, #06b6d4, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.025em;
+    }
+    
+    .subtitle {
+      font-size: 1.1rem;
+      color: #cbd5e1;
+      margin: 0;
+    }
+    
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+    
+    .stat-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--glass-shadow);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: var(--accent-violet);
+    }
+    
+    .stat-card.cyan::before { background: var(--accent-cyan); }
+    .stat-card.rose::before { background: var(--accent-rose); }
+    .stat-card.emerald::before { background: var(--accent-emerald); }
+    
+    .stat-val {
+      font-size: 2.2rem;
+      font-weight: 700;
+      color: var(--text-white);
+      margin-bottom: 5px;
+    }
+    
+    .stat-label {
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #64748b;
+    }
+    
+    .stat-desc {
+      font-size: 0.8rem;
+      margin-top: 10px;
+      color: var(--text-main);
+    }
+    
+    /* Filters and search */
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: var(--glass-shadow);
+    }
+    
+    .filters-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    
+    .filter-btn {
+      background: rgba(15, 23, 42, 0.4);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .filter-btn:hover {
+      color: var(--text-light);
+      border-color: var(--accent-cyan);
+    }
+    
+    .filter-btn.active {
+      background: var(--accent-cyan);
+      color: var(--bg-dark);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 12px rgba(6, 182, 212, 0.4);
+    }
+    
+    .search-box {
+      position: relative;
+      flex: 1;
+      max-width: 400px;
+      min-width: 250px;
+    }
+    
+    .search-input {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      color: var(--text-light);
+      border-radius: 10px;
+      padding: 10px 15px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s ease;
+    }
+    
+    .search-input:focus {
+      border-color: var(--accent-violet);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.2);
+    }
+    
+    .view-controls {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .btn {
+      background: rgba(139, 92, 246, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+    
+    .btn:hover {
+      background: rgba(139, 92, 246, 0.4);
+      border-color: var(--accent-violet);
+      color: var(--text-white);
+    }
+    
+    /* Duplicate groups list */
+    .group-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: var(--glass-shadow);
+      transition: border-color 0.2s ease;
+    }
+    
+    .group-header {
+      padding: 20px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      background: rgba(30, 41, 59, 0.2);
+      transition: background 0.2s ease;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    
+    .group-header:hover {
+      background: rgba(30, 41, 59, 0.35);
+    }
+    
+    .group-title-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 250px;
+    }
+    
+    .group-icon {
+      font-size: 1.5rem;
+    }
+    
+    .group-name {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-white);
+      word-break: break-all;
+    }
+    
+    .group-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .badge {
+      border-radius: 20px;
+      padding: 3px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .badge.count {
+      background: rgba(244, 63, 94, 0.15);
+      color: #fb7185;
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    
+    .badge.mime {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--text-light);
+      border: 1px solid var(--border-color);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: none;
+    }
+    
+    .chevron {
+      color: var(--text-main);
+      transition: transform 0.2s ease;
+      font-size: 1.2rem;
+    }
+    
+    .group-card.expanded .chevron {
+      transform: rotate(180deg);
+    }
+    
+    .group-content {
+      border-top: 1px solid var(--border-color);
+      padding: 0;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+    }
+    
+    .group-card.expanded .group-content {
+      max-height: 2000px;
+      transition: max-height 0.3s cubic-bezier(1, 0, 1, 0);
+    }
+    
+    /* Files list inside group */
+    .files-list {
+      padding: 10px 24px 20px 24px;
+    }
+    
+    .file-row {
+      display: grid;
+      grid-template-columns: 40px minmax(200px, 1.5fr) minmax(150px, 1fr) 140px 100px 180px;
+      align-items: center;
+      gap: 15px;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+    }
+    
+    .file-row:last-child {
+      border-bottom: none;
+    }
+    
+    .checkbox-col {
+      display: flex;
+      justify-content: center;
+    }
+    
+    .custom-checkbox {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: var(--accent-rose);
+    }
+    
+    .path-col {
+      word-break: break-all;
+      color: var(--text-light);
+      font-size: 0.95rem;
+    }
+    
+    .id-col {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    
+    .date-col {
+      font-size: 0.85rem;
+      color: var(--text-main);
+    }
+    
+    .rec-col {
+      display: flex;
+    }
+    
+    .rec-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    
+    .rec-badge.keep {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    
+    .rec-badge.delete {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--accent-rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    
+    .actions-col {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    
+    .action-link {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      color: var(--text-light);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    .action-link:hover {
+      border-color: var(--accent-cyan);
+      color: var(--text-white);
+      background: rgba(6, 182, 212, 0.1);
+    }
+    
+    .action-link.folder:hover {
+      border-color: var(--accent-amber);
+      color: var(--text-white);
+      background: rgba(245, 158, 11, 0.1);
+    }
+    
+    /* Floating action panel */
+    .floating-action-bar {
+      position: fixed;
+      bottom: -100px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+      border-radius: 20px;
+      padding: 16px 30px;
+      width: 90%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 1000;
+      transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .floating-action-bar.visible {
+      bottom: 30px;
+    }
+    
+    .action-info {
+      color: var(--text-white);
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+    
+    .action-info span {
+      color: var(--accent-rose);
+      font-weight: 700;
+    }
+    
+    .action-btns {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .btn-danger {
+      background: var(--accent-rose);
+      color: var(--bg-dark);
+      border: 1px solid var(--accent-rose);
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-family: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+      transition: all 0.2s ease;
+    }
+    
+    .btn-danger:hover {
+      background: #e11d48;
+      border-color: #e11d48;
+      box-shadow: 0 0 25px rgba(244, 63, 94, 0.6);
+    }
+    
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(9, 13, 22, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px;
+      width: 90%;
+      max-width: 700px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    
+    .modal-title {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: var(--text-white);
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .modal-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    
+    .modal-close:hover {
+      color: var(--text-white);
+    }
+    
+    .code-block {
+      background: #020617;
+      padding: 20px;
+      border-radius: 12px;
+      overflow-x: auto;
+      border: 1px solid rgba(51, 65, 85, 0.4);
+      margin: 15px 0;
+    }
+    
+    .code-block code {
+      font-family: 'JetBrains Mono', monospace;
+      color: #f1f5f9;
+      font-size: 0.85rem;
+      white-space: pre;
+    }
+    
+    .copy-toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--accent-emerald);
+      color: var(--bg-dark);
+      padding: 12px 24px;
+      border-radius: 30px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+      z-index: 3000;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .copy-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+    
+    @media (max-width: 900px) {
+      .file-row {
+        grid-template-columns: 40px 1.5fr 1fr 120px 90px;
+      }
+      .id-col { display: none; }
+    }
+    
+    @media (max-width: 600px) {
+      .file-row {
+        grid-template-columns: 30px 1.5fr 1fr;
+      }
+      .id-col, .date-col, .rec-col { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="copy-toast" id="copyToast">Script Copied to Clipboard!</div>
+
+  <!-- Modal Backdrop -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal">
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <h3 class="modal-title">Cleanup Helper Script</h3>
+      <p style="color: var(--text-main); font-size: 0.95rem; margin-bottom: 20px;">
+        To delete the selected duplicates, you can run a script right in your terminal. Save the code below as <code style="color: var(--accent-cyan)">delete_duplicates.py</code> in your project workspace directory and execute it using:
+        <br><code style="color: var(--accent-amber); display: block; margin-top: 10px;">python3 delete_duplicates.py</code>
+      </p>
+      
+      <div class="code-block">
+        <code id="scriptCode"></code>
+      </div>
+      
+      <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+        <button class="filter-btn" onclick="closeModal()">Close</button>
+        <button class="btn" style="background: var(--accent-cyan); color: var(--bg-dark); border-color: var(--accent-cyan); font-weight: 600;" onclick="copyScript()">Copy Script</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>Google Drive Duplicate Files Report</h1>
+      <p class="subtitle">Identify and clean up copy-variants and exact duplicates to reclaim storage space</p>
+    </header>
+
+    <!-- Stats Section -->
+    <div class="stats-grid">
+      <div class="stat-card cyan">
+        <div class="stat-val">752</div>
+        <div class="stat-label">Total Files Scanned</div>
+        <div class="stat-desc">Excludes folder groupings</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">25</div>
+        <div class="stat-label">Duplicate Groups</div>
+        <div class="stat-desc">Sets of identical file names</div>
+      </div>
+      <div class="stat-card rose">
+        <div class="stat-val">58</div>
+        <div class="stat-label">Total Duplicates</div>
+        <div class="stat-desc">All copies found in Drive</div>
+      </div>
+      <div class="stat-card emerald">
+        <div class="stat-val">33</div>
+        <div class="stat-label">Redundant Files</div>
+        <div class="stat-desc">Safe to delete (keeping 1 of each)</div>
+      </div>
+    </div>
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="filters-group">
+        <button class="filter-btn active" onclick="setCategory('all', this)">All Category</button>
+        <button class="filter-btn" onclick="setCategory('documents', this)">eBooks & Docs</button>
+        <button class="filter-btn" onclick="setCategory('code', this)">Code & Dev</button>
+        <button class="filter-btn" onclick="setCategory('media', this)">Media & Images</button>
+        <button class="filter-btn" onclick="setCategory('other', this)">Other</button>
+      </div>
+      
+      <div class="search-box">
+        <input type="text" class="search-input" placeholder="Search duplicates by name or path..." oninput="handleSearch(this.value)">
+      </div>
+      
+      <div class="view-controls">
+        <button class="btn" onclick="expandAll()">Expand All</button>
+        <button class="btn" onclick="collapseAll()">Collapse All</button>
+      </div>
+    </div>
+
+    <!-- Duplicate Groups List -->
+    <div id="groupsList">
+      <!-- Groups will be rendered by Javascript -->
+    </div>
+  </div>
+
+  <!-- Floating Action Bar -->
+  <div class="floating-action-bar" id="floatingBar">
+    <div class="action-info">
+      Selected <span id="selectedCount">0</span> duplicate files for cleanup
+    </div>
+    <div class="action-btns">
+      <button class="filter-btn" onclick="unselectAll()" style="background: rgba(255,255,255,0.05);">Deselect All</button>
+      <button class="btn-danger" onclick="generateCleanupScript()">
+        <svg style="width:16px;height:16px;fill:currentColor" viewBox="0 0 24 24"><path d="M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z"/></svg>
+        Generate Deletion Script
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Embedded duplicate groups data
+    const duplicateGroups = [{"group_key": "_startup.ps1 [octet-stream]", "norm_name": "_Startup.ps1", "mimeType": "application/octet-stream", "category": "code", "files": [{"id": "1Kj1Wa3_FmY4S5xH8IQD2vsAmvK4ruN5C", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod2 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:03:59", "recommendation": "keep", "parent_id": "Mod2"}, {"id": "17VHzr3Y5r3dHROBtEyMTugjZI8FJ7ttG", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod3 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:05", "recommendation": "delete", "parent_id": "Mod3"}, {"id": "12c6zxWKdToye5t9iWUGD7rDnLKw7gO4i", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod4 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:10", "recommendation": "delete", "parent_id": "Mod4"}, {"id": "1QLVoC8BQp3A7WSxDxafknCqmlQv8SMmf", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod5 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:13", "recommendation": "delete", "parent_id": "Mod5"}, {"id": "1IURN8MngB0RPUTCZxb62KpMBxHwW6KwB", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod6 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:14", "recommendation": "delete", "parent_id": "Mod6"}, {"id": "1XyTMlfagkO9IFv3fVzUqxyHECvVVZdtb", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod7 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:15", "recommendation": "delete", "parent_id": "Mod7"}, {"id": "115h-BQ7M5JFWAp8y5ghEAGXSIhO8YV7A", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod8 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:19", "recommendation": "delete", "parent_id": "Mod8"}, {"id": "1th4IcBph6Nhn0MIMravsvL0zybP6-NxZ", "name": "_Startup.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod9 / _Startup.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:21", "recommendation": "delete", "parent_id": "Mod9"}]}, {"group_key": "agentic coding with claude code the everyday developers guide to agentic coding with claude code (eden marco) (z-library.sk, 1lib.sk, z-lib.sk).pdf [pdf]", "norm_name": "Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code (Eden Marco) (z-library.sk, 1lib.sk, z-lib.sk).pdf", "mimeType": "application/pdf", "category": "documents", "files": [{"id": "1saSQfeNEBiPARrgh29ddRIZTLuKOJqVO", "name": "Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code (Eden Marco) (z-library.sk, 1lib.sk, z-lib.sk).pdf", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code (Eden Marco) (z-library.sk, 1lib.sk, z-lib.sk).pdf", "mimeType": "application/pdf", "modifiedTime": "2026-06-07 13:41:57", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1_Ux_ktKIyO4Zouz0rS-NPRG1A_HHjH4R", "name": "Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code (Eden Marco) (z-library.sk, 1lib.sk, z-lib.sk).pdf", "path": "[0APb-r...] / Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code (Eden Marco) (z-library.sk, 1lib.sk, z-lib.sk).pdf", "mimeType": "application/pdf", "modifiedTime": "2026-06-28 14:11:50", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "agentic coding with claude code the everyday developers guide to agentic coding with claude code eden marco z-library.sk, 1lib.sk, z-lib.sk.epub [epub+zip]", "norm_name": "Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code Eden Marco z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1WnOT1H7OVeevwUUY5bplFQnpQyfwCOcM", "name": "Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code Eden Marco z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code Eden Marco z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-07 13:41:57", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1lj-nWj6k8mkuG5ra_ZeaWQxPqysLv0y6", "name": "Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code Eden Marco z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / Agentic Coding with Claude Code The everyday developers guide to agentic coding with Claude Code Eden Marco z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-28 14:11:49", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "assemblyinfo.cs [x-csharp]", "norm_name": "AssemblyInfo.cs", "mimeType": "text/x-csharp", "category": "code", "files": [{"id": "1XgZCGpnEl1mpC-RMbHTOqDytT01PR9Nw", "name": "AssemblyInfo.cs", "path": "[0APb-r...] / powershell / Lithnet.Miiserver.Automation / Properties / AssemblyInfo.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:03:54", "recommendation": "keep", "parent_id": "Properties"}, {"id": "1jUkcpfdM150C7BsKpSsdTHTaQd30dYTz", "name": "AssemblyInfo.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WASP / Properties / AssemblyInfo.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:40", "recommendation": "delete", "parent_id": "Properties"}, {"id": "1NiU5IaEDSebaqhUXfHVVhrNHU3ZK2ipW", "name": "AssemblyInfo.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WindowsAutomation / Properties / AssemblyInfo.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:47", "recommendation": "delete", "parent_id": "Properties"}]}, {"group_key": "azure architecture explained a comprehensive guide to building effective cloud solutions david rend\u00f3n, brett hargreaves z-library.epub [epub+zip]", "norm_name": "Azure Architecture Explained A comprehensive guide to building effective cloud solutions David Rend\u00f3n, Brett Hargreaves Z-Library.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1NadgkXFFJuY8po-Id0Nd6Q4aC-dqv8-J", "name": "Azure Architecture Explained A comprehensive guide to building effective cloud solutions David Rend\u00f3n, Brett Hargreaves Z-Library.epub", "path": "[0APb-r...] / My Ebook Library / Kubernetes & Infrastructure / Azure Architecture Explained A comprehensive guide to building effective cloud solutions David Rend\u00f3n, Brett Hargreaves Z-Library.epub", "mimeType": "application/epub+zip", "modifiedTime": "2024-05-31 13:35:34", "recommendation": "keep", "parent_id": "Kubernetes & Infrastructure"}, {"id": "1-MCD9oyWWfLNRkJP3MfM1TdUgOLcaYNI", "name": "Azure Architecture Explained A comprehensive guide to building effective cloud solutions David Rend\u00f3n, Brett Hargreaves Z-Library.epub", "path": "[0APb-r...] / My Ebook Library / Kubernetes & Infrastructure / Azure Architecture Explained A comprehensive guide to building effective cloud solutions David Rend\u00f3n, Brett Hargreaves Z-Library.epub", "mimeType": "application/epub+zip", "modifiedTime": "2024-06-21 23:17:32", "recommendation": "delete", "parent_id": "Kubernetes & Infrastructure"}]}, {"group_key": "blue card back.jpg [jpeg]", "norm_name": "Blue Card back.jpg", "mimeType": "image/jpeg", "category": "media", "files": [{"id": "1pOrUWidydB18zKm6YkXyWTaF7KUIQofn", "name": "Blue Card back.jpg", "path": "[0APb-r...] / Blue Card back.jpg", "mimeType": "image/jpeg", "modifiedTime": "2024-03-06 13:45:42", "recommendation": "keep", "parent_id": "[0APb-r...]"}, {"id": "1pRtDpeIwXN-21K-yaqOzAoOzByA0-IBy", "name": "Blue Card Back.jpg", "path": "[0APb-r...] / Blue Card Back.jpg", "mimeType": "image/jpeg", "modifiedTime": "2024-03-06 13:47:05", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "compare.csv [csv]", "norm_name": "Compare.csv", "mimeType": "text/csv", "category": "code", "files": [{"id": "1dx21vdREHfO8mLrLXlxdU8lN_VZJK9Ki", "name": "Compare.csv", "path": "[0APb-r...] / powershell / Compare.csv", "mimeType": "text/csv", "modifiedTime": "2018-12-25 21:01:12", "recommendation": "keep", "parent_id": "powershell"}, {"id": "1KuLMX157v75S6hi5ehGMgh_kMQ9hYV6n", "name": "Compare.csv", "path": "[0APb-r...] / powershell / Book / Compare.csv", "mimeType": "text/csv", "modifiedTime": "2018-12-25 21:02:55", "recommendation": "delete", "parent_id": "Book"}]}, {"group_key": "diskinfo.ps1 [octet-stream]", "norm_name": "DiskInfo.ps1", "mimeType": "application/octet-stream", "category": "code", "files": [{"id": "1hRxEj4aG66s6adUEyKGM5ANijEtOziy7", "name": "DiskInfo.ps1", "path": "[0APb-r...] / powershell / Script / DiskInfo.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:03:40", "recommendation": "keep", "parent_id": "Script"}, {"id": "1_hdwXmeO39TX8XU8fiBJ597W1b6Zn7dR", "name": "DiskInfo.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod3 / DiskInfo.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:04", "recommendation": "delete", "parent_id": "Mod3"}]}, {"group_key": "dummy.txt [plain]", "norm_name": "Dummy.txt", "mimeType": "text/plain", "category": "documents", "files": [{"id": "1R_PjBoRLbCUvf3xqiTtn83cAmsfa6VvV", "name": "Dummy.txt", "path": "[0APb-r...] / powershell / MVA-42339-PowerShell-for-SQL-Data-Professionals-master / Test1 / Dummy.txt", "mimeType": "text/plain", "modifiedTime": "2018-12-25 21:04:05", "recommendation": "keep", "parent_id": "Test1"}, {"id": "1SvLshLUP9heQSX_PVcWUl1r-nTePbwf5", "name": "Dummy.txt", "path": "[0APb-r...] / powershell / MVA-42339-PowerShell-for-SQL-Data-Professionals-master / Test / Dummy.txt", "mimeType": "text/plain", "modifiedTime": "2018-12-25 21:04:05", "recommendation": "delete", "parent_id": "Test"}]}, {"group_key": "github copilot step by step navigating ai-driven software development for l l gomathi s. z-library.sk, 1lib.sk, z-lib.sk.epub [epub+zip]", "norm_name": "Github Copilot Step by Step Navigating AI-Driven Software Development for l l Gomathi S. z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1EpvJwJXB6IOiA9RGiBuOiK9RBWuN_CCi", "name": "Github Copilot Step by Step Navigating AI-Driven Software Development for l l Gomathi S. z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Github Copilot Step by Step Navigating AI-Driven Software Development for l l Gomathi S. z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-07 13:41:57", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1lI1arIpiiCSeDCrEqHuzKL8aAiDZveMQ", "name": "Github Copilot Step by Step Navigating AI-Driven Software Development for l l Gomathi S. z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / Github Copilot Step by Step Navigating AI-Driven Software Development for l l Gomathi S. z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-28 14:11:50", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "globalsuppressions.cs [x-csharp]", "norm_name": "GlobalSuppressions.cs", "mimeType": "text/x-csharp", "category": "code", "files": [{"id": "18xfQNxkAavIT0gnA6Sv6BkxEA8lCRa2H", "name": "GlobalSuppressions.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WASP / GlobalSuppressions.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:30", "recommendation": "keep", "parent_id": "WASP"}, {"id": "1Tkk13tQIjLXba_rXXVvNhezJl62-N7uY", "name": "GlobalSuppressions.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WindowsAutomation / GlobalSuppressions.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:34", "recommendation": "delete", "parent_id": "WindowsAutomation"}]}, {"group_key": "governance in microsoft 365 copilot copilot studio practical guardrails and checklists for secure, responsible ai at scale suvidha shashikumar z-library.sk, 1lib.sk, z-lib.sk.epub [epub+zip]", "norm_name": "Governance in Microsoft 365 Copilot Copilot Studio Practical Guardrails and Checklists for Secure, Responsible AI at Scale Suvidha Shashikumar z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1FzS17EWObAT3ioiPqoQVJ2vQH4ac0YT-", "name": "Governance in Microsoft 365 Copilot Copilot Studio Practical Guardrails and Checklists for Secure, Responsible AI at Scale Suvidha Shashikumar z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Governance in Microsoft 365 Copilot Copilot Studio Practical Guardrails and Checklists for Secure, Responsible AI at Scale Suvidha Shashikumar z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-07 14:10:50", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1Y7PRJKXPlFFedJuAijD24jzxl-FlE3Kt", "name": "Governance in Microsoft 365 Copilot Copilot Studio Practical Guardrails and Checklists for Secure, Responsible AI at Scale Suvidha Shashikumar z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / Governance in Microsoft 365 Copilot Copilot Studio Practical Guardrails and Checklists for Secure, Responsible AI at Scale Suvidha Shashikumar z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-28 14:11:48", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "launch.ps1 [octet-stream]", "norm_name": "Launch.ps1", "mimeType": "application/octet-stream", "category": "code", "files": [{"id": "1xV9-BWQDZdexA3G4ZEN-kSA31hciiLwF", "name": "Launch.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod8 / Launch.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:18", "recommendation": "keep", "parent_id": "Mod8"}, {"id": "1pCZz7QyUmWwJ94cY0f-Zg3tVvg3urhvB", "name": "Launch.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod9 / Launch.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:19", "recommendation": "delete", "parent_id": "Mod9"}]}, {"group_key": "learn german with stories zur\u00fcck in z\u00fcrich - 10 short stories for beginners (andr\u00e9 klein) (z-library).pdf [pdf]", "norm_name": "Learn German with Stories Zur\u00fcck in Z\u00fcrich - 10 Short Stories for Beginners (Andr\u00e9 Klein) (Z-Library).pdf", "mimeType": "application/pdf", "category": "documents", "files": [{"id": "17_-bEZkoBfbI6H0-JaQd_WHzk0hN7lkh", "name": "Learn German with Stories Zur\u00fcck in Z\u00fcrich - 10 Short Stories for Beginners (Andr\u00e9 Klein) (Z-Library).pdf", "path": "[0APb-r...] / My Ebook Library / German Learning / Learn German with Stories Zur\u00fcck in Z\u00fcrich - 10 Short Stories for Beginners (Andr\u00e9 Klein) (Z-Library).pdf", "mimeType": "application/pdf", "modifiedTime": "2025-09-20 21:58:33", "recommendation": "keep", "parent_id": "German Learning"}, {"id": "1xeBIkzpfsYL5JuWD49qrMDq261W_mGP6", "name": "Learn German with Stories Zur\u00fcck in Z\u00fcrich - 10 Short Stories for Beginners (Andr\u00e9 Klein) (Z-Library)(1).pdf", "path": "[0APb-r...] / My Ebook Library / German Learning / Learn German with Stories Zur\u00fcck in Z\u00fcrich - 10 Short Stories for Beginners (Andr\u00e9 Klein) (Z-Library)(1).pdf", "mimeType": "application/pdf", "modifiedTime": "2025-09-20 21:58:32", "recommendation": "delete", "parent_id": "German Learning"}]}, {"group_key": "microsoft cybersecurity architect exam ref sc-100 , second edition for raymond rhine dwayne natwick, graham gold, and abu zobayer z-library.epub [epub+zip]", "norm_name": "Microsoft Cybersecurity Architect Exam Ref SC-100 , Second Edition for Raymond Rhine Dwayne Natwick, Graham Gold, and Abu Zobayer Z-Library.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1FVSXjqu4uCub8Ymcsis1d4Y2xfZxbxjK", "name": "Microsoft Cybersecurity Architect Exam Ref SC-100 , Second Edition for Raymond Rhine Dwayne Natwick, Graham Gold, and Abu Zobayer Z-Library.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Microsoft Cybersecurity Architect Exam Ref SC-100 , Second Edition for Raymond Rhine Dwayne Natwick, Graham Gold, and Abu Zobayer Z-Library.epub", "mimeType": "application/epub+zip", "modifiedTime": "2025-01-13 07:49:48", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1HB_EVemHMX9JeyEGMoMt8XxHqHG8uGpZ", "name": "Microsoft Cybersecurity Architect Exam Ref SC-100 , Second Edition for Raymond Rhine Dwayne Natwick, Graham Gold, and Abu Zobayer Z-Library.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Microsoft Cybersecurity Architect Exam Ref SC-100 , Second Edition for Raymond Rhine Dwayne Natwick, Graham Gold, and Abu Zobayer Z-Library.epub", "mimeType": "application/epub+zip", "modifiedTime": "2025-01-17 13:13:10", "recommendation": "delete", "parent_id": "Cybersecurity & Microsoft 365"}]}, {"group_key": "microsoft defender for endpoint in depth take any organizations endpoint security to the next level, second edition paul huijbregts, ru campbell, joe anich etc. z-library.sk, 1lib.sk, z-lib.sk.epub [epub+zip]", "norm_name": "Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1tKA8V5c5p9X2FEpeqzehAu3Xn5TOWitm", "name": "Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-07 14:10:50", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1JFeEE3Ptvy0kea6bFAYqtUEGoJYAHVkQ", "name": "Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-28 14:11:48", "recommendation": "delete", "parent_id": "[0APb-r...]"}, {"id": "1JcwWsV53PrKjvc3b1qJoh8AftmI2XA5o", "name": "Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk(1).epub", "path": "[0APb-r...] / Microsoft Defender for Endpoint in Depth Take any organizations endpoint security to the next level, Second Edition Paul Huijbregts, Ru Campbell, Joe Anich etc. z-library.sk, 1lib.sk, z-lib.sk(1).epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-28 14:10:54", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "selectwindowcommand.cs [x-csharp]", "norm_name": "SelectWindowCommand.cs", "mimeType": "text/x-csharp", "category": "code", "files": [{"id": "15GoEDheXo9IsBUL42sG1xYSu1G2T7pYx", "name": "SelectWindowCommand.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WASP / SelectWindowCommand.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:31", "recommendation": "keep", "parent_id": "WASP"}, {"id": "167Ujfdhop2fzEHqvqjj19e0_CmjfDGad", "name": "SelectWindowCommand.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WindowsAutomation / Commands / SelectWindowCommand.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:45", "recommendation": "delete", "parent_id": "Commands"}]}, {"group_key": "sendclickcommand.cs [x-csharp]", "norm_name": "SendClickCommand.cs", "mimeType": "text/x-csharp", "category": "code", "files": [{"id": "1XO_IEiE51u2pZSvcm_BhPUFMoid2ZQsh", "name": "SendClickCommand.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WASP / Interop / SendClickCommand.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:41", "recommendation": "keep", "parent_id": "Interop"}, {"id": "1i2O0vEsPzg9_9MtVUuTkZJoHACTffURN", "name": "SendClickCommand.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WindowsAutomation / Commands / SendClickCommand.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:47", "recommendation": "delete", "parent_id": "Commands"}]}, {"group_key": "sendkeyscommand.cs [x-csharp]", "norm_name": "SendKeysCommand.cs", "mimeType": "text/x-csharp", "category": "code", "files": [{"id": "1h3OxVEOKGwlakOJsAZWNzHVhqlZnpBYh", "name": "SendKeysCommand.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WASP / Interop / SendKeysCommand.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:41", "recommendation": "keep", "parent_id": "Interop"}, {"id": "1J1I1y9g57lfrTkw-3aEo7zdk9832WFKy", "name": "SendKeysCommand.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WindowsAutomation / Commands / SendKeysCommand.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:46", "recommendation": "delete", "parent_id": "Commands"}]}, {"group_key": "suryendu-hello-fresh-tk [pdf]", "norm_name": "Suryendu-Hello-Fresh-TK", "mimeType": "application/pdf", "category": "documents", "files": [{"id": "1BsJeIgA_h3NSUHR4eYrxqJZgGPWTSJcw", "name": "Suryendu-Hello-Fresh-TK", "path": "[0APb-r...] / Suryendu-Hello-Fresh-TK", "mimeType": "application/pdf", "modifiedTime": "2023-03-15 15:58:49", "recommendation": "keep", "parent_id": "[0APb-r...]"}, {"id": "1BtxOKKHMpNXoXJUgJX1mKZVlOIXArywl", "name": "Suryendu-Hello-Fresh-TK", "path": "[0APb-r...] / Suryendu-Hello-Fresh-TK", "mimeType": "application/pdf", "modifiedTime": "2023-03-15 16:00:13", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "vibe engineering meap version 4 tomasz lelek, artur skowro\u0144ski z-library.sk, 1lib.sk, z-lib.sk.epub [epub+zip]", "norm_name": "Vibe Engineering MEAP Version 4 Tomasz Lelek, Artur Skowro\u0144ski z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "category": "documents", "files": [{"id": "1a2MnrLwpfiBB2E45naOaDLHfYQaQ_TMs", "name": "Vibe Engineering MEAP Version 4 Tomasz Lelek, Artur Skowro\u0144ski z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / My Ebook Library / Cybersecurity & Microsoft 365 / Vibe Engineering MEAP Version 4 Tomasz Lelek, Artur Skowro\u0144ski z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-07 14:10:50", "recommendation": "keep", "parent_id": "Cybersecurity & Microsoft 365"}, {"id": "1drAScDoVg2eUkilbYm_qGd1HxBHcwrCp", "name": "Vibe Engineering MEAP Version 4 Tomasz Lelek, Artur Skowro\u0144ski z-library.sk, 1lib.sk, z-lib.sk.epub", "path": "[0APb-r...] / Vibe Engineering MEAP Version 4 Tomasz Lelek, Artur Skowro\u0144ski z-library.sk, 1lib.sk, z-lib.sk.epub", "mimeType": "application/epub+zip", "modifiedTime": "2026-06-28 14:11:48", "recommendation": "delete", "parent_id": "[0APb-r...]"}]}, {"group_key": "webaccess.ps1 [octet-stream]", "norm_name": "WebAccess.ps1", "mimeType": "application/octet-stream", "category": "code", "files": [{"id": "1j4oh9kf83VahWpQQvM5krUduzbsubdPg", "name": "WebAccess.ps1", "path": "[0APb-r...] / powershell / Book / WebAccess.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:03:00", "recommendation": "keep", "parent_id": "Book"}, {"id": "1iC1fcxaIx0KQAZ_N6NOt2FKbx-KoQ010", "name": "WebAccess.ps1", "path": "[0APb-r...] / powershell / MVA Advanced / Mod8 / WebAccess.ps1", "mimeType": "application/octet-stream", "modifiedTime": "2018-12-25 21:04:19", "recommendation": "delete", "parent_id": "Mod8"}]}, {"group_key": "window.cs [x-csharp]", "norm_name": "Window.cs", "mimeType": "text/x-csharp", "category": "code", "files": [{"id": "1lOnluPje8BmJoPw53UlEHzcRO1O-aw7o", "name": "Window.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WASP / Window.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:35", "recommendation": "keep", "parent_id": "WASP"}, {"id": "1upYLqpCalmsDnes238IBASMvUPKAekK8", "name": "Window.cs", "path": "[0APb-r...] / powershell / WASP / sourceCode / sourceCode / trunk / WindowsAutomation / Window.cs", "mimeType": "text/x-csharp", "modifiedTime": "2018-12-25 21:05:35", "recommendation": "delete", "parent_id": "WindowsAutomation"}]}, {"group_key": "zabbix 7 it infrastructure monitoring cookbook explore the new features of zabbix 7 for designing, building, and maintaining. (nathan liefting, brian van baekel) (z-library).pdf [pdf]", "norm_name": "Zabbix 7 IT Infrastructure Monitoring Cookbook Explore the new features of Zabbix 7 for designing, building, and maintaining. (Nathan Liefting, Brian van Baekel) (Z-Library).pdf", "mimeType": "application/pdf", "category": "documents", "files": [{"id": "1FTv9e5-xWu5L1hCGVEObc5xJ9Xeezj4x", "name": "Zabbix 7 IT Infrastructure Monitoring Cookbook Explore the new features of Zabbix 7 for designing, building, and maintaining. (Nathan Liefting, Brian van Baekel) (Z-Library).pdf", "path": "[0APb-r...] / My Ebook Library / Kubernetes & Infrastructure / Zabbix 7 IT Infrastructure Monitoring Cookbook Explore the new features of Zabbix 7 for designing, building, and maintaining. (Nathan Liefting, Brian van Baekel) (Z-Library).pdf", "mimeType": "application/pdf", "modifiedTime": "2025-01-13 07:49:47", "recommendation": "keep", "parent_id": "Kubernetes & Infrastructure"}, {"id": "1H9f_V0hESkIqJnKj5QZ-Rgv43fdMMroD", "name": "Zabbix 7 IT Infrastructure Monitoring Cookbook Explore the new features of Zabbix 7 for designing, building, and maintaining. (Nathan Liefting, Brian van Baekel) (Z-Library).pdf", "path": "[0APb-r...] / My Ebook Library / Kubernetes & Infrastructure / Zabbix 7 IT Infrastructure Monitoring Cookbook Explore the new features of Zabbix 7 for designing, building, and maintaining. (Nathan Liefting, Brian van Baekel) (Z-Library).pdf", "mimeType": "application/pdf", "modifiedTime": "2025-01-17 13:12:56", "recommendation": "delete", "parent_id": "Kubernetes & Infrastructure"}]}, {"group_key": "zabbix cookbook (patrik uytterhoeven) (z-library).pdf [pdf]", "norm_name": "Zabbix Cookbook (Patrik Uytterhoeven) (Z-Library).pdf", "mimeType": "application/pdf", "category": "documents", "files": [{"id": "1G1oXMOC6Vu9SN6llCuDFbdur6uCClebu", "name": "Zabbix Cookbook (Patrik Uytterhoeven) (Z-Library).pdf", "path": "[0APb-r...] / My Ebook Library / Kubernetes & Infrastructure / Zabbix Cookbook (Patrik Uytterhoeven) (Z-Library).pdf", "mimeType": "application/pdf", "modifiedTime": "2025-01-13 08:53:41", "recommendation": "keep", "parent_id": "Kubernetes & Infrastructure"}, {"id": "1H5EWOIElkpLlrjfs1QdcE1nHWAZypKSt", "name": "Zabbix Cookbook (Patrik Uytterhoeven) (Z-Library).pdf", "path": "[0APb-r...] / My Ebook Library / Kubernetes & Infrastructure / Zabbix Cookbook (Patrik Uytterhoeven) (Z-Library).pdf", "mimeType": "application/pdf", "modifiedTime": "2025-01-17 13:12:56", "recommendation": "delete", "parent_id": "Kubernetes & Infrastructure"}]}];
+    
+    let currentCategory = 'all';
+    let searchQuery = '';
+    const selectedFiles = new Set();
+    const expandedGroups = new Set();
+    
+    // Auto-select files marked for delete by default (helps the user quickly generate a clean-up script)
+    duplicateGroups.forEach(group => {
+      group.files.forEach(file => {
+        if (file.recommendation === 'delete') {
+          selectedFiles.add(file.id);
+        }
+      });
+      // Expand groups by default if they are small in count
+      expandedGroups.add(group.group_key);
+    });
+
+    function renderGroups() {
+      const container = document.getElementById('groupsList');
+      container.innerHTML = '';
+      
+      let visibleGroupsCount = 0;
+      
+      duplicateGroups.forEach(group => {
+        // Filter by category
+        if (currentCategory !== 'all' && group.category !== currentCategory) {
+          return;
+        }
+        
+        // Filter by search query
+        if (searchQuery) {
+          const query = searchQuery.toLowerCase();
+          const matchesName = group.norm_name.toLowerCase().includes(query);
+          const matchesPath = group.files.some(f => f.path.toLowerCase().includes(query));
+          if (!matchesName && !matchesPath) {
+            return;
+          }
+        }
+        
+        visibleGroupsCount++;
+        
+        const isExpanded = expandedGroups.has(group.group_key);
+        
+        const card = document.createElement('div');
+        card.className = `group-card ${isExpanded ? 'expanded' : ''}`;
+        card.id = `group-${group.group_key.replace(/[^a-zA-Z0-9]/g, '-')}`;
+        
+        let fileRows = '';
+        group.files.forEach(file => {
+          const isChecked = selectedFiles.has(file.id);
+          const recText = file.recommendation === 'keep' ? 'Keep Original' : 'Delete Candidate';
+          const recClass = file.recommendation;
+          
+          fileRows += `
+            <div class="file-row">
+              <div class="checkbox-col">
+                <input type="checkbox" class="custom-checkbox" data-file-id="${file.id}" ${isChecked ? 'checked' : ''} onchange="toggleFileSelection('${file.id}', this)">
+              </div>
+              <div class="path-col">${file.path}</div>
+              <div class="id-col">${file.id}</div>
+              <div class="date-col">${file.modifiedTime}</div>
+              <div class="rec-col">
+                <span class="rec-badge ${recClass}">${recText}</span>
+              </div>
+              <div class="actions-col">
+                <a href="https://drive.google.com/file/d/${file.id}/view" target="_blank" class="action-link">
+                  <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M14,3V9H20L14,3M15.83,16C15.83,18.06 14.16,19.73 12.1,19.73C10,19.73 8.35,18.06 8.35,16C8.35,13.91 10,12.24 12.1,12.24C14.16,12.24 15.83,13.91 15.83,16M18,22A2,2 0 0,0 20,20V11H13V4H6A2,2 0 0,0 4,6V18A2,2 0 0,0 6,20H18M12.1,14.28C11.13,14.28 10.37,15.05 10.37,16C10.37,16.96 11.13,17.73 12.1,17.73C13.06,17.73 13.83,16.96 13.83,16C13.83,15.05 13.06,14.28 12.1,14.28Z"/></svg>
+                  Open File
+                </a>
+                ${file.parent_id ? `
+                  <a href="https://drive.google.com/drive/folders/${file.parent_id}" target="_blank" class="action-link folder">
+                    <svg style="width:12px;height:12px;fill:currentColor" viewBox="0 0 24 24"><path d="M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z"/></svg>
+                    Open Folder
+                  </a>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        });
+        
+        let icon = '📄';
+        if (group.category === 'documents') icon = '📚';
+        else if (group.category === 'code') icon = '💻';
+        else if (group.category === 'media') icon = '🎵';
+        
+        card.innerHTML = `
+          <div class="group-header" onclick="toggleGroup('${group.group_key}')">
+            <div class="group-title-section">
+              <span class="group-icon">${icon}</span>
+              <span class="group-name">${group.norm_name}</span>
+            </div>
+            <div class="group-meta">
+              <span class="badge mime">${group.mimeType.split('/').pop()}</span>
+              <span class="badge count">${group.files.length} copies</span>
+              <span class="chevron">&#9662;</span>
+            </div>
+          </div>
+          <div class="group-content" style="${isExpanded ? 'max-height: 2000px;' : 'max-height: 0;'}">
+            <div class="files-list">
+              ${fileRows}
+            </div>
+          </div>
+        `;
+        
+        container.appendChild(card);
+      });
+      
+      if (visibleGroupsCount === 0) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 60px; background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color);">
+            <p style="font-size: 1.2rem; color: var(--text-white); margin-bottom: 8px;">No duplicates found</p>
+            <p style="font-size: 0.95rem;">Try modifying your search query or category filters.</p>
+          </div>
+        `;
+      }
+      
+      updateFloatingBar();
+    }
+    
+    function toggleGroup(key) {
+      const card = document.querySelector(`.group-card[id="group-${key.replace(/[^a-zA-Z0-9]/g, '-')}"]`);
+      const content = card.querySelector('.group-content');
+      
+      if (expandedGroups.has(key)) {
+        expandedGroups.delete(key);
+        card.classList.remove('expanded');
+        content.style.maxHeight = '0px';
+      } else {
+        expandedGroups.add(key);
+        card.classList.add('expanded');
+        content.style.maxHeight = '2000px';
+      }
+    }
+    
+    function expandAll() {
+      duplicateGroups.forEach(group => expandedGroups.add(group.group_key));
+      renderGroups();
+    }
+    
+    function collapseAll() {
+      expandedGroups.clear();
+      renderGroups();
+    }
+    
+    function setCategory(cat, btn) {
+      currentCategory = cat;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderGroups();
+    }
+    
+    function handleSearch(val) {
+      searchQuery = val;
+      renderGroups();
+    }
+    
+    function toggleFileSelection(id, cb) {
+      if (cb.checked) {
+        selectedFiles.add(id);
+      } else {
+        selectedFiles.delete(id);
+      }
+      updateFloatingBar();
+    }
+    
+    function unselectAll() {
+      selectedFiles.clear();
+      renderGroups();
+    }
+    
+    function updateFloatingBar() {
+      const bar = document.getElementById('floatingBar');
+      const countSpan = document.getElementById('selectedCount');
+      
+      countSpan.textContent = selectedFiles.size;
+      if (selectedFiles.size > 0) {
+        bar.classList.add('visible');
+      } else {
+        bar.classList.remove('visible');
+      }
+    }
+    
+    function generateCleanupScript() {
+      const ids = Array.from(selectedFiles);
+      
+      const pythonScript = `import json
+import sys
+import os
+
+# Google Drive duplicates trashing script generated from HTML report
+# Save this file in your project workspace as 'delete_duplicates.py' and run it.
+
+FILE_IDS_TO_TRASH = ` + JSON.stringify(ids, null, 2) + `
+
+def trash_files():
+    print(f"Starting cleanup of {len(FILE_IDS_TO_TRASH)} duplicate files...")
+    
+    # Write a command list that the agent can execute directly
+    print("\nWriting cleanup command files...")
+    with open("trash_ids.json", "w") as f:
+        json.dump(FILE_IDS_TO_TRASH, f, indent=2)
+    print("Saved file IDs to trash_ids.json in the workspace.")
+    print("Prompt the AI agent: \"Please trash all file IDs saved in trash_ids.json using drive.trashFile tool.\"")
+
+if __name__ == '__main__':
+    trash_files()
+`;
+      
+      document.getElementById('scriptCode').textContent = pythonScript;
+      document.getElementById('modalBackdrop').style.display = 'flex';
+    }
+    
+    function closeModal() {
+      document.getElementById('modalBackdrop').style.display = 'none';
+    }
+    
+    function copyScript() {
+      const text = document.getElementById('scriptCode').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('copyToast');
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3000);
+      });
+    }
+    
+    // Initial Render
+    renderGroups();
+  </script>
+</body>
+</html>
