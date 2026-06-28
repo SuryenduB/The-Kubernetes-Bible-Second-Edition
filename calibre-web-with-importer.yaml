@@ -132,12 +132,15 @@ spec:
               cp -p /library/metadata.db /config/metadata.db
             else
               echo "metadata.db not found, seeding from GitHub to local storage..."
-              apk add --no-cache wget sqlite
+              apk add --no-cache wget
               wget https://github.com/janeczku/calibre-web/raw/master/library/metadata.db -O /config/metadata.db
-              sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN isbn TEXT DEFAULT '';" || true
-              sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN flags INTEGER DEFAULT 0;" || true
             fi
           fi
+          # Always ensure the SQLite schema is up to date (adds isbn/flags if missing)
+          echo "Checking and patching SQLite database schema..."
+          apk add --no-cache sqlite
+          sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN isbn TEXT DEFAULT '';" || true
+          sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN flags INTEGER DEFAULT 0;" || true
           if [ ! -f /library/metadata.db ]; then
             touch /library/metadata.db
           fi
