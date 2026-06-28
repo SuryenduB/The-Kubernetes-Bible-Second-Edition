@@ -55,6 +55,7 @@ All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
 |-------------|-------------|------------------|-------------|
 | **IdentityIQ** | [http://iiq.tail35421d.ts.net:8080/identityiq](http://iiq.tail35421d.ts.net:8080/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
 | **AudioBookShelf**| [http://audiobookshelf.tail35421d.ts.net](http://audiobookshelf.tail35421d.ts.net) | http://audiobookshelf.media.svc | Media Server (Audiobooks) |
+| **Calibre-Web** | [http://calibre-web.tail35421d.ts.net:8083](http://calibre-web.tail35421d.ts.net:8083) | http://calibre-web.media.svc:8083 | Ebook Management |
 | **OpenWebUI** | [http://openwebui.tail35421d.ts.net:8080](http://openwebui.tail35421d.ts.net:8080) | http://openwebui.local | AI Chat Interface |
 | **phpLDAPadmin** | [http://phpldapadmin.tail35421d.ts.net](http://phpldapadmin.tail35421d.ts.net) | http://192.168.0.21:30081 | LDAP Directory Manager |
 | **ActiveMQ UI** | [http://iiq-mq-admin.tail35421d.ts.net:8161](http://iiq-mq-admin.tail35421d.ts.net:8161) | http://192.168.0.21:30082 | Middleware Console |
@@ -66,6 +67,19 @@ All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
 | **AI-Language-Learning**| [http://lang-tutor.tail35421d.ts.net](http://lang-tutor.tail35421d.ts.net) | http://ai-lang-backend.ai-language-learning.svc | Custom AI Language Tutor |
 | **OpenLingo** | [http://openlingo.tail35421d.ts.net](http://openlingo.tail35421d.ts.net) | http://openlingo.openlingo.svc | Structured Language Platform |
 | **LinguaCafe** | [http://linguacafe.tail35421d.ts.net](http://linguacafe.tail35421d.ts.net) | http://linguacafe.linguacafe.svc | Self-hosted Language Reading App |
+
+#### Reading on Mobile (Moon+ Reader via OPDS)
+
+Calibre-Web serves an OPDS catalog for mobile reading apps. To connect **Moon+ Reader** (Android):
+
+1. Open Moon+ Reader → hamburger menu (☰) → **Net Library**
+2. Tap **⋮** (top-right) → **Add new catalog**
+3. Set **Catalog Name**: `Calibre-Web`
+4. Set **Catalog URL**: `http://calibre-web.tail35421d.ts.net:8083/opds`
+5. Tap **OK** and log in with your Calibre-Web credentials
+6. Browse the catalog, tap a book → **Download** to read offline
+
+Other OPDS-compatible apps: KOReader, Aldiko, FBReader, PocketBook.
 
 ### Infrastructure Services (Tailscale Access)
 
@@ -270,4 +284,5 @@ The audit system collects and packs node-level diagnostics into tarball bundles 
 - **[IDENTITYIQ_K3S_FINAL_SPEC.md](IDENTITYIQ_K3S_FINAL_SPEC.md)** - Authoritative reference for the IdentityIQ 8.5 stack.
 - **[homelab-media-deployment-plan.md](homelab-media-deployment-plan.md)** - Detailed plan for AudioBookShelf.
 - **[audiobookshelf.yaml](../../kubernetes-manifests/media/audiobookshelf.yaml)** - AudioBookShelf deployment manifest (static NFS PV, config PVC via Longhorn).
+- **[calibre-web-with-importer.yaml](../../kubernetes-manifests/media/calibre-web-with-importer.yaml)** - Calibre-Web deployment with auto-importer sidecar (NFS library, NFS import staging, config PVC via Longhorn).
 - **[CLUSTER_FIXES_2026-03-30.md](CLUSTER_FIXES_2026-03-30.md)** - Historical troubleshooting logs.
