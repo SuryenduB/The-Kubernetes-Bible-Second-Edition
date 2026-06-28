@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calibre-web
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: calibre-web
+  template:
+    metadata:
+      labels:
+        app: calibre-web
+    spec:
+      containers:
+      # Container 1: Calibre Web (UI & Web Server)
+      - name: calibre-web
+        image: ghcr.io/linuxserver/calibre-web:0.6.25-ls358
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Europe/Berlin
+        ports:
+        - containerPort: 8083
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 60
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8083
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        resources:
+          limits:
+            cpu: "2"
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /config
+          name: config
+        - mountPath: /library
+          name: library
+        - mountPath: /library/metadata.db
+          name: config
+          subPath: metadata.db
+
+      # Container 2: Calibre Importer Daemon (Background Sync)
+      - name: calibre-importer
+        image: linuxserver/calibre:latest
+        env:
+        - name: PUID
+          value: "1000"
+        - name: PGID
+          value: "1000"
+        - name: TZ
+          value: Europe/Berlin
+        command:
+        - python3
+        - -c
+        - |
+          import os, subprocess, time
+          print("Calibre Importer Daemon Started.", flush=True)
+          while True:
+              files = []
+              for root, dirs, filenames in os.walk("/import"):
+                  for f in filenames:
+                      # Ignore hidden files
+                      if not f.startswith('.'):
+                          files.append(os.path.join(root, f))
+              
+              if files:
+                  print(f"Found {len(files)} new files in /import.", flush=True)
+                  for file in files:
+                      print(f"Importing: {file}", flush=True)
+                      
+                      # Call calibredb to import book directly into shared database
+                      cmd = ["calibredb", "add", file, "--library-path", "/library"]
+                      res = subprocess.run(cmd, capture_output=True, text=True)
+                      
+                      if res.returncode == 0:
+                          print(f"Successfully imported: {file}", flush=True)
+                          try:
+                              os.remove(file)
+                              print(f"Removed source file: {file}", flush=True)
+                          except Exception as e:
+                              print(f"Failed to delete {file}: {e}", flush=True)
+                      else:
+                          print(f"Failed to import {file}: {res.stderr.strip()}", flush=True)
+                          
+              time.sleep(15) # Poll the import directory every 15 seconds
+        resources:
+          limits:
+            cpu: "1"
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /library
+          name: library
+        - mountPath: /library/metadata.db
+          name: config
+          subPath: metadata.db
+        - mountPath: /import
+          name: import
+
+      # Init Container: Set up directory structures and permissions
+      initContainers:
+      - name: init-library
+        image: alpine:3.21
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /library /config
+          if [ ! -f /config/metadata.db ]; then
+            if [ -f /library/metadata.db ]; then
+              echo "Migrating existing metadata.db from NFS to local Longhorn storage..."
+              cp -p /library/metadata.db /config/metadata.db
+            else
+              echo "metadata.db not found, seeding from GitHub to local storage..."
+              apk add --no-cache wget sqlite
+              wget https://github.com/janeczku/calibre-web/raw/master/library/metadata.db -O /config/metadata.db
+              sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN isbn TEXT DEFAULT '';" || true
+              sqlite3 /config/metadata.db "ALTER TABLE books ADD COLUMN flags INTEGER DEFAULT 0;" || true
+            fi
+          fi
+          if [ ! -f /library/metadata.db ]; then
+            touch /library/metadata.db
+          fi
+          chown -R 1000:1000 /library
+          chown 1000:1000 /config/metadata.db
+        volumeMounts:
+        - mountPath: /config
+          name: config
+        - mountPath: /library
+          name: library
+
+      volumes:
+      - name: config
+        persistentVolumeClaim:
+          claimName: calibre-web-config
+      - name: library
+        persistentVolumeClaim:
+          claimName: calibre-library-pvc
+      - name: import
+        nfs:
+          server: 192.168.0.128
+          path: /share/Public/calibre-import
