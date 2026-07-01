@@ -3,4 +3,4 @@ kind: Kustomization
 
 resources:
   - audiobookshelf.yaml
-  - calibre-web.yaml
+  - calibre-web-with-importer.yaml

@@ -103,6 +103,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: nfs-nas
   resources:
     requests:
       storage: 50Gi
@@ -119,3 +120,91 @@ spec:
   resources:
     requests:
       storage: 2Gi
+---
+# Open WebUI — chat frontend that talks to Ollama over the internal Service.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: webui-nas-pvc
+  namespace: ai
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-nas
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwebui
+  namespace: ai
+  labels:
+    app: openwebui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openwebui
+  template:
+    metadata:
+      labels:
+        app: openwebui
+    spec:
+      containers:
+      - name: openwebui
+        image: ghcr.io/open-webui/open-webui
+        imagePullPolicy: Always
+        env:
+        - name: OLLAMA_BASE_URL
+          value: "http://ollama:11434"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: webui-storage
+          mountPath: /app/data
+      volumes:
+      - name: webui-storage
+        persistentVolumeClaim:
+          claimName: webui-nas-pvc
+---
+# Exposed on the Tailnet via the Tailscale operator (Service annotations).
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwebui
+  namespace: ai
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: "openwebui"
+spec:
+  type: ClusterIP
+  selector:
+    app: openwebui
+  ports:
+  - port: 8080
+    targetPort: 8080
+---
+# Local (LAN) ingress for Open WebUI via Traefik.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: openwebui-ingress
+  namespace: ai
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: openwebui.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: openwebui
+            port:
+              number: 8080

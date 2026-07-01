@@ -38,6 +38,9 @@ stringData:
   LLM_PROXY_URL: "https://integrate.api.nvidia.com/v1"
   LLM_PROXY_API_KEY: "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"
 
+  # Exa (web search) — placeholder; replace with the real key to match the live cluster
+  EXA_API_KEY: "REPLACE_ME"
+
 ---
 # Database PVC (Longhorn)
 apiVersion: v1
@@ -183,7 +186,7 @@ spec:
       containers:
         - name: openlingo
           # Use your container registry (e.g. 192.168.0.236:5000/openlingo:latest for this homelab)
-          image: 192.168.0.236:5000/openlingo:v9-parser-fix
+          image: 192.168.0.236:5000/openlingo:v10-dynamic-models
           imagePullPolicy: Always
           # Run DB migration and seed on startup, then start OpenLingo server
           command:
