@@ -1,74 +1,83 @@
 # Kubernetes Manifests for Multi-Node K3s Cluster
 
-This directory contains Kubernetes manifests for deploying a multi-node K3s cluster based on the provided `docker-compose.yml` file. The manifests are organized into logical files for each service type, ensuring clarity and ease of management.
+This directory contains Kubernetes manifests for a 9-node K3s homelab cluster (1 control-plane `nuc` + 8 workers). All manifests are organized per application/namespace and aggregated via `kustomization.yaml`.
 
 ## Directory Structure
 
-- **base/**: Contains individual YAML files for each service, including Deployments, Services, and Jobs.
-- **kustomization.yaml**: A Kustomization file that aggregates all resources for deployment.
+```
+kubernetes-manifests/
+├── kustomization.yaml              # Top-level Kustomization — aggregates all apps
+├── ai-language-learning.yaml        # ai-language-learning ns (backend, postgres, schema ConfigMap)
+├── iiq-stateful.yaml               # iiqstack ns (IIQ, LDAP, ActiveMQ, MSSQL, MySQL, Mailpit, etc.)
+├── iiq-networkpolicy.yaml          # iiqstack network policies (default-deny + allow-internal)
+├── iiq-serviceaccount.yaml         # iiqstack ServiceAccount
+├── base/
+│   └── ollama-deployment.yaml      # ai ns (Ollama, Open WebUI, PVCs, ingress)
+├── linguacafe/                     # linguacafe ns (webapp, MariaDB, Redis, netpols)
+├── media/                          # media ns (AudioBookshelf, Calibre-Web with importer)
+│   ├── kustomization.yaml
+│   ├── audiobookshelf.yaml
+│   └── calibre-web-with-importer.yaml
+├── homepage/
+│   └── homepage.yaml               # homepage ns (gethomepage dashboard + ConfigMap)
+├── monitoring/                     # monitoring ns (Beszel hub + agent DaemonSet)
+│   ├── kustomization.yaml
+│   ├── beszel-hub.yaml
+│   └── beszel-agent.yaml
+├── tailscale-proxyclass.yaml       # Platform: Tailscale ProxyClass CRD
+├── registry-fixer.yaml              # Platform: DaemonSet that fixes /etc/containers/registries.conf
+├── mssql-fixer.yaml                # Operational: MSSQL permission fixer Job
+├── mssql-wipe.yaml                 # Operational: MSSQL data wipe Job
+├── keycloak.yaml                   # Future: Keycloak deployment (not yet deployed)
+├── keycloak-ingress.yaml           # Future: Keycloak ingress
+├── namespace-keycloak.yaml         # Future: Keycloak namespace
+└── docker-compose.yaml             # Reference: original docker-compose for IIQ stack
+```
 
-## Services Included
+## Applications (Live on Cluster)
 
-1. **ActiveMQ**
-   - Deployment: `activemq-deployment.yaml`
-   - Service: `activemq-service.yaml`
+| # | Namespace | App | Manifest |
+|---|-----------|-----|----------|
+| 1 | `ai` | Ollama + Open WebUI | `base/ollama-deployment.yaml` |
+| 2 | `ai-language-learning` | AI Language Tutor (custom backend + Postgres) | `ai-language-learning.yaml` |
+| 3 | `openlingo` | OpenLingo (Next.js language platform + Postgres) | `media/openlingo.yaml` |
+| 4 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
+| 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` |
+| 6 | `media` | AudioBookshelf + Calibre-Web (with importer sidecar) | `media/` |
+| 7 | `homepage` | gethomepage dashboard | `homepage/homepage.yaml` |
+| 8 | `monitoring` | Beszel (hub + agent DaemonSet) | `monitoring/` |
 
-2. **Counter**
-   - Deployment: `counter-deployment.yaml`
-   - Service: `counter-service.yaml`
+## Deployment
 
-3. **MySQL**
-   - Deployment: `db-mysql-deployment.yaml`
-   - Service: `db-mysql-service.yaml`
+```bash
+# Apply everything at once
+kubectl apply -k ./kubernetes-manifests
 
-4. **MSSQL**
-   - Deployment: `db-mssql-deployment.yaml`
-   - Service: `db-mssql-service.yaml`
+# Or apply individual apps
+kubectl apply -f kubernetes-manifests/iiq-stateful.yaml
+kubectl apply -k ./kubernetes-manifests/media
+kubectl apply -f kubernetes-manifests/base/ollama-deployment.yaml
+```
 
-5. **SailPoint IdentityIQ**
-   - Deployment: `iiq-deployment.yaml`
-   - Service: `iiq-service.yaml`
-   - Initialization Job: `iiq-init-job.yaml`
+## Tailscale Access
 
-6. **OpenLDAP**
-   - Deployment: `ldap-deployment.yaml`
-   - Service: `ldap-service.yaml`
+Web services are exposed on the Tailnet via the Tailscale Kubernetes Operator. Each Service that should be reachable gets these annotations:
 
-7. **Traefik (Load Balancer)**
-   - Deployment: `loadbalancer-deployment.yaml`
-   - Service: `loadbalancer-service.yaml`
+```yaml
+annotations:
+  tailscale.com/expose: "true"
+  tailscale.com/proxy-class: "tailscale-proxy"
+  tailscale.com/hostname: "my-app"
+```
 
-8. **MailHog**
-   - Deployment: `mail-deployment.yaml`
-   - Service: `mail-service.yaml`
+## Storage
 
-9. **phpLDAPadmin**
-   - Deployment: `phpldapadmin-deployment.yaml`
-   - Service: `phpldapadmin-service.yaml`
-
-10. **SSH Server**
-    - Deployment: `ssh-deployment.yaml`
-    - Service: `ssh-service.yaml`
-
-## Deployment Instructions
-
-1. **Install K3s**: Follow the official K3s installation guide to set up your cluster.
-
-2. **Apply Manifests**: Use the following command to apply all manifests:
-   ```
-   kubectl apply -k ./whoami-manifests
-   ```
-
-3. **Verify Deployments**: Check the status of your deployments with:
-   ```
-   kubectl get all
-   ```
-
-4. **Access Services**: Depending on your service type (ClusterIP, NodePort), access the services as needed.
+- **Longhorn** — default dynamic provisioning for stateful workloads (Postgres, MariaDB, MSSQL, etc.)
+- **NFS** (`storageClassName: nfs-nas`) — Synology NAS at `192.168.0.128` for large media libraries (audiobooks, e-books, Ollama models)
+- **Static PVs** — NFS-backed PersistentVolumes with explicit `claimRef` bindings for Audiobookshelf and Calibre
 
 ## Configuration
 
-- Modify environment variables in the respective deployment files as necessary to suit your configuration needs.
-- Ensure that PersistentVolumeClaims are properly configured for stateful services like MySQL and MSSQL.
-
-This README serves as a guide for deploying and managing the services defined in the Kubernetes manifests. For further customization, refer to the individual service YAML files.
+- Secrets containing plaintext credentials are checked into the repo (homelab context).
+- Replace `REPLACE_ME` placeholders with real values before deploying.
+- Ensure PersistentVolumeClaims are properly configured for stateful services.

@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - 00-namespace.yaml
+  - 01-secret.yaml
+  - 02-storage.yaml
+  - 03-mariadb.yaml
+  - 04-linguacafe.yaml
+  - 05-linguacafe-config.yaml
+  - 05-redis.yaml
+  - 06-network-policies.yaml
+  - 07-serviceaccount.yaml

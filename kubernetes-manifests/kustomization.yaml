@@ -1,23 +1,18 @@
 resources:
-  - monitoring
-  - base/activemq-deployment.yaml
-  - base/activemq-service.yaml
-  - base/counter-deployment.yaml
-  - base/counter-service.yaml
-  - base/db-mysql-deployment.yaml
-  - base/db-mysql-service.yaml
-  - base/db-mssql-deployment.yaml
-  - base/db-mssql-service.yaml
-  - base/iiq-deployment.yaml
-  - base/iiq-service.yaml
-  - base/iiq-init-job.yaml
-  - base/ldap-deployment.yaml
-  - base/ldap-service.yaml
-  - base/loadbalancer-deployment.yaml
-  - base/loadbalancer-service.yaml
-  - base/mail-deployment.yaml
-  - base/mail-service.yaml
-  - base/phpldapadmin-deployment.yaml
-  - base/phpldapadmin-service.yaml
-  - base/ssh-deployment.yaml
-  - base/ssh-service.yaml
+  # --- AI & Language Learning ---
+  - ai-language-learning.yaml          # ai-language-learning ns: backend, postgres, schema ConfigMap
+  - media/openlingo.yaml                # openlingo ns: app, db (StatefulSet), netpols, PDB, ingress
+  - linguacafe                          # linguacafe ns: webapp, mariadb, redis, netpols
+  - base/ollama-deployment.yaml         # ai ns: ollama, openwebui, PVCs, ingress
+
+  # --- Identity (SailPoint IdentityIQ stack) ---
+  - iiq-stateful.yaml                   # iiqstack ns (all-in-one): iiq, ldap, activemq, db, db-mysql, mail, counter, ssh, phpldapadmin, init job, netpols, RBAC
+
+  # --- Media ---
+  - media                               # media ns: audiobookshelf, calibre-web (with importer sidecar)
+
+  # --- Homepage Dashboard ---
+  - homepage/homepage.yaml              # homepage ns: gethomepage deploy + ConfigMap + Tailscale svc
+
+  # --- Monitoring ---
+  - monitoring                          # monitoring ns: beszel hub + agent DaemonSet
