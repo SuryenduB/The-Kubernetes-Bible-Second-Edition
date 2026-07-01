@@ -1,0 +1,158 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: homepage
+---
+# Homepage dashboard config (services / settings / widgets). Edits here are
+# picked up by the gethomepage container via the mounted ConfigMap.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: homepage-config
+  namespace: homepage
+data:
+  services.yaml: |
+    - AI & Development:
+        - ArgoCD:
+            icon: "argocd.png"
+            href: "https://100.120.217.99"
+            description: "GitOps & Deployment"
+            ping: "100.120.217.99"
+        - OpenWebUI:
+            icon: "openai.png"
+            href: "http://100.88.101.12:8080"
+            description: "Local AI Chat (Ollama)"
+            ping: "100.88.101.12"
+        - OpenLingo:
+            icon: "language.png"
+            href: "http://100.93.223.48"
+            description: "Structured Language Platform"
+            ping: "100.93.223.48"
+        - AI Language Tutor:
+            icon: "book.png"
+            href: "http://100.89.142.109"
+            description: "Custom AI Language Learning"
+            ping: "100.89.142.109"
+    - Management & Identity:
+        - IdentityIQ:
+            icon: "identity.png"
+            href: "http://100.77.88.70:8080"
+            description: "Identity Governance"
+            ping: "100.77.88.70"
+        - phpLDAPadmin:
+            icon: "ldap.png"
+            href: "http://100.117.119.33"
+            description: "LDAP Management"
+            ping: "100.117.119.33"
+        - ActiveMQ:
+            icon: "activemq.png"
+            href: "http://100.88.133.126:8161"
+            description: "Middleware Console"
+            ping: "100.88.133.126"
+        - Mailpit:
+            icon: "mail.png"
+            href: "http://100.101.229.101:8025"
+            description: "Email Testing Dashboard"
+            ping: "100.101.229.101"
+    - Media:
+        - AudioBookShelf:
+            icon: "audiobookshelf.png"
+            href: "http://100.70.79.12"
+            description: "Audiobooks & Podcasts"
+            ping: "100.70.79.12"
+        - Calibre-Web:
+            icon: "calibre.png"
+            href: "http://100.94.86.107:8083"
+            description: "Ebook Management"
+            ping: "100.94.86.107"
+        - LinguaCafe:
+            icon: "linguacafe.png"
+            href: "http://100.88.145.42"
+            description: "Language Reading App"
+            ping: "100.88.145.42"
+    - Monitoring & Infrastructure:
+        - Beszel:
+            icon: "beszel.png"
+            href: "http://100.90.224.84"
+            description: "Cluster Monitoring"
+            ping: "100.90.224.84"
+        - Longhorn UI:
+            icon: "longhorn.png"
+            href: "http://192.168.0.21:30080"
+            description: "Storage Management"
+            ping: "192.168.0.21"
+  settings.yaml: |
+    title: "My Homelab Dashboard"
+    headerStyle: "boxed"
+    background:
+      image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=2070"
+      opacity: 30
+    layout:
+      Homelab:
+        style: "grid"
+        columns: 4
+  widgets.yaml: |
+    - kubernetes:
+        cluster: "k3s"
+        nodes: true
+    - datetime:
+        text_size: "xl"
+        format:
+          date: "MMMM Do, YYYY"
+          time: "HH:mm"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: homepage
+  namespace: homepage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: homepage
+  template:
+    metadata:
+      labels:
+        app: homepage
+    spec:
+      containers:
+      - name: homepage
+        image: ghcr.io/gethomepage/homepage:latest
+        imagePullPolicy: Always
+        env:
+        - name: HOMEPAGE_ALLOWED_HOSTS
+          value: "100.82.63.72,homepage-homepage"
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/settings.yaml
+          subPath: settings.yaml
+        - name: config
+          mountPath: /app/config/services.yaml
+          subPath: services.yaml
+        - name: config
+          mountPath: /app/config/widgets.yaml
+          subPath: widgets.yaml
+      volumes:
+      - name: config
+        configMap:
+          name: homepage-config
+---
+# Exposed on the Tailnet via the Tailscale operator (Service annotations).
+apiVersion: v1
+kind: Service
+metadata:
+  name: homepage
+  namespace: homepage
+  annotations:
+    tailscale.com/expose: "true"
+spec:
+  type: ClusterIP
+  selector:
+    app: homepage
+  ports:
+  - port: 80
+    targetPort: 3000
