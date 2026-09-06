@@ -30,6 +30,18 @@ spec:
       serviceAccountName: beszel-agent-sa
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      # kubernetes8-debian has been unreachable since 2026-07-04. Do not
+      # create a permanently Pending monitoring pod there; remove this
+      # exclusion after the host is physically recovered and revalidated.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - kubernetes8-debian
       containers:
       - name: beszel-agent
         image: henrygd/beszel-agent:latest
