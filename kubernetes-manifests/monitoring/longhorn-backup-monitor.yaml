@@ -55,7 +55,7 @@ data:
     Exits 1  → token not found or push error (infrastructure problem).
     Exits 2  → backup stale or missing, status=down pushed (triggers alert).
     """
-    import os, sys, json, subprocess, urllib.request, urllib.parse, datetime
+    import os, sys, json, ssl, urllib.request, urllib.parse, datetime
 
     KUMA_URL  = os.environ["UPTIME_KUMA_URL"].rstrip("/")
     KUMA_USER = os.environ["UPTIME_KUMA_USER"]
@@ -65,18 +65,22 @@ data:
     MAX_AGE_S = MAX_AGE_H * 3600
 
     # ── 1. Check Longhorn backup freshness ────────────────────────────────────
+    # Use the in-cluster API directly. The small python image intentionally does
+    # not contain kubectl, and a runtime package install must not be required for
+    # the Kubernetes health check itself.
     try:
-        raw = subprocess.check_output(
-            ["kubectl", "get", "backups.longhorn.io",
-             "-n", "longhorn-system", "-o", "json"],
-            stderr=subprocess.PIPE,
+        with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
+            token = f.read().strip()
+        api_url = (
+            "https://kubernetes.default.svc/apis/longhorn.io/v1beta2/"
+            "namespaces/longhorn-system/backups"
         )
-        items = json.loads(raw).get("items", [])
-    except subprocess.CalledProcessError as e:
-        print(f"ERROR: kubectl failed: {e.stderr.decode().strip()}")
-        items = []
+        req = urllib.request.Request(api_url, headers={"Authorization": f"Bearer {token}"})
+        ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        with urllib.request.urlopen(req, context=ssl.create_default_context(cafile=ca), timeout=15) as resp:
+            items = json.loads(resp.read()).get("items", [])
     except Exception as e:
-        print(f"ERROR: {e}")
+        print(f"ERROR: Kubernetes API failed: {e}")
         items = []
 
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -87,7 +91,8 @@ data:
         if b.get("status", {}).get("state") != "Completed":
             continue
         completed_count += 1
-        done_str = b.get("status", {}).get("completedAt", "")
+        status = b.get("status", {})
+        done_str = status.get("backupCreatedAt") or status.get("lastSyncedAt") or ""
         if not done_str:
             continue
         try:
