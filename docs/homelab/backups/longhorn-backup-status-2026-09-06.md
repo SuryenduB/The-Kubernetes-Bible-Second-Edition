@@ -1,6 +1,6 @@
 # Longhorn → QNAP NFS Backup — Status 2026-09-06
 
-**Status: OPERATIONAL** — first-ever successful backups landed on the NAS today after the NFS pipeline was repaired.
+**Status: OPERATIONAL** — backups are landing on the NAS after the NFS pipeline was repaired. LinguaCafe MariaDB was rebuilt and now has a verified backup.
 
 ## Target configuration
 
@@ -42,8 +42,9 @@ Triggered manually via `kubectl -n longhorn-system create job --from=cronjob/bac
 | pvc-bc188937 (beszel-hub-data) | monitoring | 1 Gi | queued | Pending |
 | pvc-c42102f2 (uptime-kuma-data) | monitoring | 2 Gi | backup-917c03282db74bf2 · 12:45:02 | Completed 100% (118 MiB) |
 
-**NOT backed up:** `pvc-bace74a9` (linguacafe-mariadb, 5 Gi) — volume is **faulted/detached**; needs separate
-recovery before it can participate in backups. `*-nas-pvc` volumes (ollama-nas, webui-nas, iiq-nas PVs, media
+**Rebuilt and backed up:** the old `pvc-bace74a9` volume was intentionally deleted after operator approval because it was faulted, detached, and had no backup. The replacement volume
+`pvc-4e9846ee-6c73-4edc-b9cb-e358f6159900` (linguacafe-mariadb, 5 Gi) has verified backup
+`backup-8143af524ac74592` at 100%. `*-nas-pvc` volumes (ollama-nas, webui-nas, iiq-nas PVs, media
 NFS PVs) are direct NAS mounts, not Longhorn volumes — the NAS copy IS their data.
 
 ## What was fixed today (full playbook: `skills/qnap-nfs-longhorn-backup/SKILL.md`)
@@ -60,7 +61,7 @@ NFS PVs) are direct NAS mounts, not Longhorn volumes — the NAS copy IS their d
 
 - [ ] Let `gate-manual-backup-5` finish the 5 queued volumes, then confirm 12/12 `Completed`.
 - [ ] Stuck `backup-b15856e29ef54a3f` (Deleting) — from the failed pre-fix run; will clear or delete manually.
-- [ ] Recover `linguacafe-mariadb` faulted volume (restorable from replicas or rebuild), then it joins backup-daily.
+- [x] Rebuild `linguacafe-mariadb` with three healthy Longhorn replicas and verify a QNAP backup.
 - [ ] Fix NAS clock (≈14 min slow) — breaks log correlation and cert validation.
 - [ ] Harden NFS exports: restrict `longhorn` and `Public` (currently `*(rw,no_root_squash)`) to node IPs 192.168.0.19–.26.
 - [ ] Restore drill: restore `beszel-hub-data` from backup-917c03282db74bf2 into a scratch PVC to prove the round-trip.
