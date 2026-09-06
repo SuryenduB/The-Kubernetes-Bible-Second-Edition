@@ -11,3 +11,4 @@ resources:
   - 05-redis.yaml
   - 06-network-policies.yaml
   - 07-serviceaccount.yaml
+  - 08-availability.yaml
