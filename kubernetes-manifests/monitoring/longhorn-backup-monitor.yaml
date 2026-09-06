@@ -1,0 +1,212 @@
+# Longhorn backup-daily freshness check → Uptime-Kuma push monitor.
+#
+# Runs at 04:00 UTC daily (30 min after backup-daily starts at 03:30 UTC).
+# Enough time for the full fleet (~15 min) plus margin.
+#
+# Flow:
+#   1. kubectl get backups.longhorn.io → find newest Completed backup age
+#   2. uptime-kuma-api → look up push token for "longhorn-backup-daily" monitor
+#   3. GET /api/push/<token>?status=up|down&msg=...
+#
+# The monitor "longhorn-backup-daily" (type: push, interval: 86400 s) is
+# declared in uptime-kuma-monitors.yaml and created by the sync CronJob.
+# If this job never pushes (or always pushes down), Uptime-Kuma alerts.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-check-sa
+  namespace: monitoring
+---
+# ClusterRole: read Longhorn backup CRs cluster-wide
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: longhorn-backup-reader
+rules:
+  - apiGroups: ["longhorn.io"]
+    resources: ["backups"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: monitoring-backup-check
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: longhorn-backup-reader
+subjects:
+  - kind: ServiceAccount
+    name: backup-check-sa
+    namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-check-script
+  namespace: monitoring
+data:
+  check.py: |
+    """
+    Longhorn backup freshness checker + Uptime-Kuma push reporter.
+
+    Exits 0  → backup fresh, status=up pushed.
+    Exits 1  → token not found or push error (infrastructure problem).
+    Exits 2  → backup stale or missing, status=down pushed (triggers alert).
+    """
+    import os, sys, json, subprocess, urllib.request, urllib.parse, datetime
+
+    KUMA_URL  = os.environ["UPTIME_KUMA_URL"].rstrip("/")
+    KUMA_USER = os.environ["UPTIME_KUMA_USER"]
+    KUMA_PASS = os.environ["UPTIME_KUMA_PASSWORD"]
+    MON_NAME  = os.environ.get("MONITOR_NAME", "longhorn-backup-daily")
+    MAX_AGE_H = float(os.environ.get("MAX_AGE_HOURS", "26"))
+    MAX_AGE_S = MAX_AGE_H * 3600
+
+    # ── 1. Check Longhorn backup freshness ────────────────────────────────────
+    try:
+        raw = subprocess.check_output(
+            ["kubectl", "get", "backups.longhorn.io",
+             "-n", "longhorn-system", "-o", "json"],
+            stderr=subprocess.PIPE,
+        )
+        items = json.loads(raw).get("items", [])
+    except subprocess.CalledProcessError as e:
+        print(f"ERROR: kubectl failed: {e.stderr.decode().strip()}")
+        items = []
+    except Exception as e:
+        print(f"ERROR: {e}")
+        items = []
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    freshest_age_s = None
+    completed_count = 0
+
+    for b in items:
+        if b.get("status", {}).get("state") != "Completed":
+            continue
+        completed_count += 1
+        done_str = b.get("status", {}).get("completedAt", "")
+        if not done_str:
+            continue
+        try:
+            done_dt = datetime.datetime.fromisoformat(done_str.replace("Z", "+00:00"))
+            age_s = (now - done_dt).total_seconds()
+            if freshest_age_s is None or age_s < freshest_age_s:
+                freshest_age_s = age_s
+        except Exception as e:
+            print(f"WARN: could not parse completedAt '{done_str}': {e}")
+
+    if freshest_age_s is None:
+        backup_ok = False
+        msg = f"NO completed backup found ({completed_count} Completed CRs seen)"
+    elif freshest_age_s > MAX_AGE_S:
+        backup_ok = False
+        age_h = round(freshest_age_s / 3600, 1)
+        msg = f"STALE: newest completed backup is {age_h}h old (threshold {MAX_AGE_H}h)"
+    else:
+        backup_ok = True
+        age_h = round(freshest_age_s / 3600, 1)
+        msg = f"OK: newest completed backup is {age_h}h old ({completed_count} completed CRs)"
+
+    print(f"Backup status: {msg}")
+
+    # ── 2. Resolve push token from Uptime-Kuma API ────────────────────────────
+    push_token = None
+    try:
+        from uptime_kuma_api import UptimeKumaApi
+        api = UptimeKumaApi(KUMA_URL)
+        api.login(KUMA_USER, KUMA_PASS)
+        try:
+            for m in api.get_monitors():
+                if m.get("name") == MON_NAME and m.get("type") == "push":
+                    push_token = m.get("pushToken")
+                    break
+        finally:
+            api.disconnect()
+    except Exception as e:
+        print(f"ERROR: Uptime-Kuma API unavailable: {e}")
+        sys.exit(1)
+
+    if not push_token:
+        print(f"ERROR: push token for monitor '{MON_NAME}' not found in Uptime-Kuma. "
+              "Run 'kubectl -n monitoring create job --from=cronjob/uptime-kuma-sync "
+              "uk-sync-manual' to create the monitor first.")
+        sys.exit(1)
+
+    # ── 3. Push heartbeat ─────────────────────────────────────────────────────
+    status = "up" if backup_ok else "down"
+    push_url = (f"{KUMA_URL}/api/push/{push_token}"
+                f"?status={status}&msg={urllib.parse.quote(msg)}&ping=")
+    print(f"Pushing {status} → {push_url}")
+    try:
+        resp = urllib.request.urlopen(push_url, timeout=15)
+        body = json.loads(resp.read())
+        print(f"Uptime-Kuma response: {body}")
+    except Exception as e:
+        print(f"ERROR: push failed: {e}")
+        sys.exit(1)
+
+    if not backup_ok:
+        # Exit non-zero so the K8s Job is marked Failed and visible in events
+        print("Exiting 2 — backup stale, status=down pushed.")
+        sys.exit(2)
+
+    print("Done.")
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-daily-check
+  namespace: monitoring
+spec:
+  schedule: "0 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          serviceAccountName: backup-check-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: check
+              image: python:3.12-slim
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+              env:
+                - name: UPTIME_KUMA_URL
+                  value: "http://uptime-kuma/"
+                - name: UPTIME_KUMA_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: uptime-kuma-credentials
+                      key: username
+                - name: UPTIME_KUMA_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: uptime-kuma-credentials
+                      key: password
+                - name: MONITOR_NAME
+                  value: "longhorn-backup-daily"
+                - name: MAX_AGE_HOURS
+                  value: "26"
+              command:
+                - sh
+                - -c
+                - pip install -q uptime-kuma-api==1.2.1 && python3 /scripts/check.py
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+          volumes:
+            - name: scripts
+              configMap:
+                name: backup-check-script

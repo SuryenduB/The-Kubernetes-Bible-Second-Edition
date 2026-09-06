@@ -7,6 +7,7 @@ resources:
   - uptime-kuma-monitors.yaml
   - uptime-kuma-sync.yaml
   - availability.yaml
+  - longhorn-backup-monitor.yaml
 
 # API credentials come from a local-only env file (gitignored) so the
 # password never lands in Git. disableNameSuffixHash keeps the Secret
