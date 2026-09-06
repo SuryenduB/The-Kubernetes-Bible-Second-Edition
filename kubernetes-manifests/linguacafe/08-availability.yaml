@@ -8,3 +8,29 @@ spec:
   selector:
     matchLabels:
       app: linguacafe
+---
+# MariaDB is single-replica (volume faulted/detached); prevent voluntary eviction
+# until the replica is healthy and a backup exists.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: linguacafe-mariadb
+  namespace: linguacafe
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: mariadb
+---
+# Redis is stateless-ish (data in-memory only, LinguaCafe survives a brief restart)
+# but protecting it prevents disruption during rolling node maintenance.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: linguacafe-redis
+  namespace: linguacafe
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: redis

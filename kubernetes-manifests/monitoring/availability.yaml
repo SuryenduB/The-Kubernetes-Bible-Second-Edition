@@ -1,0 +1,27 @@
+# Prevent voluntary node-maintenance disruptions to the monitoring stack.
+# Both workloads are single-replica (RWO PVCs); maxUnavailable: 0 means
+# kubectl drain must wait for the pod to be re-scheduled before proceeding.
+# This is intentional: monitoring should always be available, even at the
+# cost of slightly slower drain operations.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: beszel-hub-pdb
+  namespace: monitoring
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: beszel-hub
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: uptime-kuma-pdb
+  namespace: monitoring
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: uptime-kuma
