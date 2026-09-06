@@ -1,0 +1,47 @@
+# Longhorn RecurringJobs - Longhorn v1.8.1 (apiVersion v1beta2)
+# MECHANISM (per Longhorn docs 1.8-1.12): jobs in the "default" group are
+# automatically scheduled to ANY volume with no recurring job attached.
+# This covers all 13 existing volumes + every future volume with zero
+# per-PVC wiring. Do NOT add per-volume labels unless you deliberately
+# want to EXCLUDE a volume from these defaults (any explicit job on a
+# volume removes it from default-group scheduling).
+#
+# Snapshot chain watch: 12 retained 6h snapshots live on worker NVMe,
+# not the NAS. Post-Day-3, check headroom on k1/k5/k6 (replica-heavy).
+# If DB volumes churn too fast, move them out of the default group and
+# apply a lighter snapshot job explicitly.
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: snapshot-frequent
+  namespace: longhorn-system
+spec:
+  # spec.name is REQUIRED by the admission webhook (must match metadata.name)
+  name: snapshot-frequent
+  # Point-in-time recovery every 6h - the protection 3-way replication
+  # cannot provide (accidental PVC deletion propagates to all replicas).
+  cron: "0 */6 * * *"
+  task: snapshot
+  groups:
+    - default
+  retain: 12
+  concurrency: 1
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: backup-daily
+  namespace: longhorn-system
+spec:
+  name: backup-daily
+  # 03:30 UTC - after control-plane backup (02:00, default-timed pending
+  # Phase-0 duration measurement). First run: trigger MANUALLY and measure
+  # duration - IIQ (10Gi) + openlingo (5Gi) full copies over 1GbE with
+  # concurrency 1. Retain 14 daily backups on the QNAP.
+  cron: "30 3 * * *"
+  task: backup
+  groups:
+    - default
+  retain: 14
+  concurrency: 1

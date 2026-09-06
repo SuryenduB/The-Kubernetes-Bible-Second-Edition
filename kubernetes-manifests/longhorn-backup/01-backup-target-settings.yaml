@@ -1,0 +1,33 @@
+# Longhorn v1.8+: backup target is configured via the BackupTarget CR
+# named "default" (the legacy backup-target/backup-target-poll-interval
+# Settings are no longer supported and are rejected by the webhook).
+---
+apiVersion: longhorn.io/v1beta2
+kind: BackupTarget
+metadata:
+  name: default
+  namespace: longhorn-system
+spec:
+  # QNAP NFS export dedicated to Longhorn backups.
+  # QNAP exports NFS BY SHARE NAME (subpaths like /backups/longhorn are NOT
+  # exported - verified by gate test: mount fails). Share name: "longhorn".
+  # PREREQUISITE (hard gate): share "longhorn" must exist with NFS access,
+  # no_root_squash, restricted to node IPs (.19-.27, .21 nuc) and a
+  # root-write test from a worker must show root-owned files.
+  # NOTE: Changing this URL later orphans all previously taken backups.
+  # NEVER edit this via the Longhorn UI - Git is the source of truth.
+  backupTargetURL: "nfs://192.168.0.128:/longhorn"
+  # NFS targets need no credential secret (that is for S3/CIFS).
+  credentialSecret: ""
+  # Poll the NFS target every 5 min so backup listings stay fresh.
+  pollInterval: "5m"
+---
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: allow-recurring-job-while-volume-detached
+  namespace: longhorn-system
+# Required so detached volumes (e.g. scaled-down apps) still get backed up.
+# Longhorn >= 1.5 required - cluster runs v1.8.1 (verified Phase 0).
+# NOTE: Setting CRs carry `value` at the TOP LEVEL (no spec) in v1beta2.
+value: "true"

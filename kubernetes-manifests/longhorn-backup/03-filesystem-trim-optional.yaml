@@ -1,0 +1,19 @@
+# OPTIONAL - not scheduled anywhere until a volume opts in.
+# filesystem-trim reclaims space from deleted blocks in the snapshot
+# chain on churn-heavy DB volumes (MSSQL/MySQL). Apply by labeling a volume:
+#   kubectl -n longhorn-system label volume/<VOLUME> \
+#     recurring-job-group.longhorn.io/fs-trim=enabled
+# Only runs while the volume is attached; skipped otherwise.
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: fs-trim-weekly
+  namespace: longhorn-system
+spec:
+  name: fs-trim-weekly
+  cron: "0 5 * * 0"
+  task: filesystem-trim
+  groups:
+    - fs-trim
+  concurrency: 1
