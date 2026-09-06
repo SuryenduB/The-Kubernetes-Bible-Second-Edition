@@ -47,15 +47,19 @@ Known design limits (accepted, not oversights):
 
 - **What:** `/var/lib/rancher/k3s/server/db/state.db` (~205 MB, WAL-checkpointed) +
   `/etc/rancher/k3s/` as `k3s-config.tar.gz` (CA keys, certs, tokens, registries config).
-- **How:** `k3s-backup-to-nas.sh` via system crontab on `nuc`, nightly 02:00 UTC.
-  Stops K3s, runs `PRAGMA integrity_check` (aborts without overwriting on corruption), copies to NAS.
+- **How:** `k3s-backup-to-nas.sh` (in-repo: `WindowsLab/k3s-backup-to-nas.sh`, installed at
+  `/usr/local/bin/k3s-backup-to-nas.sh` on `nuc`) via root crontab, nightly 02:00 UTC.
+  Stops K3s, checkpoints WAL (`PRAGMA wal_checkpoint(TRUNCATE)` — never `rm` the `-wal`),
+  copies the db, integrity-checks the copy (aborts + restarts K3s on corruption), archives config
+  + identity, restarts K3s. An EXIT trap restarts K3s even if any step fails (proven necessary 2026-09-06).
 - **Retention:** rolling last 10 snapshots (prune policy per `how-to-audit-homelab.md`).
 - **Restore:** `pwsh -File WindowsLab/Restore-K3sCluster.ps1 [-BackupTimestamp "…"] [-ListOnly] [-Force]`.
-  5 phases: discover → validate filenames → stop K3s → restore config + db → start + `kubectl get nodes` check.
-- **⚠️ Full-rebuild caveat:** on a re-imaged master, `/var/lib/rancher/k3s/server/tls` needs a separate
-  manual restore (noted in the script footer). Verify `k3s-config.tar.gz` actually contains it —
-  otherwise the ~10 min RTO claim does not hold. Untested restores are hopes; schedule a drill.
-- **⚠️ Script location gap:** `k3s-backup-to-nas.sh` lives only on the NUC, not in this repo. Commit it.
+  5 phases: discover → validate filenames → stop K3s → restore config + identity + db → start + `kubectl get nodes` check.
+- **Full-rebuild status (verified 2026-09-06):** each snapshot now ships `k3s-identity.tar.gz`
+  (server `token`, `node-token`, `tls/`, `cred/` — 63 entries incl. server-ca/client-ca), restored
+  by the script before the db. Same-CA + same-token restore ⇒ workers rejoin transparently.
+  Latest snapshot's `state.db` copy independently verified: `integrity_check: ok`, 3849 kine rows,
+  16 namespaces. Pin rebuild installs to the running K3s version (v1.34.6+k3s1 at validation).
 
 ## 3. Longhorn volume backup (the data)
 
@@ -129,12 +133,14 @@ kubectl -n longhorn-system get backups.longhorn.io
 ## 6. Open items (carried, still true at validation)
 
 - [ ] Restore drill (§3.4) — the round-trip is unproven until this is done.
+- [ ] Reconcile retention docs (script: last 10 vs audit doc: `-mtime +30` prune).
 - [ ] Stuck `backup-b15856e29ef54a3f` (`Deleting` since 12:07 UTC) — clear or delete manually.
+- [x] ~~`k3s-config.tar.gz` TLS contents~~ — resolved 2026-09-06: scope extended to `k3s-identity.tar.gz`, verified in snapshot.
+- [x] ~~Commit `k3s-backup-to-nas.sh`~~ — resolved 2026-09-06: `WindowsLab/k3s-backup-to-nas.sh` is source of truth.
 - [ ] Recover `linguacafe-mariadb` (faulted/detached) so it joins `backup-daily`.
 - [ ] Fix NAS clock (~15 min slow) for log correlation and cert validation.
 - [ ] Harden NFS exports: `longhorn` and `Public` are `*(rw,no_root_squash)` — restrict to node IPs `.19–.26`.
 - [ ] Verify first scheduled `backup-daily` run (03:30 UTC) lands 12/12 next morning.
-- [ ] Commit `k3s-backup-to-nas.sh` to this repo; reconcile retention docs (10 vs 30-day prune).
 - [ ] Future: offsite copy (`rclone`/`restic`), logical DB dumps.
 
 ## 7. Validation record (2026-09-06 ~13:00 UTC)
@@ -155,3 +161,6 @@ kubectl -n longhorn-system get backups.longhorn.io
 | Exports restricted to node IPs | etab still `*`-wide | ⚠️ OPEN |
 | Restore drill done | No evidence (no scratch ns checked) | ⚠️ OPEN |
 | Control-plane 02:00 cadence | Latest snapshot dir `20260906-121355` present; folder TZ vs cron TZ ambiguous | ⚠️ UNVERIFIED (confirm naming TZ) |
+| Identity in snapshot (re-validation 2026-09-06 ~16:00 UTC) | `k3s-identity.tar.gz`: 63 entries incl. token, node-token, server-ca, client-ca | ✅ PASS |
+| state.db copy integrity (re-validation) | Downloaded copy: `integrity_check: ok`, 3849 kine rows, 16 namespaces, key NS keys present; copy deleted after | ✅ PASS |
+| Backup script restart-safety | EXIT trap now restarts K3s on any failure (outage proven + fixed same day); manual runs must go via SSH, never a k3s-managed pod | ✅ PASS |

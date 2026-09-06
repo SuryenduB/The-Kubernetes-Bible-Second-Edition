@@ -5,7 +5,8 @@
 .DESCRIPTION
     This script automates the recovery of a K3s cluster. It dynamically fetches
     available backups from the NAS, defaults to the latest, and restores the
-    configuration and SQLite database to the NUC master node.
+    configuration, server identity (token/tls/cred) and SQLite database
+    to the NUC master node.
 
 .PARAMETER BackupTimestamp
     Optional. The timestamp folder name on the NAS (e.g., '20260425-215914').
@@ -107,8 +108,8 @@ try {
     # 1. Validation of internal files
     Write-Host "`n[1/5] Validating internal backup files..." -ForegroundColor Yellow
     $files = ssh -o StrictHostKeyChecking=no "${NasUser}@${NasIP}" "ls $NasPath"
-    if ($files -notmatch "k3s-state.db" -or $files -notmatch "k3s-config.tar.gz") {
-        throw "Required backup files (db or config) missing in $NasPath"
+    if ($files -notmatch "k3s-state.db" -or $files -notmatch "k3s-config.tar.gz" -or $files -notmatch "k3s-identity.tar.gz") {
+        throw "Required backup files (db, config or identity) missing in $NasPath"
     }
     Write-Host "  [+] Backup files verified." -ForegroundColor Green
 
@@ -124,14 +125,21 @@ try {
     Write-Host "  - Downloading from NAS..." -ForegroundColor Gray
     scp -o StrictHostKeyChecking=no "${NasUser}@${NasIP}:${NasPath}/k3s-config.tar.gz" (Join-Path $LocalTmpDir "k3s-config.tar.gz")
     scp -o StrictHostKeyChecking=no "${NasUser}@${NasIP}:${NasPath}/k3s-state.db" (Join-Path $LocalTmpDir "k3s-state.db")
+    scp -o StrictHostKeyChecking=no "${NasUser}@${NasIP}:${NasPath}/k3s-identity.tar.gz" (Join-Path $LocalTmpDir "k3s-identity.tar.gz")
 
     Write-Host "  - Uploading to NUC..." -ForegroundColor Gray
     scp -o StrictHostKeyChecking=no (Join-Path $LocalTmpDir "k3s-config.tar.gz") "${NucUser}@${NucIP}:/tmp/k3s-config.tar.gz"
     scp -o StrictHostKeyChecking=no (Join-Path $LocalTmpDir "k3s-state.db") "${NucUser}@${NucIP}:/tmp/k3s-state.db"
+    scp -o StrictHostKeyChecking=no (Join-Path $LocalTmpDir "k3s-identity.tar.gz") "${NucUser}@${NucIP}:/tmp/k3s-identity.tar.gz"
 
     # Apply config
     ssh -o StrictHostKeyChecking=no "${NucUser}@${NucIP}" "echo $plainPass | sudo -S tar -xzf /tmp/k3s-config.tar.gz -C /"
     Write-Host "  [+] Configuration restored to /etc/rancher/k3s/." -ForegroundColor Green
+
+    # Apply server identity (token, node-token, tls/, cred/) - WITHOUT this,
+    # a re-imaged master generates a new CA and no worker can rejoin.
+    ssh -o StrictHostKeyChecking=no "${NucUser}@${NucIP}" "echo $plainPass | sudo -S tar -xzf /tmp/k3s-identity.tar.gz -C /"
+    Write-Host "  [+] Server identity restored to /var/lib/rancher/k3s/server/." -ForegroundColor Green
 
     # 4. Restore Database State
     Write-Host "`n[4/5] Restoring SQLite database state..." -ForegroundColor Yellow
@@ -157,7 +165,7 @@ finally {
     if (Test-Path $LocalTmpDir) {
         Remove-Item -Path $LocalTmpDir -Recurse -Force | Out-Null
     }
-    ssh -o StrictHostKeyChecking=no "${NucUser}@${NucIP}" "rm -f /tmp/k3s-config.tar.gz /tmp/k3s-state.db" 2>$null
+    ssh -o StrictHostKeyChecking=no "${NucUser}@${NucIP}" "rm -f /tmp/k3s-config.tar.gz /tmp/k3s-state.db /tmp/k3s-identity.tar.gz" 2>$null
     $plainPass = $null
 }
 
