@@ -350,6 +350,55 @@ function Test-K3sClusterHealth {
         }
     }
 
+    # 9.6 LONGHORN BACKUP FRESHNESS (fail if no Completed backup < 26 h)
+    Write-Host "Checking Longhorn Backup Freshness..." -ForegroundColor Cyan
+    $backupFreshnessHours = 26
+    $backupResults = @()
+    $latestBackupAge = $null   # age of the newest Completed backup in hours (null = none)
+    $backupStaleFail = $false
+    try {
+        $backupJsonRaw = & kubectl get backups.longhorn.io -n longhorn-system -o json 2>$null | ConvertFrom-Json
+        if ($backupJsonRaw -and $backupJsonRaw.items) {
+            foreach ($b in $backupJsonRaw.items) {
+                $bName    = $b.metadata.name
+                $bState   = $b.status.state
+                $bVol     = $b.status.volumeName
+                $bSize    = $b.status.size
+                $bDone    = $b.status.completedAt   # ISO8601 or empty
+                $bCreated = $b.metadata.creationTimestamp
+                $ageHours = $null
+                if ($bDone) {
+                    try {
+                        $doneTime = [datetime]::Parse($bDone, $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+                        $ageHours = [math]::Round(([datetime]::UtcNow - $doneTime.ToUniversalTime()).TotalHours, 1)
+                    } catch {}
+                }
+                $backupResults += [PSCustomObject]@{
+                    Name     = $bName
+                    Volume   = $bVol
+                    State    = $bState
+                    Size     = $bSize
+                    AgeHours = $ageHours
+                    Done     = $bDone
+                }
+                if ($bState -eq 'Completed' -and $null -ne $ageHours) {
+                    if ($null -eq $latestBackupAge -or $ageHours -lt $latestBackupAge) {
+                        $latestBackupAge = $ageHours
+                    }
+                }
+            }
+        }
+    } catch {}
+    # Fail if no Completed backup younger than threshold
+    if ($null -eq $latestBackupAge) {
+        $backupStaleFail = $true
+    } elseif ($latestBackupAge -gt $backupFreshnessHours) {
+        $backupStaleFail = $true
+    }
+    $completedBackups   = ($backupResults | Where-Object State -eq 'Completed').Count
+    $inProgressBackups  = ($backupResults | Where-Object { $_.State -ne 'Completed' -and $_.State -ne 'Error' }).Count
+    $errorBackups       = ($backupResults | Where-Object State -eq 'Error').Count
+
     # 10. ANALYSIS & RECOMMENDATIONS
     Write-Host "Formulating Recommendations..." -ForegroundColor Cyan
     $recommendations = @()
@@ -408,6 +457,14 @@ function Test-K3sClusterHealth {
         $recommendations += "$($degradedVolumes.Count) Longhorn volumes NOT healthy ($names). Replication alone will not save these - check replicas and backup coverage."
     }
     if (-not $registryUp) { $recommendations += "Private image registry ${registryHost}:${registryPort} unreachable (TCP). Image pulls for custom apps will fail until the host is back." }
+    # Backup freshness
+    if ($backupStaleFail) {
+        if ($null -eq $latestBackupAge) {
+            $recommendations += "BACKUP STALE: No Completed Longhorn backup found in the last ${backupFreshnessHours}h (0 completed backups). Trigger backup-daily or investigate backup target."
+        } else {
+            $recommendations += "BACKUP STALE: Most recent Completed backup is ${latestBackupAge}h old (threshold: ${backupFreshnessHours}h). Verify backup-daily cron ran and NAS target is reachable."
+        }
+    }
     if ($podStatusCounts.Evicted -gt 0) { $recommendations += "$($podStatusCounts.Evicted) Pods Evicted. Clear dangling pods using 'kubectl get pods | grep Evicted | awk '{print `$1}' | xargs kubectl delete pod'." }
     if ($expiredCerts -gt 0) { $recommendations += "Found $expiredCerts certificate(s) not ready. Check cert-manager logs." }
     if ($pvcPending -gt 0) { $recommendations += "$pvcPending PVCs Pending. Ensure StorageClass is default and provisioner is active." }
@@ -486,6 +543,19 @@ function Test-K3sClusterHealth {
     } else { "<tr><td colspan='5' style='text-align:center; color: var(--text-muted);'>No applications found</td></tr>" }
 
     $anomalyCount = ($podStatusCounts.CrashLoopBackOff + $podStatusCounts.Pending + $podStatusCounts.Evicted + $podStatusCounts.ImagePull + $podStatusCounts.CreateContainerError + $podStatusCounts.StuckCreating)
+
+    $backupHtml = if ($backupResults.Count -gt 0) {
+        ($backupResults | Sort-Object { if ($null -eq $_.AgeHours) { 9999 } else { $_.AgeHours } } | ForEach-Object {
+            $stateStyle = switch ($_.State) {
+                'Completed' { "color: var(--success); font-weight:bold;" }
+                'Error'     { "color: var(--danger); font-weight:bold;" }
+                default     { "color: var(--warning); font-weight:bold;" }
+            }
+            $ageStr = if ($null -ne $_.AgeHours) { "$($_.AgeHours) h ago" } else { "-" }
+            $ageStyle = if ($null -ne $_.AgeHours -and $_.AgeHours -gt $backupFreshnessHours -and $_.State -eq 'Completed') { "color: var(--warning);" } else { "" }
+            "<tr><td><span class='text-highlight'>$(esc $_.Name)</span></td><td>$(esc $_.Volume)</td><td style='$stateStyle text-align:center;'>$(esc $_.State)</td><td>$(esc $_.Size)</td><td style='$ageStyle'>$ageStr</td></tr>"
+        }) -join "`n"
+    } else { "<tr><td colspan='5' style='text-align:center; color: var(--text-muted);'>No Longhorn backup CRs found (or API unavailable)</td></tr>" }
 
     $volHtml = if ($volResults.Count -gt 0) {
         ($volResults | Sort-Object Robustness, Name | ForEach-Object {
@@ -621,6 +691,16 @@ function Test-K3sClusterHealth {
     <div class="stat-label">Anomalies</div>
     <div class="stat-value $(if($anomalyCount -gt 0){'stat-danger'}else{'stat-success'})">$anomalyCount</div>
   </div>
+  <div class="card">
+    <div class="stat-label">Latest Backup (h ago)</div>
+    $(if ($null -eq $latestBackupAge) {
+        "<div class='stat-value stat-danger'>NONE</div>"
+    } elseif ($latestBackupAge -gt $backupFreshnessHours) {
+        "<div class='stat-value stat-danger'>$latestBackupAge h</div>"
+    } else {
+        "<div class='stat-value stat-success'>$latestBackupAge h</div>"
+    })
+  </div>
 </div>
 
 <div class="layout-grid">
@@ -725,6 +805,19 @@ function Test-K3sClusterHealth {
     <table>
       <tr><th>Namespace</th><th>Age</th><th>Reason</th><th>Message</th></tr>
       $warningEventsHtml
+    </table>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 24px; margin-bottom: 40px; $(if ($backupStaleFail) { "border-color: var(--danger); box-shadow: 0 4px 12px rgba(239,68,68,0.15);" } else { "" })">
+  <h2>[10] Longhorn Backup Freshness <span style="font-size:12px; font-weight:400; color: var(--text-muted);">threshold: ${backupFreshnessHours}h &nbsp;|&nbsp; completed: $completedBackups &nbsp;|&nbsp; in-progress: $inProgressBackups &nbsp;|&nbsp; errors: $errorBackups</span></h2>
+  $(if ($backupStaleFail) {
+    "<div style='padding: 10px 14px; margin-bottom: 14px; background: rgba(239,68,68,0.08); border-left: 3px solid var(--danger); border-radius: 0 4px 4px 0; color: var(--danger); font-weight: bold;'>&#9888; BACKUP STALE: $(if ($null -eq $latestBackupAge) { "No completed backups found." } else { "Newest completed backup is $($latestBackupAge)h old (threshold: ${backupFreshnessHours}h)." })</div>"
+  })
+  <div style="max-height: 400px; overflow-y: auto;">
+    <table>
+      <tr><th>Backup Name</th><th>Volume</th><th style='text-align:center'>State</th><th>Size</th><th>Completed</th></tr>
+      $backupHtml
     </table>
   </div>
 </div>
