@@ -27,6 +27,18 @@ function Test-K3sClusterHealth {
         } catch { return @() }
     }
 
+    # Helper: Parse kubectl age strings (e.g. "63d", "3h15m", "144m", "20s") to minutes
+    function Get-AgeMinutes {
+        param([string]$AgeStr)
+        $m = 0
+        if ($AgeStr -match '^(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$') {
+            if ($matches[1]) { $m += [int]$matches[1] * 1440 }
+            if ($matches[2]) { $m += [int]$matches[2] * 60 }
+            if ($matches[3]) { $m += [int]$matches[3] }
+        }
+        return $m
+    }
+
     Write-Host "Initializing K3s Cluster Scan..." -ForegroundColor Cyan
 
     # 1. NODE DEFINITIONS & ARP RESOLUTION
@@ -150,7 +162,8 @@ function Test-K3sClusterHealth {
     Write-Host "Analyzing Pods and Workload Distribution..." -ForegroundColor Cyan
     $podsRaw = Invoke-KubeCommand "get pods -A -o wide --no-headers"
     $podCountByNs = @{}; $podCountByNode = @{}; $highRestartPods = @(); $evictedPods = @(); $runningPods = @()
-    $podStatusCounts = @{ Running = 0; Pending = 0; CrashLoopBackOff = 0; Completed = 0; Evicted = 0; Other = 0 }
+    $podStatusCounts = @{ Running = 0; Pending = 0; CrashLoopBackOff = 0; Completed = 0; Evicted = 0; Other = 0; ImagePull = 0; CreateContainerError = 0; StuckCreating = 0 }
+    $imagePullPods = @(); $createErrPods = @(); $stuckCreatingPods = @()
     $totalPods = 0
     $restartThreshold = 10
 
@@ -183,6 +196,23 @@ function Test-K3sClusterHealth {
                 elseif ($status -eq 'Pending') { $podStatusCounts.Pending++ }
                 elseif ($status -match 'CrashLoop') { $podStatusCounts.CrashLoopBackOff++ }
                 elseif ($status -eq 'Completed') { $podStatusCounts.Completed++ }
+                elseif ($status -match 'ImagePull|ErrImagePull') {
+                    $podStatusCounts.ImagePull++
+                    $imagePullPods += [PSCustomObject]@{ Namespace=$ns; Pod=$pod; Node=$node }
+                }
+                elseif ($status -eq 'CreateContainerError') {
+                    $podStatusCounts.CreateContainerError++
+                    $createErrPods += [PSCustomObject]@{ Namespace=$ns; Pod=$pod; Node=$node; Restarts=$restarts }
+                }
+                elseif ($status -eq 'ContainerCreating') {
+                    # Transient creates are normal; only flag ones stuck > 30 min
+                    $ageStr = if ($parts.Count -ge 6) { $parts[5] } else { "" }
+                    if ((Get-AgeMinutes $ageStr) -ge 30) {
+                        $podStatusCounts.StuckCreating++
+                        $stuckCreatingPods += [PSCustomObject]@{ Namespace=$ns; Pod=$pod; Node=$node; Age=$ageStr }
+                    }
+                    else { $podStatusCounts.Other++ }
+                }
                 elseif ($status -eq 'Evicted') { 
                     $podStatusCounts.Evicted++ 
                     $evictedPods += [PSCustomObject]@{ Namespace=$ns; Pod=$pod; Node=$node }
@@ -218,6 +248,30 @@ function Test-K3sClusterHealth {
         }
     }
     $totalPVCs = $pvcResults.Count
+
+    # 5.5 LONGHORN VOLUME ROBUSTNESS (healthy | degraded | faulted)
+    Write-Host "Checking Longhorn Volume Robustness..." -ForegroundColor Cyan
+    $volRaw = Invoke-KubeCommand "get volumes.longhorn.io -n longhorn-system --no-headers"
+    $volResults = @(); $degradedVolumes = @()
+    if ($volRaw) {
+        foreach ($line in $volRaw) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            $parts = $line -split '\s+'
+            if ($parts.Count -ge 4) {
+                $robust = $parts[3]
+                $volResults += [PSCustomObject]@{
+                    Name       = $parts[0]
+                    State      = $parts[2]
+                    Robustness = $robust
+                    Size       = if ($parts.Count -ge 6) { $parts[5] } else { "" }
+                    Node       = if ($parts.Count -ge 7) { $parts[6] } else { "" }
+                }
+                if ($robust -ne 'healthy') {
+                    $degradedVolumes += [PSCustomObject]@{ Name=$parts[0]; State=$parts[2]; Robustness=$robust }
+                }
+            }
+        }
+    }
 
     # 6. INGRESS / LB
     $ingressRaw = Invoke-KubeCommand "get ingress -A --no-headers"
@@ -324,10 +378,36 @@ function Test-K3sClusterHealth {
         $recommendations += "UNDERUTILIZED NODES: $($underloadedNodes -join ', '). Average movable load is $avgPodsPerWorker pods/node (excl. DaemonSets & Tailscale)."
     }
 
+    # 9.5 PRIVATE REGISTRY REACHABILITY (TCP probe - image pulls depend on it)
+    $registryHost = "192.168.0.236"; $registryPort = 5000; $registryUp = $false
+    try {
+        $tcp = New-Object Net.Sockets.TcpClient
+        $iar = $tcp.BeginConnect($registryHost, $registryPort, $null, $null)
+        $registryUp = $iar.AsyncWaitHandle.WaitOne(3000)
+        $tcp.Close()
+    } catch {}
+
     # General Recommendations
     if ($versionMap.Keys.Count -gt 1) { $recommendations += "Version drift detected. Upgrade all nodes to a consistent K3s version." }
     if ($podStatusCounts.Pending -gt 0) { $recommendations += "$($podStatusCounts.Pending) Pods Pending. Check resource requests or node taints/capacity." }
     if ($podStatusCounts.CrashLoopBackOff -gt 0) { $recommendations += "$($podStatusCounts.CrashLoopBackOff) Pods in CrashLoopBackOff. Review container logs immediately." }
+    if ($podStatusCounts.ImagePull -gt 0) {
+        $names = ($imagePullPods | ForEach-Object { "$($_.Namespace)/$($_.Pod)" } | Select-Object -First 5) -join ', '
+        $recommendations += "$($podStatusCounts.ImagePull) Pods in ImagePullBackOff ($names). Check registry reachability and image tags."
+    }
+    if ($podStatusCounts.CreateContainerError -gt 0) {
+        $names = ($createErrPods | ForEach-Object { "$($_.Namespace)/$($_.Pod)" } | Select-Object -First 5) -join ', '
+        $recommendations += "$($podStatusCounts.CreateContainerError) Pods in CreateContainerError ($names). Check kubelet/GPU mounts on the host node."
+    }
+    if ($podStatusCounts.StuckCreating -gt 0) {
+        $names = ($stuckCreatingPods | ForEach-Object { "$($_.Namespace)/$($_.Pod) ($($_.Age))" } | Select-Object -First 5) -join ', '
+        $recommendations += "$($podStatusCounts.StuckCreating) Pods stuck in ContainerCreating > 30m ($names). Check volume attach/mount (Longhorn robustness)."
+    }
+    if ($degradedVolumes.Count -gt 0) {
+        $names = ($degradedVolumes | ForEach-Object { "$($_.Name) [$($_.Robustness)/$($_.State)]" }) -join ', '
+        $recommendations += "$($degradedVolumes.Count) Longhorn volumes NOT healthy ($names). Replication alone will not save these - check replicas and backup coverage."
+    }
+    if (-not $registryUp) { $recommendations += "Private image registry ${registryHost}:${registryPort} unreachable (TCP). Image pulls for custom apps will fail until the host is back." }
     if ($podStatusCounts.Evicted -gt 0) { $recommendations += "$($podStatusCounts.Evicted) Pods Evicted. Clear dangling pods using 'kubectl get pods | grep Evicted | awk '{print `$1}' | xargs kubectl delete pod'." }
     if ($expiredCerts -gt 0) { $recommendations += "Found $expiredCerts certificate(s) not ready. Check cert-manager logs." }
     if ($pvcPending -gt 0) { $recommendations += "$pvcPending PVCs Pending. Ensure StorageClass is default and provisioner is active." }
@@ -404,6 +484,21 @@ function Test-K3sClusterHealth {
             "<tr><td><span class='text-highlight'>$(esc $_.Namespace)</span></td><td>$(esc $_.Type)</td><td><span class='text-highlight'>$(esc $_.Name)</span></td><td style='$rStyle text-align:center;'>$(esc $_.Ready)</td><td>$(esc $_.Age)</td></tr>"
         }) -join "`n"
     } else { "<tr><td colspan='5' style='text-align:center; color: var(--text-muted);'>No applications found</td></tr>" }
+
+    $anomalyCount = ($podStatusCounts.CrashLoopBackOff + $podStatusCounts.Pending + $podStatusCounts.Evicted + $podStatusCounts.ImagePull + $podStatusCounts.CreateContainerError + $podStatusCounts.StuckCreating)
+
+    $volHtml = if ($volResults.Count -gt 0) {
+        ($volResults | Sort-Object Robustness, Name | ForEach-Object {
+            $rStyle = if ($_.Robustness -eq 'healthy') { "color: var(--success); font-weight:bold;" } else { "color: var(--danger); font-weight:bold;" }
+            "<tr><td><span class='text-highlight'>$(esc $_.Name)</span></td><td>$(esc $_.State)</td><td style='$rStyle text-align:center;'>$(esc $_.Robustness)</td><td>$(esc $_.Size)</td><td>$(esc $_.Node)</td></tr>"
+        }) -join "`n"
+    } else { "<tr><td colspan='5' style='text-align:center; color: var(--text-muted);'>No Longhorn volumes found (or CRD unavailable)</td></tr>" }
+
+    $warningEventsHtml = if ($warningEvents.Count -gt 0) {
+        ($warningEvents | Select-Object -Last 25 | ForEach-Object {
+            "<tr><td><span class='text-highlight'>$(esc $_.Namespace)</span></td><td>$(esc $_.Age)</td><td>$(esc $_.Reason)</td><td>$(esc $_.Message)</td></tr>"
+        }) -join "`n"
+    } else { "<tr><td colspan='4' style='text-align:center; color: var(--text-muted);'>No warning events.</td></tr>" }
 
     $html = @"
 <!DOCTYPE html>
@@ -524,7 +619,7 @@ function Test-K3sClusterHealth {
   </div>
   <div class="card">
     <div class="stat-label">Anomalies</div>
-    <div class="stat-value $(if($podStatusCounts.CrashLoopBackOff -gt 0 -or $podStatusCounts.Pending -gt 0 -or $podStatusCounts.Evicted -gt 0){'stat-danger'}else{'stat-success'})">$($podStatusCounts.CrashLoopBackOff + $podStatusCounts.Pending + $podStatusCounts.Evicted)</div>
+    <div class="stat-value $(if($anomalyCount -gt 0){'stat-danger'}else{'stat-success'})">$anomalyCount</div>
   </div>
 </div>
 
@@ -609,6 +704,27 @@ function Test-K3sClusterHealth {
     <table>
       <tr><th>Pod Name</th><th>Namespace</th><th>Node</th><th style='text-align:center'>Restarts</th></tr>
       $runningPodsHtml
+    </table>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 24px; margin-bottom: 24px;">
+  <h2>[08] Longhorn Volume Robustness</h2>
+  <div style="font-size: 11px; margin-bottom: 12px; color: var(--text-muted);">Degraded volumes: $($degradedVolumes.Count) / $($volResults.Count)</div>
+  <div style="max-height: 400px; overflow-y: auto;">
+    <table>
+      <tr><th>Volume</th><th>State</th><th style='text-align:center'>Robustness</th><th>Size</th><th>Node</th></tr>
+      $volHtml
+    </table>
+  </div>
+</div>
+
+<div class="panel" style="margin-top: 24px; margin-bottom: 40px;">
+  <h2>[09] Warning Events (latest 25)</h2>
+  <div style="max-height: 400px; overflow-y: auto;">
+    <table>
+      <tr><th>Namespace</th><th>Age</th><th>Reason</th><th>Message</th></tr>
+      $warningEventsHtml
     </table>
   </div>
 </div>
