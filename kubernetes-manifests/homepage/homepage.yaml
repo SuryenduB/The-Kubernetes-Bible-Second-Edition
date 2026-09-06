@@ -128,7 +128,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: HOMEPAGE_ALLOWED_HOSTS
-          value: "100.82.63.72,homepage-homepage"
+          value: "100.82.63.72,homepage-homepage,homepage.homepage.svc.cluster.local,homepage.homepage.svc"
         ports:
         - containerPort: 3000
         volumeMounts:

@@ -101,6 +101,49 @@ spec:
           port: 443
 
 ---
+# Permit the dedicated monitoring pod to test only the ports represented by
+# the Uptime Kuma monitors. This keeps the default-deny policy intact while
+# preventing cross-namespace health checks from reporting false outages.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: iiqstack-allow-uptime-kuma-monitoring
+  namespace: iiqstack
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+      podSelector:
+        matchLabels:
+          app: uptime-kuma
+    ports:
+    - protocol: TCP
+      port: 22
+    - protocol: TCP
+      port: 389
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 1025
+    - protocol: TCP
+      port: 12345
+    - protocol: TCP
+      port: 1433
+    - protocol: TCP
+      port: 3306
+    - protocol: TCP
+      port: 8025
+    - protocol: TCP
+      port: 8161
+    - protocol: TCP
+      port: 8080
+
+---
 # --- 0.4 IdentityIQ ServiceAccount & RBAC ---
 apiVersion: v1
 kind: ServiceAccount

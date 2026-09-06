@@ -381,6 +381,12 @@ spec:
         - podSelector:
             matchLabels:
               app: openlingo
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app: uptime-kuma
       ports:
         - protocol: TCP
           port: 5432
