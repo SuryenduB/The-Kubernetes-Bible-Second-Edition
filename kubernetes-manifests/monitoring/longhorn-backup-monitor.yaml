@@ -58,8 +58,7 @@ data:
     import os, sys, json, ssl, urllib.request, urllib.parse, datetime
 
     KUMA_URL  = os.environ["UPTIME_KUMA_URL"].rstrip("/")
-    KUMA_USER = os.environ["UPTIME_KUMA_USER"]
-    KUMA_PASS = os.environ["UPTIME_KUMA_PASSWORD"]
+    PUSH_TOKEN = os.environ["KUMA_PUSH_TOKEN"]
     MON_NAME  = os.environ.get("MONITOR_NAME", "longhorn-backup-daily")
     MAX_AGE_H = float(os.environ.get("MAX_AGE_HOURS", "26"))
     MAX_AGE_S = MAX_AGE_H * 3600
@@ -117,32 +116,9 @@ data:
 
     print(f"Backup status: {msg}")
 
-    # ── 2. Resolve push token from Uptime-Kuma API ────────────────────────────
-    push_token = None
-    try:
-        from uptime_kuma_api import UptimeKumaApi
-        api = UptimeKumaApi(KUMA_URL)
-        api.login(KUMA_USER, KUMA_PASS)
-        try:
-            for m in api.get_monitors():
-                if m.get("name") == MON_NAME and m.get("type") == "push":
-                    push_token = m.get("pushToken")
-                    break
-        finally:
-            api.disconnect()
-    except Exception as e:
-        print(f"ERROR: Uptime-Kuma API unavailable: {e}")
-        sys.exit(1)
-
-    if not push_token:
-        print(f"ERROR: push token for monitor '{MON_NAME}' not found in Uptime-Kuma. "
-              "Run 'kubectl -n monitoring create job --from=cronjob/uptime-kuma-sync "
-              "uk-sync-manual' to create the monitor first.")
-        sys.exit(1)
-
-    # ── 3. Push heartbeat ─────────────────────────────────────────────────────
+    # ── 2. Push heartbeat ─────────────────────────────────────────────────────
     status = "up" if backup_ok else "down"
-    push_url = (f"{KUMA_URL}/api/push/{push_token}"
+    push_url = (f"{KUMA_URL}/api/push/{PUSH_TOKEN}"
                 f"?status={status}&msg={urllib.parse.quote(msg)}&ping=")
     print(f"Pushing {status} → {push_url}")
     try:
@@ -190,24 +166,14 @@ spec:
               env:
                 - name: UPTIME_KUMA_URL
                   value: "http://uptime-kuma/"
-                - name: UPTIME_KUMA_USER
+                - name: KUMA_PUSH_TOKEN
                   valueFrom:
                     secretKeyRef:
-                      name: uptime-kuma-credentials
-                      key: username
-                - name: UPTIME_KUMA_PASSWORD
-                  valueFrom:
-                    secretKeyRef:
-                      name: uptime-kuma-credentials
-                      key: password
-                - name: MONITOR_NAME
-                  value: "longhorn-backup-daily"
+                      name: longhorn-backup-kuma-push
+                      key: token
                 - name: MAX_AGE_HOURS
                   value: "26"
-              command:
-                - sh
-                - -c
-                - pip install -q uptime-kuma-api==1.2.1 && python3 /scripts/check.py
+              command: ["python3", "/scripts/check.py"]
               volumeMounts:
                 - name: scripts
                   mountPath: /scripts
