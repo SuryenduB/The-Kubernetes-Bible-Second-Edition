@@ -45,16 +45,22 @@ $NasIP = "192.168.0.128"
 $NucUser = "suryendub"
 $NasUser = "admin"
 $NasRootPath = "/share/CACHEDEV1_DATA/Public/backups/k3s"
-$LocalTmpDir = Join-Path -Path $env:TEMP -ChildPath "k3s-restore-$(Get-Random)"
+$tempBase = [System.IO.Path]::GetTempPath()
+$LocalTmpDir = Join-Path -Path $tempBase -ChildPath "k3s-restore-$(Get-Random)"
 
 Write-Host "--- K3s Cluster Restoration Orchestrator ---" -ForegroundColor Cyan
 
 try {
     # 0. Backup Discovery
     Write-Host "`n[0/5] Discovering available backups on NAS..." -ForegroundColor Yellow
-    # Get sorted list of directories that match the timestamp pattern
     $remoteCmd = "ls -1 $NasRootPath | grep -E '^[0-9]{8}-[0-9]{6}$' | sort"
-    $availableBackups = ssh -o StrictHostKeyChecking=no "${NasUser}@${NasIP}" $remoteCmd | Where-Object { $_ -match '^\d{8}-\d{6}$' }
+    
+    $rawBackups = if (Get-Command sshpass -ErrorAction SilentlyContinue) {
+        sshpass -p 558068 ssh -o StrictHostKeyChecking=no "${NasUser}@${NasIP}" $remoteCmd 2>$null
+    } else {
+        ssh -o StrictHostKeyChecking=no "${NasUser}@${NasIP}" $remoteCmd 2>$null
+    }
+    $availableBackups = $rawBackups | Where-Object { $_ -match '^\d{8}-\d{6}$' }
 
     if (-not $availableBackups) {
         throw "No valid backups found in $NasRootPath"

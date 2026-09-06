@@ -144,3 +144,7 @@ if (Get-Command sshpass -ErrorAction SilentlyContinue) {
 } else {
     ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
 }
+
+Write-Host "`n--- Powering off Local Mac ---" -ForegroundColor Red
+"test" | sudo -S shutdown -h now
+

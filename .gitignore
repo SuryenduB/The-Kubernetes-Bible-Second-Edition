@@ -25,3 +25,8 @@ cred.xml
 *-sa-key.json
 *-gcloud-key.json
 
+# Logs
+shutdown.log
+*.log
+
+
