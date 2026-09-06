@@ -15,6 +15,8 @@ TAILSCALE_DEPLOYMENT_GUIDE.md
 
 # Local Credentials
 cred.xml
+# Uptime-Kuma API credentials for the GitOps sync job (local-only, never commit)
+kubernetes-manifests/monitoring/uptime-kuma-credentials.env
 
 # Google Cloud
 **/gcloud/**

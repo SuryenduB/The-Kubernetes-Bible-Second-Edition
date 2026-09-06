@@ -4,3 +4,17 @@ resources:
   - beszel-hub.yaml
   - beszel-agent.yaml
   - uptime-kuma.yaml
+  - uptime-kuma-monitors.yaml
+  - uptime-kuma-sync.yaml
+
+# API credentials come from a local-only env file (gitignored) so the
+# password never lands in Git. disableNameSuffixHash keeps the Secret
+# name stable for the CronJob's secretKeyRef.
+secretGenerator:
+  - name: uptime-kuma-credentials
+    namespace: monitoring
+    envs:
+      - uptime-kuma-credentials.env
+
+generatorOptions:
+  disableNameSuffixHash: true

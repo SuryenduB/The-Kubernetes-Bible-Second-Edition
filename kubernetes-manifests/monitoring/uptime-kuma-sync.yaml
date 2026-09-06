@@ -1,0 +1,135 @@
+# Hourly reconciliation of monitors.yaml into Uptime-Kuma via its socket.io API.
+# Uptime-Kuma has no file-based config (DB-only), so Git holds the desired
+# state here and this CronJob is the bridge. Manual trigger any time with:
+#   kubectl -n monitoring create job --from=cronjob/uptime-kuma-sync uk-sync-manual
+#
+# v2 compat note: uptime-kuma-api 1.2.1 targets the 1.x schema and omits the
+# v2 NOT NULL `conditions` column, so creation bypasses add_monitor() and
+# posts the payload directly (same builder + conditions=[]). Pinned to 1.2.1
+# in the CronJob pip line - re-verify if the pin ever changes.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uptime-kuma-sync
+  namespace: monitoring
+data:
+  sync.py: |
+    import os
+    import sys
+    import yaml
+    from uptime_kuma_api import UptimeKumaApi, MonitorType
+    from uptime_kuma_api.api import _convert_monitor_input, _check_arguments_monitor
+
+    URL = os.environ.get("UPTIME_KUMA_URL", "http://uptime-kuma/")
+    USER = os.environ["UPTIME_KUMA_USER"]
+    PASSWORD = os.environ["UPTIME_KUMA_PASSWORD"]
+
+    # Monitor fields managed by the sync (drift on these is corrected).
+    MANAGED_FIELDS = ("type", "url", "hostname", "port", "interval", "maxretries")
+
+    def desired_kwargs(mon):
+        kw = {"type": MonitorType(mon["type"]), "name": mon["name"]}
+        for f in ("url", "hostname", "port", "interval", "maxretries", "description"):
+            if f in mon:
+                kw[f] = mon[f]
+        return kw
+
+    def v2_add(api, **kwargs):
+        # Same payload add_monitor() would send, plus the v2-required column.
+        data = api._build_monitor_data(**kwargs)
+        _convert_monitor_input(data)
+        _check_arguments_monitor(data)
+        data["conditions"] = []
+        return api._call("add", data)
+
+    def norm(v):
+        return "" if v is None else str(v).strip().lower()
+
+    def main():
+        with open("/config/monitors.yaml") as f:
+            desired = yaml.safe_load(f)["monitors"]
+
+        api = UptimeKumaApi(URL)
+        api.login(USER, PASSWORD)
+        try:
+            existing = {m["name"]: m for m in api.get_monitors()}
+            created, updated, ok = 0, 0, 0
+            for mon in desired:
+                name = mon["name"]
+                kw = desired_kwargs(mon)
+                cur = existing.get(name)
+                if cur is None:
+                    v2_add(api, **kw)
+                    print(f"created: {name}")
+                    created += 1
+                    continue
+                drift = {f for f in MANAGED_FIELDS if norm(cur.get(f)) != norm(kw.get(f))}
+                # type may come back as int in some versions - compare against enum value too
+                if drift == {"type"} and norm(cur.get("type")) == norm(MonitorType(mon["type"]).value):
+                    drift = set()
+                if drift:
+                    api.edit_monitor(cur["id"], **kw)
+                    print(f"updated: {name} fields={sorted(drift)}")
+                    updated += 1
+                else:
+                    ok += 1
+            print(f"sync done: created={created} updated={updated} unchanged={ok}")
+        finally:
+            api.disconnect()
+
+    if __name__ == "__main__":
+        sys.exit(main())
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: uptime-kuma-sync
+  namespace: monitoring
+spec:
+  schedule: "17 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: sync
+            image: python:3.12-slim
+            command: ["sh", "-c", "pip install -q uptime-kuma-api==1.2.1 pyyaml && python /scripts/sync.py"]
+            env:
+            - name: UPTIME_KUMA_URL
+              value: "http://uptime-kuma/"
+            - name: UPTIME_KUMA_USER
+              valueFrom:
+                secretKeyRef:
+                  name: uptime-kuma-credentials
+                  key: username
+            - name: UPTIME_KUMA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: uptime-kuma-credentials
+                  key: password
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+            volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: scripts
+              mountPath: /scripts
+          volumes:
+          - name: config
+            configMap:
+              name: uptime-kuma-monitors
+          - name: scripts
+            configMap:
+              name: uptime-kuma-sync
