@@ -29,6 +29,24 @@ true: Longhorn reported `healthy`, and three replica CRs were `running` on
 reachable nodes. The replacement was then backed up to QNAP and its backup was
 verified at 100%.
 
+## Controlled failover validation
+
+On 2026-09-06, `kubernetes3` was cordoned and `mariadb-0` was deleted to
+simulate loss of its host. Kubernetes rescheduled MariaDB to `kubernetes6`;
+Longhorn detached and reattached the volume, which remained backed by three
+replicas. MariaDB became ready and both LinguaCafe web replicas returned to
+ready state. From the Uptime Kuma pod, the final checks were successful:
+
+```text
+mariadb.linguacafe.svc.cluster.local:3306 OPEN
+redis.linguacafe.svc.cluster.local:6379 OPEN
+linguacafe HTTP 302
+```
+
+The transition produced a short expected monitoring outage while the RWO
+volume moved between nodes; it did not result in data loss or a permanently
+failed application.
+
 `kubernetes8-debian` remains unreachable and should not be used for new
 stateful replicas until it is physically recovered and its Longhorn node health
 passes preflight checks.

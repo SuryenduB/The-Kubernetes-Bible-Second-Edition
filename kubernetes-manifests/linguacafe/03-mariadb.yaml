@@ -58,7 +58,10 @@ spec:
           periodSeconds: 10
         readinessProbe:
           exec:
-            command: ["mariadb-admin", "ping", "-p$(MARIADB_PASSWORD)"]
+            command:
+            - sh
+            - -ec
+            - mariadb-admin ping -uroot -p"$MARIADB_ROOT_PASSWORD"
           initialDelaySeconds: 30
           periodSeconds: 10
       volumes:
