@@ -15,7 +15,7 @@ data:
   services.yaml: |
     - AI & Development:
         - ArgoCD:
-            icon: "argocd.png"
+            icon: "argo-cd.png"
             href: "https://100.120.217.99"
             description: "GitOps & Deployment"
             ping: "100.120.217.99"
@@ -25,33 +25,33 @@ data:
             description: "Local AI Chat (Ollama)"
             ping: "100.88.101.12"
         - OpenLingo:
-            icon: "language.png"
+            icon: "mdi-translate"
             href: "http://100.93.223.48"
             description: "Structured Language Platform"
             ping: "100.93.223.48"
         - AI Language Tutor:
-            icon: "book.png"
+            icon: "mdi-book-open"
             href: "http://100.89.142.109"
             description: "Custom AI Language Learning"
             ping: "100.89.142.109"
     - Management & Identity:
         - IdentityIQ:
-            icon: "identity.png"
+            icon: "mdi-fingerprint"
             href: "http://100.77.88.70:8080"
             description: "Identity Governance"
             ping: "100.77.88.70"
         - phpLDAPadmin:
-            icon: "ldap.png"
+            icon: "openldap.png"
             href: "http://100.117.119.33"
             description: "LDAP Management"
             ping: "100.117.119.33"
         - ActiveMQ:
-            icon: "activemq.png"
+            icon: "apache.png"
             href: "http://100.88.133.126:8161"
             description: "Middleware Console"
             ping: "100.88.133.126"
         - Mailpit:
-            icon: "mail.png"
+            icon: "mailpit.png"
             href: "http://100.101.229.101:8025"
             description: "Email Testing Dashboard"
             ping: "100.101.229.101"
