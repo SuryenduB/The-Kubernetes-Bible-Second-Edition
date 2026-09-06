@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - beszel-hub.yaml
   - beszel-agent.yaml
+  - uptime-kuma.yaml

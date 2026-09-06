@@ -77,6 +77,11 @@ data:
             href: "http://100.90.224.84"
             description: "Cluster Monitoring"
             ping: "100.90.224.84"
+        - Uptime-Kuma:
+            icon: "uptime-kuma.png"
+            href: "http://uptime-kuma"
+            description: "Uptime Monitoring"
+            ping: "uptime-kuma"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
