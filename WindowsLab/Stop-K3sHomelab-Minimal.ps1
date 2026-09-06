@@ -1,9 +1,47 @@
-﻿# Stop-K3sHomelab-Minimal.ps1
+#Requires -Version 7.0
+# Stop-K3sHomelab-Minimal.ps1
 # Powers off high-consumption nodes, keeping only nuc + kubernetes5 + kubernetes7 running
-# Hardware saved: kubernetes1 (4C/15GB), kubernetes2 (4C/15GB), kubernetes3 (2C/15GB), kubernetes4 (4C/7.7GB), kubernetes6 (2C/15GB)
+# Hardware saved: kubernetes1, kubernetes2, kubernetes3, kubernetes4, kubernetes6, kubernetes8-debian
 
-[CmdletBinding()]
-param()
+<#
+.SYNOPSIS
+    Gracefully stops high-consumption nodes in the K3s cluster to reduce power.
+.DESCRIPTION
+    Cordon and drains workloads from power-hungry nodes (kubernetes1-4, 6, 8-debian),
+    preserving the minimal surviving set: nuc (control plane) + kubernetes5 + kubernetes7.
+    Then cleanly executes remote poweroff via SSH with connectivity pre-checks and credential caching.
+.PARAMETER Force
+    Skip confirmation prompts.
+.PARAMETER SkipDrain
+    Skip the kubectl drain phase and power off immediately.
+.PARAMETER Timeout
+    Timeout in seconds for draining each node. Default: 90.
+.EXAMPLE
+    PS> .\Stop-K3sHomelab-Minimal.ps1
+.EXAMPLE
+    PS> .\Stop-K3sHomelab-Minimal.ps1 -Force
+.EXAMPLE
+    PS> .\Stop-K3sHomelab-Minimal.ps1 -Force -SkipDrain
+.NOTES
+    Requires: kubectl, ssh
+    Platform: Windows, Linux, macOS (PowerShell 7+)
+#>
+
+[CmdletBinding(SupportsShouldProcess = $true)]
+param(
+    [Parameter()]
+    [switch]$Force,
+
+    [Parameter()]
+    [switch]$SkipDrain,
+
+    [Parameter()]
+    [ValidateRange(30, 300)]
+    [int]$Timeout = 90
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
 # Nodes to power off (high power consumers)
 $nodesToShutdown = @(
@@ -17,59 +55,139 @@ $nodesToShutdown = @(
 
 # Nodes to keep running
 $nodesToKeep = @(
-    @{ Name = 'nuc';           IP = '192.168.0.21' },
-    @{ Name = 'kubernetes5';   IP = '192.168.0.24' },
-    @{ Name = 'kubernetes7';   IP = '192.168.0.26' }
+    @{ Name = 'nuc';         IP = '192.168.0.21' },
+    @{ Name = 'kubernetes5'; IP = '192.168.0.24' },
+    @{ Name = 'kubernetes7'; IP = '192.168.0.26' }
 )
 
-$password = '558068'
 $sshUser = 'suryendub'
 
-Write-Host "`n========================================" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  K3s Homelab - Minimal Mode Shutdown" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "`nKeeping alive:" -ForegroundColor Green
-$nodesToKeep | ForEach-Object { Write-Host "  ✓ $($_.Name) ($($_.IP))" -ForegroundColor Green }
-Write-Host "`nPowering off:" -ForegroundColor Red
-$nodesToShutdown | ForEach-Object { Write-Host "  ✗ $($_.Name) ($($_.IP))" -ForegroundColor Red }
 
-$confirm = Read-Host "`nAre you sure? (yes/no)"
-if ($confirm -ne 'yes') {
-    Write-Host "Aborted." -ForegroundColor Yellow
-    return
+Write-Host "`nKeeping alive (Minimal Quorum):" -ForegroundColor Green
+foreach ($n in $nodesToKeep) {
+    Write-Host "  [+] $($n.Name) ($($n.IP))" -ForegroundColor Green
 }
 
-# Step 1: Cordon nodes being shut down
-Write-Host "`n[1/3] Cordoning nodes to be shut down..." -ForegroundColor Yellow
-$nodesToShutdown | ForEach-Object {
-    Write-Host "  Cordoning $($_.Name)..."
-    kubectl cordon $_.Name 2>$null
+Write-Host "`nTargeted for Power Off:" -ForegroundColor Yellow
+foreach ($n in $nodesToShutdown) {
+    Write-Host "  [-] $($n.Name) ($($n.IP))" -ForegroundColor Yellow
 }
 
-# Step 2: Drain workloads gracefully
-Write-Host "`n[2/3] Draining workloads from nodes..." -ForegroundColor Yellow
-$nodesToShutdown | ForEach-Object {
-    Write-Host "  Draining $($_.Name)..."
-    kubectl drain $_.Name --ignore-daemonsets --delete-emptydir-data --timeout=120s 2>$null
+if (-not $Force) {
+    $confirm = Read-Host "`nProceed with minimal mode shutdown? (yes/no)"
+    if ($confirm -ne 'yes') {
+        Write-Host "Operation aborted by user." -ForegroundColor Yellow
+        return
+    }
 }
 
-# Step 3: Power off nodes
-Write-Host "`n[3/3] Powering off nodes..." -ForegroundColor Red
-$nodesToShutdown | ForEach-Object {
-    Write-Host "  Powering off $($_.Name) ($($_.IP))..."
-    ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=5 "$sshUser@$($_.IP)" "echo $password | sudo -S poweroff" 2>$null
-    Start-Sleep -Seconds 2
+# ── Credential Resolution ──────────────────────────────────────────────
+$credPath = Join-Path -Path $PSScriptRoot -ChildPath "cred.xml"
+$plainPass = $null
+
+if (Test-Path -Path $credPath) {
+    try {
+        $sec = Import-Clixml -Path $credPath
+        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+        $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+    }
+    catch {
+        Write-Verbose "Could not import cred.xml: $_"
+    }
 }
 
-# Wait for nodes to go offline
-Write-Host "`nWaiting for nodes to power off..." -ForegroundColor Yellow
-Start-Sleep -Seconds 15
+if (-not $plainPass) {
+    if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
+        try {
+            $sec = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
+            $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+            $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+        }
+        catch {
+            Write-Verbose "SecretStore vault item not found: $_"
+        }
+    }
+}
 
-# Verify remaining cluster
+# Default known fallback password if not in vault
+if (-not $plainPass) {
+    $plainPass = '558068'
+}
+
+$b64Pass = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($plainPass))
+
+# ── Step 1: Cordon target nodes ────────────────────────────────────────
+Write-Host "`n[1/4] Cordoning target nodes..." -ForegroundColor Yellow
+foreach ($node in $nodesToShutdown) {
+    $name = $node.Name
+    Write-Host "  Cordoning $name..." -ForegroundColor DarkGray
+    $null = kubectl cordon $name 2>$null
+}
+Write-Host "  [+] Cordon complete." -ForegroundColor Green
+
+# ── Step 2: Gracefully drain target nodes ──────────────────────────────
+if (-not $SkipDrain) {
+    Write-Host "`n[2/4] Evicting workloads (kubectl drain, timeout: ${Timeout}s)..." -ForegroundColor Yellow
+    foreach ($node in $nodesToShutdown) {
+        $name = $node.Name
+        Write-Host "  Draining $name..." -ForegroundColor Cyan
+        $null = kubectl drain $name --ignore-daemonsets --delete-emptydir-data --force --grace-period=30 --timeout="${Timeout}s" 2>$null
+    }
+    Write-Host "  [+] Drain phase complete." -ForegroundColor Green
+}
+else {
+    Write-Host "`n[2/4] Skipping workload drain (-SkipDrain active)." -ForegroundColor Gray
+}
+
+# ── Step 3: Power off reachable nodes via SSH ──────────────────────────
+Write-Host "`n[3/4] Sending shutdown signal to target nodes..." -ForegroundColor Yellow
+$poweroffCmd = "echo $b64Pass | base64 -d | sudo -S poweroff"
+
+foreach ($node in $nodesToShutdown) {
+    $name = $node.Name
+    $ip = $node.IP
+
+    Write-Host "  Connecting to $name ($ip)..." -NoNewline
+    # Fast pre-check if node is responding
+    $tcpTest = $false
+    try {
+        $client = [System.Net.Sockets.TcpClient]::new()
+        $iar = $client.BeginConnect($ip, 22, $null, $null)
+        $wh = $iar.AsyncWaitHandle.WaitOne(1500, $false)
+        if ($wh -and $client.Connected) {
+            $client.EndConnect($iar)
+            $tcpTest = $true
+        }
+        $client.Dispose()
+    }
+    catch {
+        $tcpTest = $false
+    }
+
+    if (-not $tcpTest) {
+        Write-Host " [OFFLINE/SKIPPED]" -ForegroundColor DarkGray
+        continue
+    }
+
+    Write-Host " [SENDING POWEROFF]" -ForegroundColor Red
+    $null = ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$sshUser@$ip" "$poweroffCmd" 2>$null
+    Start-Sleep -Milliseconds 500
+}
+
+# ── Step 4: Verification ───────────────────────────────────────────────
+Write-Host "`n[4/4] Verifying remaining cluster status..." -ForegroundColor Yellow
+Start-Sleep -Seconds 5
+
 Write-Host "`n========================================" -ForegroundColor Cyan
-Write-Host "  Remaining Cluster Status" -ForegroundColor Cyan
+Write-Host "  Active Cluster Status" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 kubectl get nodes -o wide
 
-Write-Host "`n✅ Minimal mode active: nuc + kubernetes5 + kubernetes7 running" -ForegroundColor Green
-Write-Host "   Power saved: ~150-250W (5 nodes powered off)" -ForegroundColor Green
+Write-Host "`n========================================" -ForegroundColor Cyan
+Write-Host "  Minimal mode complete." -ForegroundColor Green
+Write-Host "  Survivors: nuc (control plane) + kubernetes5 + kubernetes7" -ForegroundColor Green
+Write-Host "========================================" -ForegroundColor Cyan
+

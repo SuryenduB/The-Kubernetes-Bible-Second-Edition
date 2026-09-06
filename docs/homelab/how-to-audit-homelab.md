@@ -68,20 +68,26 @@ mirrors:
 
 ---
 
-## How to Manage Database Backup Rotation
+## How to Manage Database & Cluster Backup Rotation
 
-Database dumps are synced daily to a local Minio/S3 bucket.
+Cluster configurations, SQLite state, and database backups are archived to the local QNAP NAS (`/share/CACHEDEV1_DATA/Public/backups/`).
 
-### 1. Verify Backup Status
-Log into the Minio Console or check via the Minio Client (`mc`):
+### 1. Verify Backup Status on NAS
+Check available timestamped backups on the NAS using SSH or the automated restore tool:
+```powershell
+# List available backups using the restoration orchestrator
+pwsh -File WindowsLab/Restore-K3sCluster.ps1 -ListOnly
+```
+Or directly on the NAS storage path:
 ```bash
-mc ls play/iiq-backups/
+ssh admin@192.168.0.128 "ls -lh /share/CACHEDEV1_DATA/Public/backups/k3s/"
 ```
 
-### 2. Review Lifecycle Policies
-A 30-day retention policy is enforced at the bucket level. You can check the active policy using:
+### 2. Retention & Pruning
+A monthly retention rotation is recommended for older timestamp bundles:
 ```bash
-mc ilm ls play/iiq-backups
+# Keep only the last 30 days of archives on the NAS
+ssh admin@192.168.0.128 "find /share/CACHEDEV1_DATA/Public/backups/k3s/ -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} \;"
 ```
 
 ---
