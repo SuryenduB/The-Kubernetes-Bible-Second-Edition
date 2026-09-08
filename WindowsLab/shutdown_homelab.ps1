@@ -47,7 +47,10 @@ if ($Mode -eq "Fallback") {
         }
 
         $masterNode = $allNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
-        # Exclude master and kubernetes7 from worker list
+        # Exclude master and kubernetes7 from worker list.
+        # kubernetes7 is DELIBERATELY spared: its power switch is broken -
+        # powering it off means it can never be turned back on. NEVER add it
+        # to shutdown targets until the hardware is repaired.
         $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name -and $_.metadata.name -ne 'kubernetes7' }
 
         $masterIp = Get-IPv4 -addresses $masterNode.status.addresses

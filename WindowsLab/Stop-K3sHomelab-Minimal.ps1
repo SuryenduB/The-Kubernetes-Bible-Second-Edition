@@ -53,7 +53,9 @@ $nodesToShutdown = @(
     @{ Name = 'kubernetes8-debian'; IP = '192.168.0.27' }
 )
 
-# Nodes to keep running
+# Nodes to keep running.
+# kubernetes7 is a PERMANENT survivor: its power switch is broken, so it must
+# never appear in $nodesToShutdown - powering it off = permanent loss.
 $nodesToKeep = @(
     @{ Name = 'nuc';         IP = '192.168.0.21' },
     @{ Name = 'kubernetes5'; IP = '192.168.0.24' },
