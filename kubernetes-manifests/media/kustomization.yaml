@@ -6,3 +6,4 @@ resources:
   - calibre-web-with-importer.yaml
   - bookorbit.yaml
   - bookhoarder.yaml
+  - booklogr.yaml

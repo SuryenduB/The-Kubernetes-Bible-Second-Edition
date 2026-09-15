@@ -1,0 +1,168 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: booklogr-secrets
+  namespace: media
+type: Opaque
+stringData:
+  AUTH_SECRET_KEY: "JWQbXpA9myzkLypRipalX2IhWHNnaus+bDERycdTtGo7MDmyhPBXesQ+AQ/whKtO"
+  DATABASE_URL: "sqlite:///books.db"
+  AUTH_ALLOW_REGISTRATION: "True"
+  AUTH_REQUIRE_VERIFICATION: "False"
+  SINGLE_USER_MODE: "False"
+  BL_API_ENDPOINT: "http://booklogr-api:5000/"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: booklogr-data-pvc
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booklogr-api
+  namespace: media
+  labels:
+    app: booklogr-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: booklogr-api
+  template:
+    metadata:
+      labels:
+        app: booklogr-api
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - kubernetes4
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: api
+          image: mozzo/booklogr:v1.12.0
+          ports:
+            - name: http
+              containerPort: 5000
+          envFrom:
+            - secretRef:
+                name: booklogr-secrets
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /app/instance
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: booklogr-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booklogr-api
+  namespace: media
+spec:
+  type: ClusterIP
+  selector:
+    app: booklogr-api
+  ports:
+    - name: http
+      port: 5000
+      targetPort: http
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: booklogr
+  namespace: media
+  labels:
+    app: booklogr
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: booklogr
+  template:
+    metadata:
+      labels:
+        app: booklogr
+    spec:
+      containers:
+        - name: web
+          image: mozzo/booklogr-web:v1.12.0
+          ports:
+            - name: http
+              containerPort: 80
+          envFrom:
+            - secretRef:
+                name: booklogr-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: booklogr
+  namespace: media
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "booklogr"
+spec:
+  type: ClusterIP
+  selector:
+    app: booklogr
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

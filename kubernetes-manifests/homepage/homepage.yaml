@@ -71,6 +71,11 @@ data:
             href: "http://100.88.145.42"
             description: "Language Reading App"
             ping: "100.88.145.42"
+        - BookLogr:
+            icon: "mdi-bookshelf"
+            href: "http://booklogr.tail35421d.ts.net"
+            description: "Personal Reading Tracker"
+            ping: "booklogr.tail35421d.ts.net"
     - Monitoring & Infrastructure:
         - Beszel:
             icon: "beszel.png"
