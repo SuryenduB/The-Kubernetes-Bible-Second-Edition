@@ -76,6 +76,11 @@ data:
             href: "http://booklogr.tail35421d.ts.net"
             description: "Personal Reading Tracker"
             ping: "booklogr.tail35421d.ts.net"
+        - LibrisLog:
+            icon: "mdi-book-heart"
+            href: "http://librislog.tail35421d.ts.net"
+            description: "Household Reading Tracker"
+            ping: "librislog.tail35421d.ts.net"
     - Monitoring & Infrastructure:
         - Beszel:
             icon: "beszel.png"

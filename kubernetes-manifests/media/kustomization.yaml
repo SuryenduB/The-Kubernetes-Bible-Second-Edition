@@ -7,3 +7,4 @@ resources:
   - bookorbit.yaml
   - bookhoarder.yaml
   - booklogr.yaml
+  - librislog.yaml
