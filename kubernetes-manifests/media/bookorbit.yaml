@@ -1,0 +1,280 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bookorbit-secrets
+  namespace: media
+type: Opaque
+stringData:
+  POSTGRES_USER: "bookorbit"
+  POSTGRES_PASSWORD: "bkOrb!t_SecPass2026"
+  POSTGRES_DB: "bookorbit"
+  JWT_SECRET: "bkorbit_jwt_supersecret_k3s_homelab_key_99"
+  SETUP_BOOTSTRAP_TOKEN: "bkorbit_bootstrap_token_2026_homelab"
+
+---
+# PVC for Postgres Database (Longhorn RWO)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bookorbit-db-pvc
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# PVC for BookOrbit Application Data (Longhorn RWO)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bookorbit-data-pvc
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# Service for PostgreSQL Database
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookorbit-db
+  namespace: media
+  labels:
+    app: bookorbit-db
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: bookorbit-db
+
+---
+# StatefulSet for PostgreSQL Database (with pgvector)
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: bookorbit-db
+  namespace: media
+spec:
+  serviceName: bookorbit-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookorbit-db
+  template:
+    metadata:
+      labels:
+        app: bookorbit-db
+    spec:
+      containers:
+        - name: postgres
+          image: pgvector/pgvector:pg18
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: POSTGRES_DB
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: bookorbit-db-pvc
+
+---
+# Deployment for BookOrbit Web Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookorbit
+  namespace: media
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: bookorbit
+  template:
+    metadata:
+      labels:
+        app: bookorbit
+    spec:
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - until nc -z -w 2 bookorbit-db 5432; do echo "Waiting for postgres on 5432..."; sleep 2; done
+      containers:
+        - name: bookorbit
+          image: ghcr.io/bookorbit/bookorbit:latest
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: POSTGRES_HOST
+              value: "bookorbit-db"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: POSTGRES_DB
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: JWT_SECRET
+            - name: SETUP_BOOTSTRAP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: bookorbit-secrets
+                  key: SETUP_BOOTSTRAP_TOKEN
+            - name: APP_URL
+              value: "http://bookorbit.tail35421d.ts.net"
+            - name: CLIENT_URL
+              value: "http://bookorbit.tail35421d.ts.net"
+            - name: TZ
+              value: "Europe/Berlin"
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          volumeMounts:
+            - name: app-data
+              mountPath: /data
+            - name: books
+              mountPath: /books
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: app-data
+          persistentVolumeClaim:
+            claimName: bookorbit-data-pvc
+        - name: books
+          persistentVolumeClaim:
+            claimName: calibre-library-pvc
+        - name: tmp
+          emptyDir: {}
+
+---
+# Service for BookOrbit (Tailscale MagicDNS Expose)
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookorbit
+  namespace: media
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "bookorbit"
+spec:
+  type: ClusterIP
+  selector:
+    app: bookorbit
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+
+---
+# PodDisruptionBudget for High Availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: bookorbit-pdb
+  namespace: media
+spec:
+  maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: bookorbit

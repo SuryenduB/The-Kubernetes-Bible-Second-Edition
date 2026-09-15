@@ -4,3 +4,4 @@ kind: Kustomization
 resources:
   - audiobookshelf.yaml
   - calibre-web-with-importer.yaml
+  - bookorbit.yaml
