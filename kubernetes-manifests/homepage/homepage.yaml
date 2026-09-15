@@ -98,6 +98,11 @@ data:
             href: "http://homelab-manger.tail35421d.ts.net"
             description: "Homelab Hardware Manager"
             ping: "homelab-manger.tail35421d.ts.net"
+        - RemotePower:
+            icon: "mdi-remote-desktop"
+            href: "http://remotepower.tail35421d.ts.net"
+            description: "Remote Server Management"
+            ping: "remotepower.tail35421d.ts.net"
     - Monitoring & Infrastructure:
         - Beszel:
             icon: "beszel.png"
