@@ -87,6 +87,11 @@ data:
             href: "http://homarr.tail35421d.ts.net"
             description: "Customizable Homelab Dashboard"
             ping: "homarr.tail35421d.ts.net"
+        - Cairn:
+            icon: "mdi-view-dashboard-outline"
+            href: "http://cairn.tail35421d.ts.net"
+            description: "Homelab Service Directory"
+            ping: "cairn.tail35421d.ts.net"
     - Monitoring & Infrastructure:
         - Beszel:
             icon: "beszel.png"

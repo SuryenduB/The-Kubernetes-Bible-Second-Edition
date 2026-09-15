@@ -1,0 +1,116 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cairn-config
+  namespace: dashboard
+data:
+  site.yaml: |
+    title: K3s Homelab Services
+    locales: [en]
+    about:
+      en: Services running in the K3s homelab.
+  services.yaml: |
+    - id: homepage
+      url: http://homepage.tail35421d.ts.net
+      icon: homepage
+      name: { en: Homepage }
+      desc: { en: Homelab service dashboard }
+    - id: homarr
+      url: http://homarr.tail35421d.ts.net
+      icon: homarr
+      name: { en: Homarr }
+      desc: { en: Customizable homelab dashboard }
+    - id: audiobookshelf
+      url: http://audiobookshelf.tail35421d.ts.net
+      icon: audiobookshelf
+      name: { en: AudioBookShelf }
+      desc: { en: Audiobooks and podcasts }
+    - id: bookorbit
+      url: http://bookorbit.tail35421d.ts.net
+      icon: bookstack
+      name: { en: BookOrbit }
+      desc: { en: Book requests and library }
+    - id: librislog
+      url: http://librislog.tail35421d.ts.net
+      icon: bookstack
+      name: { en: LibrisLog }
+      desc: { en: Reading tracker }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cairn
+  namespace: dashboard
+  labels:
+    app: cairn
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cairn
+  template:
+    metadata:
+      labels:
+        app: cairn
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cairn
+          image: morgankryze/cairn:stable
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: cairn-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cairn
+  namespace: dashboard
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "cairn"
+spec:
+  type: ClusterIP
+  selector:
+    app: cairn
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
