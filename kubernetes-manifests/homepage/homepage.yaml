@@ -81,6 +81,12 @@ data:
             href: "http://librislog.tail35421d.ts.net"
             description: "Household Reading Tracker"
             ping: "librislog.tail35421d.ts.net"
+    - Dashboards:
+        - Homarr:
+            icon: "homarr.png"
+            href: "http://homarr.tail35421d.ts.net"
+            description: "Customizable Homelab Dashboard"
+            ping: "homarr.tail35421d.ts.net"
     - Monitoring & Infrastructure:
         - Beszel:
             icon: "beszel.png"
