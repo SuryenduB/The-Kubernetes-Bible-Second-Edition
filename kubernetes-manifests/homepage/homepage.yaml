@@ -92,6 +92,12 @@ data:
             href: "http://cairn.tail35421d.ts.net"
             description: "Homelab Service Directory"
             ping: "cairn.tail35421d.ts.net"
+    - Server Management:
+        - HomeLab Manger:
+            icon: "mdi-server-cog"
+            href: "http://homelab-manger.tail35421d.ts.net"
+            description: "Homelab Hardware Manager"
+            ping: "homelab-manger.tail35421d.ts.net"
     - Monitoring & Infrastructure:
         - Beszel:
             icon: "beszel.png"
