@@ -76,11 +76,6 @@ spec:
           limits:
             cpu: 200m
             memory: 128Mi
-        livenessProbe:
-          tcpSocket:
-            port: 45876
-          initialDelaySeconds: 15
-          periodSeconds: 30
         volumeMounts:
         - name: containerd-sock
           mountPath: /run/containerd/containerd.sock
