@@ -50,11 +50,15 @@ Set-Secret -Name "k3s-homelab-sudo" -Secret "558068"
 
 ## Step 2: How to Start the Cluster
 
-To boot all nodes and wait for the Kubernetes control plane to converge:
+> **Important:** `Start-K3sHomelab.ps1` restores **capacity** (uncordon + reconcile). It does **not**
+> power the hardware on - there is no Wake-on-LAN in it. Power the physical nodes on first
+> (power buttons), or run the script with `-WaitForNodesMinutes <n>` so it waits for nodes
+> that are still booting.
 
-1. Execute the start script:
+1. Physically power on the nodes you want running, then execute the recovery (dry-run first is free):
    ```powershell
-   pwsh -File WindowsLab/Start-K3sHomelab.ps1
+   pwsh -File WindowsLab/Start-K3sHomelab.ps1 -DryRun
+   pwsh -File WindowsLab/Start-K3sHomelab.ps1 -RepairStorage
    ```
 2. Monitor node convergence:
    ```bash
@@ -64,6 +68,24 @@ To boot all nodes and wait for the Kubernetes control plane to converge:
    ```bash
    kubectl get pods -A
    ```
+
+### Start script v2 (Start-K3sHomelab.ps1) reference
+
+| Flag | Effect |
+|---|---|
+| `-DryRun` | Preview every action; writes a report, changes nothing. Safe to run any time. |
+| `-RepairStorage` | Allow Longhorn repairs (recycle the CSI plugin on nodes with stale mounts; remove zombie Longhorn pods left on offline nodes). **Recommended for a standard recovery.** |
+| `-RestartWorkloads` | Opt-in full serialized rolling restart (StatefulSets, storage-gated, one at a time, then Deployments). Off by default - uncordoning usually suffices. |
+| `-Rebalance` | Redistribute movable workloads off overloaded nodes using Eviction-API drains (PodDisruptionBudgets respected, protected nodes skipped). |
+| `-WaitForNodesMinutes <n>` | Wait up to N minutes for expected nodes to report Ready. |
+| `-FailOnDegraded` | Exit `2` when degraded workloads remain (for automation). |
+
+Exit codes: `0` healthy, `1` fatal, `2` completed-but-degraded (only with `-FailOnDegraded`).
+
+Each run writes a transcript plus a machine-readable JSON report to `WindowsLab/logs/`
+(`start-<timestamp>.log`, `start-report-<timestamp>.json`). Node identity and the
+*kubernetes7 must never be powered off* rule live in `WindowsLab/homelab-nodes.json`
+(loaded via `WindowsLab/HomelabNodes.psm1`) - do not hardcode node lists in the scripts.
 
 ---
 

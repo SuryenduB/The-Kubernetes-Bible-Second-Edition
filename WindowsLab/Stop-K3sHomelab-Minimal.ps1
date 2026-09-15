@@ -43,24 +43,30 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# Nodes to power off (high power consumers)
-$nodesToShutdown = @(
-    @{ Name = 'kubernetes1'; IP = '192.168.0.19' },
-    @{ Name = 'kubernetes2'; IP = '192.168.0.20' },
-    @{ Name = 'kubernetes3'; IP = '192.168.0.22' },
-    @{ Name = 'kubernetes4'; IP = '192.168.0.23' },
-    @{ Name = 'kubernetes6'; IP = '192.168.0.25' },
-    @{ Name = 'kubernetes8-debian'; IP = '192.168.0.27' }
-)
+# Node inventory comes from the shared registry (WindowsLab/homelab-nodes.json), so the
+# "kubernetes7 must never be powered off" constraint lives in exactly one place.
+$registryModule = Join-Path -Path $PSScriptRoot -ChildPath 'HomelabNodes.psm1'
+if (-not (Test-Path -Path $registryModule)) {
+    throw "Node registry module not found at '$registryModule'. Restore WindowsLab/HomelabNodes.psm1 and WindowsLab/homelab-nodes.json from git."
+}
+Import-Module $registryModule -Force -DisableNameChecking
 
-# Nodes to keep running.
-# kubernetes7 is a PERMANENT survivor: its power switch is broken, so it must
-# never appear in $nodesToShutdown - powering it off = permanent loss.
-$nodesToKeep = @(
-    @{ Name = 'nuc';         IP = '192.168.0.21' },
-    @{ Name = 'kubernetes5'; IP = '192.168.0.24' },
-    @{ Name = 'kubernetes7'; IP = '192.168.0.26' }
-)
+$registryNodes = @(Get-HomelabNodes | ForEach-Object { @{ Name = $_.name; IP = $_.ip } })
+$survivorNames = @(Get-HomelabSurvivorNames)
+$neverPowerOff = @(Get-NeverPowerOffNodeNames)
+
+# Nodes to keep running: the minimal quorum (nuc + kubernetes5 + kubernetes7).
+$nodesToKeep = @($registryNodes | Where-Object { $survivorNames -contains $_.Name })
+
+# Nodes to power off: every registered node that is NOT a designated survivor.
+$nodesToShutdown = @($registryNodes | Where-Object { $survivorNames -notcontains $_.Name })
+
+# Hard safety net: a neverPowerOff node must never reach the power-off list.
+foreach ($node in $nodesToShutdown) {
+    if ($neverPowerOff -contains $node.Name) {
+        throw "Refusing to run: '$($node.Name)' is marked neverPowerOff in homelab-nodes.json (its power switch is broken, so a power-off is unrecoverable)."
+    }
+}
 
 $sshUser = 'suryendub'
 
@@ -93,8 +99,22 @@ $plainPass = $null
 if (Test-Path -Path $credPath) {
     try {
         $sec = Import-Clixml -Path $credPath
-        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-        $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+        # Guard the type: clixml can round-trip SecureString or PSCredential.
+        if ($sec -is [System.Security.SecureString]) {
+            $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+            try {
+                $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+            }
+            finally {
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+            }
+        }
+        elseif ($sec -is [pscredential]) {
+            $plainPass = $sec.GetNetworkCredential().Password
+        }
+        else {
+            Write-Verbose "cred.xml held an unexpected type: $($sec.GetType().FullName)"
+        }
     }
     catch {
         Write-Verbose "Could not import cred.xml: $_"
@@ -114,9 +134,20 @@ if (-not $plainPass) {
     }
 }
 
-# Default known fallback password if not in vault
+# credential.xml holds a clixml-serialised SecureString; the SecretStore vault is second.
+# There is intentionally NO hardcoded fallback here - a stale fallback silently phones
+# home with the wrong password and masks a missing credential.
 if (-not $plainPass) {
-    $plainPass = '558068'
+    Write-Host "No stored credential found - prompting (see how-to-manage-homelab-power.md to store one)." -ForegroundColor Yellow
+    $prompt = Read-Host "Enter the sudo password for '$sshUser'" -AsSecureString
+    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($prompt)
+    try {
+        $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+    }
+    finally {
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
+    if (-not $plainPass) { throw "No sudo password supplied - refusing to contact the nodes." }
 }
 
 $b64Pass = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($plainPass))

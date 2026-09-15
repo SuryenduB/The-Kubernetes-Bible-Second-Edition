@@ -1,46 +1,115 @@
 #Requires -Version 7.0
-# Start-K3sHomelab.ps1
-# Restores cluster capacity by uncordoning all nodes currently marked as SchedulingDisabled.
-# Performs ordered rolling restarts of StatefulSets then Deployments to rebalance workloads.
-# Symmetrical counterpart to Stop-K3sHomelab-Minimal.ps1
+# Start-K3sHomelab.ps1  (v2 - hardened)
+# Restores cluster capacity after a power-down: uncordons Ready nodes, repairs stranded
+# workloads (RWO-aware, storage-aware) and optionally reconciles/rebalances the cluster.
+# Symmetrical counterpart to Stop-K3sHomelab-Minimal.ps1 / shutdown_homelab.ps1.
 
 <#
 .SYNOPSIS
-    Uncordons all K3s nodes that are currently marked as 'SchedulingDisabled'.
+    Restores a powered-on K3s homelab to full capacity, safely and idempotently.
+
 .DESCRIPTION
-    This script identifies nodes in the cluster that have been cordoned (e.g., by a shutdown script)
-    and executes 'kubectl uncordon' on each to allow workload scheduling again.
-    After uncordoning, it cleans up stranded pods on offline nodes and performs an ordered rolling restart:
-      1. StatefulSets (databases, caches, queues) — waits for ready status before proceeding
-      2. Deployments (application pods) — depend on the StatefulSets
-    System namespaces (kube-system, longhorn-system, argocd, cnpg-system, tailscale) are skipped.
-    When -Rebalance is specified, overloaded nodes (>= 1.5x avg pods) are cordoned and drained
-    to redistribute workloads across underutilized nodes.
-.PARAMETER SkipRestart
-    Skip the ordered rolling restart of StatefulSets and Deployments.
+    v2 rewrite. Design rules learned from a real incident where the v1 blanket
+    'rollout restart + force-delete' pass turned a simple "7 nodes left cordoned"
+    problem into a Longhorn RWO deadlock:
+
+      * Uncordon ONLY nodes that are Ready. NotReady nodes stay cordoned and are reported.
+      * NEVER force-delete a pod that owns a ReadWriteOnce volume while its node is still
+        tearing it down - that caused Multi-Attach / "mount point busy" deadlocks.
+        RWO pods stuck Terminating are reported as a storage deadlock and, with
+        -RepairStorage, repaired by recycling the Longhorn CSI plugin on that node.
+      * Storage is repaired BEFORE anything that consumes it, and workload restarts are
+        gated on Longhorn volume health.
+      * Blanket rolling restarts are OPT-IN (-RestartWorkloads). Default behaviour is
+        targeted remediation of actually-broken workloads; uncordon alone is usually enough.
+      * Restarts are serialized (restart -> wait -> next) instead of restart-all-then-validate.
+      * Drains use the Eviction API so PodDisruptionBudgets are honoured. The iiqstack and
+        linguacafe PDBs are maxUnavailable: 0 and must not be bypassed.
+      * Protected nodes (control plane, and kubernetes7 whose power switch is broken) are
+        never cordoned or drained.
+      * Every destructive action goes through one helper, so -DryRun/-WhatIf work and every
+        change is recorded in a machine-readable run report.
+
+.PARAMETER RestartWorkloads
+    OPT-IN deterministic full rolling restart of StatefulSets (serialized, storage-gated)
+    followed by Deployments. Off by default.
+
+.PARAMETER RepairStorage
+    Allow the script to touch longhorn-system: recycle the Longhorn CSI plugin on nodes with
+    stale mounts, and delete zombie Longhorn pods left behind on offline nodes.
+
 .PARAMETER Rebalance
-    Enable workload redistribution by cordoning and draining overloaded nodes.
+    Redistribute workloads off overloaded nodes using cordon + Eviction API drain
+    (PodDisruptionBudgets respected, protected nodes skipped).
+
 .PARAMETER RebalanceThreshold
-    Pods-per-node ratio (relative to average) that triggers rebalancing. Default: 1.5.
+    Pods-per-node ratio (relative to average) that marks a node as overloaded. Default: 1.5.
+
 .PARAMETER RolloutTimeout
-    Timeout in seconds to wait for StatefulSet rollout readiness before starting Deployments. Default: 180.
+    Seconds to wait for a single StatefulSet/Deployment rollout. Default: 180.
+
+.PARAMETER MaxDurationMinutes
+    Global time budget for the whole run. Default: 45.
+
+.PARAMETER WaitForNodesMinutes
+    Wait up to N minutes for the expected nodes to report Ready. Default: 0 (no wait).
+
+.PARAMETER StuckTerminatingMinutes
+    A pod Terminating longer than this while owning an RWO volume is treated as a storage
+    deadlock. Default: 10.
+
+.PARAMETER ExpectedServer
+    Expected API server URL, used as a cluster-identity guard. Defaults to the value in
+    WindowsLab/homelab-nodes.json.
+
+.PARAMETER LogPath
+    Transcript directory. Default: WindowsLab/logs.
+
+.PARAMETER ReportPath
+    Run report (JSON) path. Default: WindowsLab/logs/start-report-<timestamp>.json.
+
+.PARAMETER DryRun
+    Show every action that would be taken without performing any mutation.
+
+.PARAMETER FailOnDegraded
+    Exit 2 when the post-run verification still finds degraded workloads.
+
+.PARAMETER SkipRestart
+    Legacy switch. Retained for backward compatibility; restart is now opt-in, so this
+    simply guarantees no workload restarts happen.
+
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1
+    PS> .\Start-K3sHomelab.ps1 -DryRun
+    Preview the recovery without changing anything.
+
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1 -SkipRestart
+    PS> .\Start-K3sHomelab.ps1 -RepairStorage
+    Standard recovery: uncordon Ready nodes, repair stranded RWO pods and storage.
+
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1 -Rebalance
+    PS> .\Start-K3sHomelab.ps1 -RestartWorkloads -RepairStorage
+    Full reconcile: uncordon, repair storage, then serialized restart of everything.
+
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1 -Rebalance -RebalanceThreshold 2.0
+    PS> .\Start-K3sHomelab.ps1 -Rebalance -RepairStorage
+    Recover and rebalance workload distribution (PDB-aware).
+
 .NOTES
-    Requires: kubectl, ssh (for node telemetry)
-    Platform: Windows, Linux, macOS (PowerShell 7+)
+    Requires: kubectl, pwsh 7+. Optional: ssh/sshpass for node telemetry.
+    Platform: Windows, Linux, macOS (PowerShell 7+).
+    Exit codes: 0 = healthy, 1 = fatal error, 2 = completed with degraded workloads
+                (only when -FailOnDegraded is supplied).
+    Safety: this script never powers nodes on or off. Power the hardware on first, then run
+            this script to uncordon and reconcile.
 #>
 
-[CmdletBinding(SupportsShouldProcess = $false)]
+[CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
     [Parameter()]
-    [switch]$SkipRestart,
+    [switch]$RestartWorkloads,
+
+    [Parameter()]
+    [switch]$RepairStorage,
 
     [Parameter()]
     [switch]$Rebalance,
@@ -50,359 +119,1182 @@ param(
     [double]$RebalanceThreshold = 1.5,
 
     [Parameter()]
-    [ValidateRange(30, 600)]
-    [int]$RolloutTimeout = 180
+    [ValidateRange(30, 1800)]
+    [int]$RolloutTimeout = 180,
+
+    [Parameter()]
+    [ValidateRange(1, 480)]
+    [int]$MaxDurationMinutes = 45,
+
+    [Parameter()]
+    [ValidateRange(0, 240)]
+    [int]$WaitForNodesMinutes = 0,
+
+    [Parameter()]
+    [ValidateRange(1, 180)]
+    [int]$StuckTerminatingMinutes = 10,
+
+    [Parameter()]
+    [string]$ExpectedServer,
+
+    [Parameter()]
+    [string]$LogPath,
+
+    [Parameter()]
+    [string]$ReportPath,
+
+    [Parameter()]
+    [switch]$DryRun,
+
+    [Parameter()]
+    [switch]$FailOnDegraded,
+
+    [Parameter()]
+    [switch]$SkipRestart
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-# ── Platform & Prerequisites ───────────────────────────────────────────
-if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
-    Write-Error "kubectl not found in PATH. Install it from https://kubernetes.io/docs/tasks/tools/"
-    exit 1
-}
-
-$sshAvailable = [bool](Get-Command ssh -ErrorAction SilentlyContinue)
-if (-not $sshAvailable) {
-    Write-Warning "ssh not found in PATH. Node telemetry (uptime, disk) will be skipped."
-}
-
-Write-Verbose "Platform: $(if ($IsWindows) {'Windows'} elseif ($IsMacOS) {'macOS'} elseif ($IsLinux) {'Linux'} else {'Unknown'})"
-Write-Verbose "PowerShell: $($PSVersionTable.PSVersion)"
-Write-Verbose "Parameters: SkipRestart=$SkipRestart, Rebalance=$Rebalance, RebalanceThreshold=$RebalanceThreshold, RolloutTimeout=$RolloutTimeout"
-
-# Namespaces to skip during rolling restart (system / infrastructure)
+# Namespaces owned by platform components: never restarted by the reconcile phase.
 $SkipNamespaces = [System.Collections.Generic.HashSet[string]]::new(
     [string[]]@('kube-system', 'longhorn-system', 'argocd', 'cnpg-system', 'tailscale'),
     [System.StringComparer]::OrdinalIgnoreCase
 )
 
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
+# Longhorn is only touched by the storage-repair phase, never by the restart phase.
+$StorageNamespace = 'longhorn-system'
+$CsiPluginLabelSelector = 'app=longhorn-csi-plugin'
 
-try {
-    # ── Step 1: Identify cordoned and offline nodes ──────────────────────
-    Write-Host "`n[1/6] Inspecting cluster nodes..." -ForegroundColor Yellow
+$script:DryRun = [bool]$DryRun
+$script:StartedAt = Get-Date
+$script:Deadline = $script:StartedAt.AddMinutes($MaxDurationMinutes)
+$script:Actions = [System.Collections.Generic.List[object]]::new()
+$script:Findings = [System.Collections.Generic.List[string]]::new()
+$script:LockFile = Join-Path -Path $PSScriptRoot -ChildPath '.start-k3s-homelab.lock'
+$script:TranscriptStarted = $false
+$script:LockAcquired = $false
 
-    Write-Verbose "Fetching node list from cluster..."
-    $nodesRaw = kubectl get nodes -o json 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Failed to query Kubernetes cluster: $nodesRaw"
+# ── Output helpers ─────────────────────────────────────────────────────
+function Write-Step {
+    param([string]$Text)
+    Write-Host "`n$Text" -ForegroundColor Yellow
+}
+function Write-Ok {
+    param([string]$Text)
+    Write-Host "  [+] $Text" -ForegroundColor Green
+}
+function Write-Warn {
+    param([string]$Text)
+    Write-Host "  [!] $Text" -ForegroundColor Yellow
+}
+function Write-Bad {
+    param([string]$Text)
+    Write-Host "  [-] $Text" -ForegroundColor Red
+}
+function Write-Info {
+    param([string]$Text)
+    Write-Host "  $Text" -ForegroundColor Gray
+}
+function Add-Finding {
+    param([string]$Text)
+    $script:Findings.Add($Text)
+}
+function Add-Action {
+    param([string]$Type, [string]$Target, [string]$Detail)
+    $script:Actions.Add([pscustomobject]@{
+        ts     = (Get-Date).ToString('o')
+        type   = $Type
+        target = $Target
+        detail = $Detail
+    })
+}
+function Test-Budget {
+    param([string]$Context)
+    if ((Get-Date) -gt $script:Deadline) {
+        throw "Global time budget ($MaxDurationMinutes minute(s)) exhausted during '$Context'. The cluster may be partially reconciled - inspect the run report and re-run."
     }
-    $nodesJson = $nodesRaw | ConvertFrom-Json
-    Write-Verbose "Found $($nodesJson.items.Count) nodes in cluster."
+}
 
-    $cordonedNodes = [System.Collections.Generic.List[object]]::new()
-    $offlineNodes = [System.Collections.Generic.List[string]]::new()
+# ── kubectl wrapper: never silently swallow failures ────────────────────
+function Invoke-Kubectl {
+    <#
+        Runs kubectl, retries transient API failures with backoff, and either throws
+        (default) or returns a result object with Ok = $false (-AllowFailure).
+        v1 piped everything to 2>$null, which is how "uncordon failed but we printed
+        success anyway" was possible.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string[]]$KubectlArgs,
+        [switch]$AllowFailure,
+        [int]$Retries = 2
+    )
 
-    foreach ($item in $nodesJson.items) {
-        $nodeName = $item.metadata.name
-        $isReady = $false
-        foreach ($cond in $item.status.conditions) {
-            if ($cond.type -eq 'Ready' -and $cond.status -eq 'True') {
-                $isReady = $true
+    $attempt = 0
+    while ($true) {
+        $output = & kubectl @KubectlArgs 2>&1
+        $code = $LASTEXITCODE
+        $text = ($output | Out-String).Trim()
+
+        if ($code -eq 0) {
+            return [pscustomobject]@{ Ok = $true; ExitCode = 0; Output = @($output) }
+        }
+
+        $transient = $text -match 'Unable to connect to the server|connection refused|TLS handshake timeout|i/o timeout|EOF|etcdserver: request timed out|context deadline exceeded'
+        if ($transient -and $attempt -lt $Retries) {
+            $wait = [math]::Pow(2, $attempt) * 2
+            Write-Verbose "kubectl $($KubectlArgs -join ' ') failed (transient); retry $($attempt + 1)/$Retries in ${wait}s"
+            Start-Sleep -Seconds $wait
+            $attempt++
+            continue
+        }
+
+        if ($AllowFailure) {
+            return [pscustomobject]@{ Ok = $false; ExitCode = $code; Output = @($output) }
+        }
+        throw "kubectl $($KubectlArgs -join ' ') failed (exit $code): $text"
+    }
+}
+
+function Get-K8sJson {
+    <#
+        Returns the .items collection for a resource type (or the object itself),
+        or an empty array on failure. Never throws.
+    #>
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string[]]$KubectlArgs)
+
+    $result = Invoke-Kubectl -KubectlArgs ($KubectlArgs + @('-o', 'json')) -AllowFailure
+    if (-not $result.Ok) { return @() }
+    $joined = ($result.Output | Out-String)
+    if ([string]::IsNullOrWhiteSpace($joined)) { return @() }
+    try { $parsed = $joined | ConvertFrom-Json } catch { return @() }
+    if ($parsed.PSObject.Properties['items']) { return @($parsed.items) }
+    return @($parsed)
+}
+
+function Get-Prop {
+    <#
+        StrictMode-safe property access (v1 used $_.spec.replicas, which throws when absent).
+    #>
+    [CmdletBinding()]
+    param($Object, [string]$Name, $Default = $null)
+
+    if ($null -eq $Object) { return $Default }
+    $prop = $Object.PSObject.Properties[$Name]
+    if ($prop -and $null -ne $prop.Value) { return $prop.Value }
+    return $Default
+}
+
+# ── Single choke point for every destructive action ─────────────────────
+function Invoke-KubectlMutation {
+    <#
+        Honours -DryRun and -WhatIf, executes kubectl, and records the action for the
+        run report. Returns $true when the mutation succeeded (or was simulated).
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory)][string]$Description,
+        [Parameter(Mandatory)][string[]]$KubectlArgs,
+        [string]$ActionType = 'kubectl',
+        [string]$Target = '',
+        [switch]$AllowFailure
+    )
+
+    $cmdText = 'kubectl ' + ($KubectlArgs -join ' ')
+
+    if ($script:DryRun) {
+        Write-Info "[DRY-RUN] $Description"
+        Add-Action -Type 'dry-run' -Target $Target -Detail $cmdText
+        return $true
+    }
+    if (-not $PSCmdlet.ShouldProcess($Description, $cmdText)) {
+        Add-Action -Type 'skipped' -Target $Target -Detail $Description
+        return $false
+    }
+
+    $result = Invoke-Kubectl -KubectlArgs $KubectlArgs -AllowFailure:$AllowFailure
+    if ($result.Ok) {
+        Add-Action -Type $ActionType -Target $Target -Detail $cmdText
+    }
+    else {
+        Add-Action -Type "$ActionType-failed" -Target $Target -Detail (($result.Output | Out-String).Trim())
+    }
+    return $result.Ok
+}
+
+function Get-MinutesSince {
+    param([string]$Timestamp)
+    if ([string]::IsNullOrWhiteSpace($Timestamp)) { return $null }
+    try {
+        $parsed = [System.DateTimeOffset]::Parse($Timestamp, [cultureinfo]::InvariantCulture)
+    }
+    catch { return $null }
+    return [math]::Round(([System.DateTimeOffset]::UtcNow - $parsed).TotalMinutes, 1)
+}
+
+function Get-PvcMap {
+    <#
+        namespace/name -> PVC metadata including whether it is ReadWriteOnce.
+        Used to decide whether a pod may be force-deleted (see Repair section).
+    #>
+    [CmdletBinding()]
+    param()
+
+    $map = @{}
+    foreach ($pvc in (Get-K8sJson -KubectlArgs @('get', 'pvc', '-A'))) {
+        $md = Get-Prop $pvc 'metadata'
+        $sp = Get-Prop $pvc 'spec'
+        $ns = Get-Prop $md 'namespace'
+        $nm = Get-Prop $md 'name'
+        if (-not $nm) { continue }
+        $modes = @(Get-Prop $sp 'accessModes')
+        $map["$ns/$nm"] = [pscustomobject]@{
+            Namespace   = $ns
+            Name        = $nm
+            AccessModes = $modes
+            IsRwo       = ($modes -contains 'ReadWriteOnce')
+        }
+    }
+    return $map
+}
+
+function Get-PodPvcClaims {
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '',
+        Justification = 'Returns the collection of claims mounted by one pod; kept for caller readability')]
+    param($Pod)
+
+    $md = Get-Prop $Pod 'metadata'
+    $sp = Get-Prop $Pod 'spec'
+    $volumes = Get-Prop $sp 'volumes'
+    if (-not $volumes) { return @() }
+
+    $ns = Get-Prop $md 'namespace'
+    $claims = [System.Collections.Generic.List[string]]::new()
+    foreach ($volume in $volumes) {
+        $claimName = Get-Prop (Get-Prop $volume 'persistentVolumeClaim') 'claimName'
+        if ($claimName) { $claims.Add("$ns/$claimName") }
+    }
+    return @($claims)
+}
+
+function Get-StorageStatus {
+    <#
+        Longhorn health snapshot used as the gate before any RWO consumer is touched.
+        Returns Ok = $true only when every attached volume is healthy and every Longhorn
+        node allows scheduling.
+    #>
+    [CmdletBinding()]
+    param()
+
+    $volumes = Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', '-n', $StorageNamespace)
+    $lhNodes = Get-K8sJson -KubectlArgs @('get', 'nodes.longhorn.io', '-n', $StorageNamespace)
+
+    $attachedDegraded = [System.Collections.Generic.List[object]]::new()
+    $detached = [System.Collections.Generic.List[string]]::new()
+    $healthy = 0
+
+    foreach ($volume in $volumes) {
+        $name = Get-Prop (Get-Prop $volume 'metadata') 'name'
+        $state = Get-Prop (Get-Prop $volume 'status') 'state'
+        $robustness = Get-Prop (Get-Prop $volume 'status') 'robustness'
+
+        if ($state -eq 'attached') {
+            if ($robustness -eq 'healthy') { $healthy++ }
+            else { $attachedDegraded.Add([pscustomobject]@{ Name = $name; Robustness = $robustness }) }
+        }
+        else {
+            $detached.Add($name)
+        }
+    }
+
+    $unschedulable = [System.Collections.Generic.List[string]]::new()
+    foreach ($lhNode in $lhNodes) {
+        $allow = Get-Prop (Get-Prop $lhNode 'spec') 'allowScheduling'
+        if ($allow -eq $false) {
+            $unschedulable.Add((Get-Prop (Get-Prop $lhNode 'metadata') 'name'))
+        }
+    }
+
+    return [pscustomobject]@{
+        Available           = ($volumes.Count -gt 0)
+        VolumeCount         = $volumes.Count
+        HealthyCount        = $healthy
+        AttachedDegraded    = @($attachedDegraded)
+        Detached            = @($detached)
+        UnschedulableNodes  = @($unschedulable)
+        Ok                  = ($volumes.Count -gt 0 -and $attachedDegraded.Count -eq 0 -and $unschedulable.Count -eq 0)
+    }
+}
+
+function Wait-StorageReady {
+    <#
+        Polls Longhorn until every attached volume is healthy, or the budget/timeout runs out.
+        Replaces v1's blind "restart everything and hope" behaviour.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter()][int]$TimeoutSeconds = 600,
+        [Parameter()][int]$PollSeconds = 15
+    )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $status = Get-StorageStatus
+    while (-not $status.Ok -and $sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        Test-Budget 'waiting for Longhorn to converge'
+        Write-Info ("storage: {0}/{1} volumes healthy, {2} degraded, {3} longhorn node(s) unschedulable - waiting {4}s" -f `
+                $status.HealthyCount, $status.VolumeCount, $status.AttachedDegraded.Count, $status.UnschedulableNodes.Count, $PollSeconds)
+        Start-Sleep -Seconds $PollSeconds
+        $status = Get-StorageStatus
+    }
+    $sw.Stop()
+    return $status
+}
+
+function Get-NodeState {
+    <#
+        Returns node name -> { Name, Ready, Unschedulable, IsProtected, IsExpected, OfflineReason }.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter()][object[]]$NodeObjects,
+        [Parameter()][string[]]$ProtectedNodes = @(),
+        [Parameter()][string[]]$ExpectedNodes = @()
+    )
+
+    $state = [ordered]@{}
+    foreach ($node in $NodeObjects) {
+        $name = Get-Prop (Get-Prop $node 'metadata') 'name'
+        if (-not $name) { continue }
+
+        $ready = $false
+        $reason = ''
+        foreach ($condition in @(Get-Prop (Get-Prop $node 'status') 'conditions')) {
+            if ((Get-Prop $condition 'type') -eq 'Ready') {
+                $ready = ((Get-Prop $condition 'status') -eq 'True')
+                if (-not $ready) { $reason = [string](Get-Prop $condition 'reason') }
                 break
             }
         }
 
-        if (-not $isReady) {
-            $offlineNodes.Add($nodeName)
+        $state[$name] = [pscustomobject]@{
+            Name          = $name
+            Ready         = $ready
+            Unschedulable = ((Get-Prop (Get-Prop $node 'spec') 'unschedulable') -eq $true)
+            IsProtected   = ($ProtectedNodes -contains $name)
+            IsExpected    = ($ExpectedNodes.Count -eq 0 -or $ExpectedNodes -contains $name)
+            OfflineReason = $reason
         }
+    }
+    return $state
+}
 
-        if ($item.spec.PSObject.Properties['unschedulable'] -and $item.spec.unschedulable -eq $true) {
-            $cordonedNodes.Add($item)
+# ── Preflight ──────────────────────────────────────────────────────────
+Write-Host "========================================" -ForegroundColor Cyan
+Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
+Write-Host "  (v2 - storage-aware, safe by default)" -ForegroundColor Cyan
+Write-Host "========================================" -ForegroundColor Cyan
+if ($script:DryRun) {
+    Write-Host "  MODE: DRY RUN - no changes will be made" -ForegroundColor Magenta
+}
+if ($WhatIfPreference) {
+    Write-Host "  MODE: -WhatIf (equivalent to -DryRun for this script)" -ForegroundColor Magenta
+}
+
+# Transcript + report destinations (both under WindowsLab/logs, which is gitignored).
+if (-not $LogPath) { $LogPath = Join-Path -Path $PSScriptRoot -ChildPath 'logs' }
+if (-not (Test-Path -Path $LogPath)) {
+    $null = New-Item -ItemType Directory -Path $LogPath -Force
+}
+$stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$transcriptFile = Join-Path -Path $LogPath -ChildPath "start-$stamp.log"
+if (-not $ReportPath) {
+    $ReportPath = Join-Path -Path $LogPath -ChildPath "start-report-$stamp.json"
+}
+
+try {
+    Start-Transcript -Path $transcriptFile -Force | Out-Null
+    $script:TranscriptStarted = $true
+}
+catch {
+    Write-Warning "Could not start transcript at '$transcriptFile': $($_.Exception.Message)"
+}
+
+if (-not (Get-Command kubectl -ErrorAction SilentlyContinue)) {
+    throw "kubectl not found in PATH. Install it (https://kubernetes.io/docs/tasks/tools/) and ensure /usr/local/bin is on PATH."
+}
+if ($IsMacOS -and (($env:PATH -split ':') -notcontains '/usr/local/bin')) {
+    Write-Warn "/usr/local/bin is not on PATH on this macOS host - kubectl/pwsh may not resolve in other shells."
+}
+Write-Verbose "Platform: $(if ($IsWindows) {'Windows'} elseif ($IsMacOS) {'macOS'} elseif ($IsLinux) {'Linux'} else {'Unknown'})"
+Write-Verbose "PowerShell: $($PSVersionTable.PSVersion)"
+Write-Verbose "Parameters: RestartWorkloads=$RestartWorkloads RepairStorage=$RepairStorage Rebalance=$Rebalance RolloutTimeout=$RolloutTimeout MaxDurationMinutes=$MaxDurationMinutes WaitForNodesMinutes=$WaitForNodesMinutes StuckTerminatingMinutes=$StuckTerminatingMinutes DryRun=$DryRun FailOnDegraded=$FailOnDegraded SkipRestart=$SkipRestart"
+
+# Shared node registry - single source of truth for identity AND safety constraints.
+$registryModule = Join-Path -Path $PSScriptRoot -ChildPath 'HomelabNodes.psm1'
+if (-not (Test-Path -Path $registryModule)) {
+    throw "Node registry module not found at '$registryModule'. Restore WindowsLab/HomelabNodes.psm1 and WindowsLab/homelab-nodes.json from git."
+}
+Import-Module $registryModule -Force -DisableNameChecking
+
+$expectedNodes = @(Get-HomelabNodeNames)
+$protectedNodes = @(Get-ProtectedNodeNames)
+$neverPowerOffNodes = @(Get-NeverPowerOffNodeNames)
+Write-Verbose "Expected nodes: $($expectedNodes -join ', ')"
+Write-Verbose "Protected (never cordon/drain): $($protectedNodes -join ', ')"
+Write-Verbose "Never power off: $($neverPowerOffNodes -join ', ')"
+
+# Concurrency lock - v1 allowed two overlapping recovery runs to fight each other.
+if (Test-Path -Path $script:LockFile) {
+    $lockStale = $true
+    try {
+        $lock = (Get-Content -Path $script:LockFile -Raw) | ConvertFrom-Json
+        $lockStale = $false
+        if (Get-Prop $lock 'pid') {
+            if (Get-Process -Id $lock.pid -ErrorAction SilentlyContinue) { $lockStale = $false }
+            else { $lockStale = $true }
+        }
+        $lockAge = Get-MinutesSince ([string](Get-Prop $lock 'startedAt'))
+        if ($null -ne $lockAge -and $lockAge -gt 720) { $lockStale = $true }
+    }
+    catch { $lockStale = $true }
+
+    if (-not $lockStale) {
+        throw "Another Start-K3sHomelab.ps1 run appears to be in progress. Lock file: $script:LockFile. If that run died, delete the lock file and re-run."
+    }
+    Write-Warn "Removing stale lock file ($script:LockFile)."
+    Remove-Item -Path $script:LockFile -Force -ErrorAction SilentlyContinue
+}
+if (-not $script:DryRun) {
+    [pscustomobject]@{
+        pid       = $PID
+        host      = [string](& { if ($env:COMPUTERNAME) { $env:COMPUTERNAME } elseif ($env:HOSTNAME) { $env:HOSTNAME } else { [System.Net.Dns]::GetHostName() } })
+        user      = [string]$env:USER
+        startedAt = (Get-Date).ToString('o')
+    } | ConvertTo-Json | Set-Content -Path $script:LockFile -Encoding utf8
+    $script:LockAcquired = $true
+}
+
+# Cluster identity guard: refuse to operate on an unexpected cluster.
+$serverResult = Invoke-Kubectl -KubectlArgs @('config', 'view', '--minify', '-o', 'jsonpath={.clusters[0].cluster.server}') -AllowFailure
+if (-not $serverResult.Ok) {
+    throw "Cannot read the current kubeconfig context. Check KUBECONFIG / cluster reachability."
+}
+$actualServer = ($serverResult.Output | Out-String).Trim()
+if (-not $ExpectedServer) { $ExpectedServer = [string](Get-HomelabApiServer) }
+if ($ExpectedServer -and $actualServer -and $actualServer -ne $ExpectedServer) {
+    throw "Cluster identity mismatch: kubeconfig points at '$actualServer' but the registry expects '$ExpectedServer'. Refusing to continue. Pass -ExpectedServer only if you are certain."
+}
+Write-Ok "Cluster identity verified: $actualServer"
+
+$finalExitCode = 0
+
+try {
+    # ── Step 1: Inventory ────────────────────────────────────────────────
+    Write-Step "[1/7] Inventory - expected vs actual nodes"
+
+    $nodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
+        -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
+
+    Write-Info "Registry expects $($expectedNodes.Count) node(s); cluster reports $($nodeState.Count)."
+
+    $missingNodes = @($expectedNodes | Where-Object { -not $nodeState.Contains($_) })
+    if ($missingNodes.Count -gt 0) {
+        Write-Bad "Expected node(s) absent from the cluster: $($missingNodes -join ', ')"
+        Add-Finding "Expected node(s) absent from cluster: $($missingNodes -join ', ')"
+    }
+
+    $unexpectedNodes = @($nodeState.Values | Where-Object { -not $_.IsExpected } | ForEach-Object { $_.Name })
+    if ($unexpectedNodes.Count -gt 0) {
+        Write-Warn "Node(s) present but not in the registry (registry drift): $($unexpectedNodes -join ', ')"
+        Add-Finding "Unregistered node(s) present: $($unexpectedNodes -join ', ')"
+    }
+
+    $notReadyNodes = @($nodeState.Values | Where-Object { -not $_.Ready })
+    if ($notReadyNodes.Count -gt 0) {
+        Write-Warn "NotReady node(s): $(($notReadyNodes | ForEach-Object { $_.Name }) -join ', ')"
+    }
+
+    if ($WaitForNodesMinutes -gt 0 -and $notReadyNodes.Count -gt 0) {
+        Write-Info "Waiting up to $WaitForNodesMinutes minute(s) for NotReady nodes to rejoin..."
+        $waitUntil = (Get-Date).AddMinutes($WaitForNodesMinutes)
+        while ((Get-Date) -lt $waitUntil) {
+            Test-Budget 'waiting for nodes to rejoin'
+            Start-Sleep -Seconds 15
+            $nodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
+                -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
+            $notReadyNodes = @($nodeState.Values | Where-Object { -not $_.Ready })
+            if ($notReadyNodes.Count -eq 0) { break }
+            Write-Info "still NotReady: $(($notReadyNodes | ForEach-Object { $_.Name }) -join ', ')"
         }
     }
 
-    if ($offlineNodes.Count -gt 0) {
-        Write-Host "  [!] Offline / NotReady node(s): $($offlineNodes -join ', ')" -ForegroundColor Yellow
-    }
+    # ── Step 2: Uncordon ONLY Ready nodes ────────────────────────────────
+    Write-Step "[2/7] Uncordoning nodes"
 
-    # ── Step 2: Uncordon nodes ───────────────────────────────────────────
-    Write-Host "`n[2/6] Uncordoning nodes..." -ForegroundColor Yellow
-    $wasCordoned = $false
-    if ($cordonedNodes.Count -eq 0) {
-        Write-Host "  [+] No cordoned nodes found. Cluster is already schedulable." -ForegroundColor Green
+    $cordonedBefore = @($nodeState.Values | Where-Object { $_.Unschedulable })
+    $uncordonTargets = @($cordonedBefore | Where-Object { $_.Ready })
+    $cordonedNotReady = @($cordonedBefore | Where-Object { -not $_.Ready })
+    $uncordoned = [System.Collections.Generic.List[string]]::new()
+
+    if ($cordonedBefore.Count -eq 0) {
+        Write-Ok "No cordoned nodes - the cluster is already schedulable."
     }
     else {
-        $wasCordoned = $true
-        Write-Host "  Found $($cordonedNodes.Count) cordoned node(s)." -ForegroundColor Gray
-        foreach ($node in $cordonedNodes) {
-            $name = $node.metadata.name
-            Write-Host "  Uncordoning $name..." -ForegroundColor Cyan
-            Write-Verbose "Running: kubectl uncordon $name"
-            $null = kubectl uncordon $name 2>$null
-        }
-        Write-Host "  [+] All cordoned nodes uncordoned." -ForegroundColor Green
-    }
-
-    # ── Step 3: Clean up stranded, zombie, and terminating pods ──────────
-    Write-Host "`n[3/6] Checking for stranded & zombie workloads..." -ForegroundColor Yellow
-    $allCurrentPodsRaw = kubectl get pods -A -o json 2>$null
-    if ($allCurrentPodsRaw) {
-        $allCurrentPods = $allCurrentPodsRaw | ConvertFrom-Json
-        foreach ($p in $allCurrentPods.items) {
-            $ns = $p.metadata.namespace
-            $pname = $p.metadata.name
-            if ($SkipNamespaces.Contains($ns)) { continue }
-
-            $targetNode = if ($p.spec.PSObject.Properties['nodeName']) { $p.spec.nodeName } else { '' }
-            $isNodeOffline = $targetNode -and $offlineNodes.Contains($targetNode)
-            $isTerminating = [bool]$p.metadata.PSObject.Properties['deletionTimestamp']
-            $isUnknown = $p.status.phase -eq 'Unknown'
-
-            if ($isNodeOffline -or $isTerminating -or $isUnknown) {
-                Write-Host "    Purging stuck/orphaned pod: $pname [$ns] on node: $targetNode..." -ForegroundColor Yellow
-                $null = kubectl delete pod $pname -n $ns --grace-period=0 --force 2>$null
+        Write-Info "Cordoned: $(($cordonedBefore | ForEach-Object { $_.Name }) -join ', ')"
+        foreach ($node in $uncordonTargets) {
+            Test-Budget "uncordoning $($node.Name)"
+            if ($node.IsProtected) {
+                # Protected nodes must never be CORDONED; un-cordoning one is always correct.
+                Write-Warn "$($node.Name) is a protected node but was cordoned - uncordoning it."
+                Add-Finding "Protected node $($node.Name) was found cordoned."
+            }
+            $ok = Invoke-KubectlMutation -Description "uncordon $($node.Name)" `
+                -KubectlArgs @('uncordon', $node.Name) -ActionType 'uncordon' -Target $node.Name -AllowFailure
+            if ($ok) {
+                Write-Ok "$($node.Name) uncordoned"
+                $uncordoned.Add($node.Name)
+            }
+            else {
+                Write-Bad "Failed to uncordon $($node.Name) - see run report"
+                Add-Finding "Failed to uncordon $($node.Name)"
             }
         }
+        foreach ($node in $cordonedNotReady) {
+            Write-Warn "$($node.Name) is NotReady - leaving it cordoned until it rejoins (v1 uncordoned these and then reported success)."
+            Add-Finding "Left cordoned because NotReady: $($node.Name)"
+        }
     }
-    Write-Host "  [+] Pod cleanup complete." -ForegroundColor Green
 
-    # ── Step 4: Ordered rolling restart with strict dependency gating ────
-    if ($wasCordoned -and -not $SkipRestart) {
-        Write-Host "`n[4/6] Rebalancing workloads (Ordered Rolling Restart)..." -ForegroundColor Yellow
+    # Refresh node state after uncordoning so later steps see reality.
+    $nodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
+        -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
 
-        function Get-RestartableItems {
-            param([string]$ResourceType)
-            $raw = kubectl get $ResourceType -A -o json 2>$null
-            if (-not $raw) { return @() }
-            $parsed = $raw | ConvertFrom-Json
-            return @($parsed.items | Where-Object {
-                (-not $SkipNamespaces.Contains($_.metadata.namespace)) -and
-                ($_.spec.replicas -gt 0)
-            })
+    # ── Step 3: Diagnose workloads and storage ───────────────────────────
+    Write-Step "[3/7] Diagnosing workloads and storage"
+
+    $pvcMap = Get-PvcMap
+    $allPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
+    $clusterNodeNames = @($nodeState.Keys)
+
+    $strandedPods = [System.Collections.Generic.List[object]]::new()
+    $zombiePods = [System.Collections.Generic.List[object]]::new()
+    $rwoDeadlocks = [System.Collections.Generic.List[object]]::new()
+    $unschedulablePods = [System.Collections.Generic.List[object]]::new()
+    $crashPods = [System.Collections.Generic.List[object]]::new()
+    $volumeStuckPods = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($pod in $allPods) {
+        $md = Get-Prop $pod 'metadata'
+        $sp = Get-Prop $pod 'spec'
+        $st = Get-Prop $pod 'status'
+        $ns = Get-Prop $md 'namespace'
+        $name = Get-Prop $md 'name'
+
+        # Platform namespaces (longhorn-system, kube-system, ...) are handled by the
+        # storage-repair step and are never restarted by the reconcile step.
+        if ($SkipNamespaces.Contains($ns)) { continue }
+
+        $phase = Get-Prop $st 'phase'
+        $nodeName = [string](Get-Prop $sp 'nodeName')
+        $deletionTs = Get-Prop $md 'deletionTimestamp'
+        $terminatingMinutes = $null
+        if ($deletionTs) { $terminatingMinutes = Get-MinutesSince ([string]$deletionTs) }
+
+        $hasRwo = $false
+        foreach ($claim in @(Get-PodPvcClaims -Pod $pod)) {
+            if ($pvcMap.ContainsKey($claim) -and $pvcMap[$claim].IsRwo) { $hasRwo = $true; break }
         }
 
-        # Phase A — StatefulSets first (databases, queues, caches)
-        Write-Host "  Phase A: Rolling restart of StatefulSets (databases/dependencies)..." -ForegroundColor Gray
-        $statefulsets = Get-RestartableItems 'statefulsets'
-        Write-Verbose "Found $($statefulsets.Count) restartable StatefulSets."
-
-        foreach ($sts in $statefulsets) {
-            $ns = $sts.metadata.namespace
-            $name = $sts.metadata.name
-            Write-Host "    Restarting statefulset: $name [$ns]..." -ForegroundColor DarkGray
-            $null = kubectl rollout restart statefulset/$name -n $ns 2>$null
+        $onDeadNode = $false
+        if ($nodeName) {
+            if (-not ($clusterNodeNames -contains $nodeName)) { $onDeadNode = $true }
+            elseif (-not $nodeState[$nodeName].Ready) { $onDeadNode = $true }
         }
 
-        $allStsHealthy = $true
-        if ($statefulsets.Count -gt 0) {
-            Write-Host "  [~] Waiting for StatefulSets to achieve readiness (timeout: ${RolloutTimeout}s)..." -ForegroundColor Gray
-            foreach ($sts in $statefulsets) {
-                $ns = $sts.metadata.namespace
-                $name = $sts.metadata.name
-                Write-Host "    Validating rollout: $name [$ns]..." -NoNewline -ForegroundColor DarkGray
-                $statusOut = kubectl rollout status statefulset/$name -n $ns --timeout="${RolloutTimeout}s" 2>&1
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Host " [READY]" -ForegroundColor Green
+        $reasons = [System.Collections.Generic.List[string]]::new()
+        foreach ($cs in @(Get-Prop $st 'containerStatuses')) {
+            $reason = Get-Prop (Get-Prop (Get-Prop $cs 'state') 'waiting') 'reason'
+            if ($reason) { $reasons.Add([string]$reason) }
+        }
+
+        $record = [pscustomobject]@{
+            Namespace          = $ns
+            Name               = $name
+            Node               = $nodeName
+            Phase              = $phase
+            Reasons            = @($reasons)
+            HasRwo             = $hasRwo
+            TerminatingMinutes = $terminatingMinutes
+        }
+
+        if ($deletionTs -and $hasRwo -and -not $onDeadNode -and
+            $null -ne $terminatingMinutes -and $terminatingMinutes -ge $StuckTerminatingMinutes) {
+            # The v1 killer: force-deleting these caused Multi-Attach / "mount point busy".
+            $rwoDeadlocks.Add($record)
+        }
+        elseif ($onDeadNode) {
+            $strandedPods.Add($record)
+        }
+        elseif ($phase -eq 'Unknown' -or ($deletionTs -and $null -ne $terminatingMinutes -and $terminatingMinutes -ge $StuckTerminatingMinutes)) {
+            $zombiePods.Add($record)
+        }
+        elseif ($phase -eq 'Pending' -and -not $nodeName) {
+            $unschedulablePods.Add($record)
+        }
+        elseif ($phase -eq 'Pending' -and $nodeName -and $hasRwo) {
+            # Scheduled to a Ready node but the volume will not attach/mount. This is the
+            # activemq-0 / mail-0 case ("already mounted or mount point busy" / Multi-Attach)
+            # and is repairable by recycling the CSI plugin (see step 4b) - never by
+            # force-deleting the pod.
+            $volumeStuckPods.Add($record)
+        }
+        elseif (@($reasons | Where-Object { $_ -in @('CrashLoopBackOff', 'ImagePullBackOff', 'ErrImagePull', 'CreateContainerError', 'RunContainerError') }).Count -gt 0) {
+            $crashPods.Add($record)
+        }
+    }
+
+    Write-Info "Stranded on dead/offline node : $($strandedPods.Count)"
+    Write-Info "Zombie (Unknown / stuck Term) : $($zombiePods.Count)"
+    Write-Info "Unschedulable (Pending)       : $($unschedulablePods.Count)"
+    Write-Info "Crash/ImagePull/CreateError   : $($crashPods.Count)"
+    Write-Info "RWO volume deadlocks          : $($rwoDeadlocks.Count)"
+    Write-Info "Blocked on volume mount       : $($volumeStuckPods.Count)"
+
+    foreach ($pod in $strandedPods) {
+        Write-Warn "stranded: [$($pod.Namespace)] $($pod.Name) on '$($pod.Node)' (node not Ready)"
+    }
+    foreach ($pod in $rwoDeadlocks) {
+        Write-Bad "deadlock: [$($pod.Namespace)] $($pod.Name) Terminating ${($pod.TerminatingMinutes)}m holding an RWO volume on Ready node '$($pod.Node)'"
+        Add-Finding "RWO deadlock: $($pod.Namespace)/$($pod.Name) on $($pod.Node)"
+    }
+    foreach ($pod in $unschedulablePods) {
+        Write-Warn "unschedulable: [$($pod.Namespace)] $($pod.Name) ($($pod.Reasons -join ', '))"
+    }
+
+    # Storage snapshot (drives both repair priority and the reconcile gate).
+    $storageStatus = Get-StorageStatus
+    if ($storageStatus.Available) {
+        Write-Info ("Longhorn: {0}/{1} volumes healthy, {2} degraded, {3} detached, {4} node(s) not scheduling" -f `
+                $storageStatus.HealthyCount, $storageStatus.VolumeCount,
+            $storageStatus.AttachedDegraded.Count, $storageStatus.Detached.Count,
+            $storageStatus.UnschedulableNodes.Count)
+        if (-not $storageStatus.Ok) { Add-Finding "Longhorn not fully healthy at diagnosis time" }
+    }
+    else {
+        Write-Info "Longhorn not detected - storage-specific repair will be skipped."
+    }
+
+    # ── Step 4: Repair (storage first, then stranded workloads) ──────────
+    Write-Step "[4/7] Repair - storage first, then stranded workloads"
+
+    $repairedSomething = $false
+    $deadNodeNames = @($nodeState.Values | Where-Object { -not $_.Ready } | ForEach-Object { $_.Name })
+    $deadNodeNames += $missingNodes
+
+    # 4a - Longhorn pods left Terminating on nodes that are gone.
+    #      (v1 could never do this: longhorn-system was in $SkipNamespaces.)
+    if ($RepairStorage -and $storageStatus.Available) {
+        foreach ($lhPod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace))) {
+            $lhName = Get-Prop (Get-Prop $lhPod 'metadata') 'name'
+            $lhNode = [string](Get-Prop (Get-Prop $lhPod 'spec') 'nodeName')
+            $lhDeletion = Get-Prop (Get-Prop $lhPod 'metadata') 'deletionTimestamp'
+            if (-not $lhName -or -not $lhNode -or -not $lhDeletion) { continue }
+            if (-not ($deadNodeNames -contains $lhNode)) { continue }
+
+            $age = Get-MinutesSince ([string]$lhDeletion)
+            Write-Warn "zombie Longhorn pod on offline node: $lhName ($lhNode, Terminating ${age}m)"
+            Test-Budget "removing zombie longhorn pod $lhName"
+            $ok = Invoke-KubectlMutation -Description "remove zombie longhorn pod $lhName on $lhNode" `
+                -KubectlArgs @('delete', 'pod', '-n', $StorageNamespace, $lhName, '--grace-period=0', '--force') `
+                -ActionType 'storage-repair' -Target $lhName -AllowFailure
+            if ($ok) { $repairedSomething = $true }
+        }
+    }
+
+    # 4b - Pods blocked on storage (RWO deadlock, or Pending on a Ready node because the
+    #      volume cannot attach/mount). NEVER force-delete these - recycle the CSI plugin
+    #      instead, which is exactly what unblocked activemq-0/mail-0 in the real incident.
+    $storageBlockedPods = [System.Collections.Generic.List[object]]::new()
+    foreach ($pod in $rwoDeadlocks) { $storageBlockedPods.Add($pod) }
+    foreach ($pod in $volumeStuckPods) { $storageBlockedPods.Add($pod) }
+
+    if ($storageBlockedPods.Count -gt 0) {
+        if (-not $RepairStorage) {
+            foreach ($pod in $storageBlockedPods) {
+                Write-Warn "[$($pod.Namespace)] $($pod.Name) is blocked on storage at node '$($pod.Node)' (phase=$($pod.Phase)). Re-run with -RepairStorage to recycle the Longhorn CSI plugin."
+            }
+        }
+        else {
+            $repairedNodes = [System.Collections.Generic.HashSet[string]]::new()
+            foreach ($pod in $storageBlockedPods) {
+                if (-not $pod.Node -or $repairedNodes.Contains($pod.Node)) { continue }
+                Test-Budget "recycling CSI plugin on $($pod.Node)"
+                Write-Info "Recycling Longhorn CSI plugin on $($pod.Node) to clear the stale mount for $($pod.Name)..."
+                $pluginPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace, '-l', $CsiPluginLabelSelector)
+                foreach ($pluginPod in ($pluginPods | Where-Object { [string](Get-Prop (Get-Prop $_ 'spec') 'nodeName') -eq $pod.Node })) {
+                    $pluginName = Get-Prop (Get-Prop $pluginPod 'metadata') 'name'
+                    $ok = Invoke-KubectlMutation -Description "restart longhorn-csi-plugin $pluginName on $($pod.Node)" `
+                        -KubectlArgs @('delete', 'pod', '-n', $StorageNamespace, $pluginName, '--wait=true') `
+                        -ActionType 'storage-repair' -Target $pluginName -AllowFailure
+                    if ($ok) { $repairedSomething = $true }
                 }
-                else {
-                    $allStsHealthy = $false
-                    Write-Host " [RETRYING/VOLUME RESOLVE: $statusOut]" -ForegroundColor Yellow
-                    # Delete the pod to release any Longhorn RWO volume lock
-                    $null = kubectl delete pod -l app=$name -n $ns --grace-period=0 --force 2>$null
-                    Start-Sleep -Seconds 5
-                    $statusRetry = kubectl rollout status statefulset/$name -n $ns --timeout=60s 2>&1
-                    if ($LASTEXITCODE -eq 0) {
-                        Write-Host "      --> $name recovered successfully!" -ForegroundColor Green
-                        $allStsHealthy = $true
+                $null = $repairedNodes.Add($pod.Node)
+            }
+            Write-Info "Waiting 30s for the recycled CSI plugin(s) before continuing..."
+            Start-Sleep -Seconds 30
+
+            # Some attachments stay wedged in the CSI flow even after the plugin recycle.
+            # What actually unblocked activemq-0/mail-0 in the real incident: a GRACEFUL
+            # delete of the volume consumer so the attach/detach controller cycles the
+            # attachment (container never started, so no data is at risk). Deliberately
+            # NOT --force and NOT --grace-period=0 - that recreates the RWO deadlock.
+            $stillBlocked = [System.Collections.Generic.List[object]]::new()
+            $livePods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
+            foreach ($candidate in $storageBlockedPods) {
+                foreach ($pod in $livePods) {
+                    $md = Get-Prop $pod 'metadata'
+                    if ((Get-Prop $md 'namespace') -eq $candidate.Namespace -and (Get-Prop $md 'name') -eq $candidate.Name) {
+                        $phase = Get-Prop (Get-Prop $pod 'status') 'phase'
+                        if ($phase -notin @('Running', 'Succeeded')) { $stillBlocked.Add($candidate) }
+                        break
                     }
                 }
             }
-            Write-Host "  [+] Phase A complete." -ForegroundColor Green
+            foreach ($pod in $stillBlocked) {
+                Test-Budget "cycling attachment for $($pod.Name)"
+                Write-Info "Cycling attachment for [$($pod.Namespace)] $($pod.Name): graceful delete so the volume detaches and reattaches..."
+                $ok = Invoke-KubectlMutation -Description "gracefully delete stuck volume consumer $($pod.Namespace)/$($pod.Name)" `
+                    -KubectlArgs @('delete', 'pod', $pod.Name, '-n', $pod.Namespace, '--wait=true') `
+                    -ActionType 'attachment-cycle' -Target "$($pod.Namespace)/$($pod.Name)" -AllowFailure
+                if ($ok) { $repairedSomething = $true }
+            }
+            if ($stillBlocked.Count -gt 0) {
+                Write-Info "Waiting 45s for the cycled pods to reschedule..."
+                Start-Sleep -Seconds 45
+            }
+        }
+    }
+
+    # 4c - Stranded / zombie / kubelet-state-leak pods.
+    #      Safe to force-delete: either the node hosting them is gone, or the container
+    #      never started (CreateContainerError / RunContainerError).
+    $podRepairTargets = [System.Collections.Generic.List[object]]::new()
+    foreach ($pod in $strandedPods) { $podRepairTargets.Add($pod) }
+    foreach ($pod in $zombiePods) { $podRepairTargets.Add($pod) }
+    foreach ($pod in $crashPods) {
+        if (@($pod.Reasons | Where-Object { $_ -in @('CreateContainerError', 'RunContainerError') }).Count -gt 0) {
+            $podRepairTargets.Add($pod)
         }
         else {
-            Write-Host "  [+] No restartable StatefulSets found." -ForegroundColor Green
+            Write-Info "report-only (crashlooping, not auto-deleted): [$($pod.Namespace)] $($pod.Name) ($($pod.Reasons -join ', '))"
+        }
+    }
+
+    if ($podRepairTargets.Count -eq 0) {
+        Write-Ok "No stranded or zombie pods to purge."
+    }
+    else {
+        foreach ($pod in $podRepairTargets) {
+            Test-Budget "purging stuck pod $($pod.Name)"
+            $rwoNote = if ($pod.HasRwo) { 'holds RWO volume, but node is gone/container never started' } else { 'no RWO volume' }
+            Write-Info "Purging stuck pod [$($pod.Namespace)] $($pod.Name) (phase=$($pod.Phase); $rwoNote)"
+            $ok = Invoke-KubectlMutation -Description "force-delete stuck pod $($pod.Namespace)/$($pod.Name)" `
+                -KubectlArgs @('delete', 'pod', $pod.Name, '-n', $pod.Namespace, '--grace-period=0', '--force') `
+                -ActionType 'pod-repair' -Target "$($pod.Namespace)/$($pod.Name)" -AllowFailure
+            if ($ok) { $repairedSomething = $true }
+        }
+    }
+
+    foreach ($pod in $unschedulablePods) {
+        Write-Info "unschedulable pod left to the scheduler: [$($pod.Namespace)] $($pod.Name)"
+    }
+
+    if ($repairedSomething) {
+        Write-Info "Waiting 20s for repaired workloads to be recreated..."
+        Start-Sleep -Seconds 20
+    }
+
+    # ── Step 5: Reconcile workloads (OPT-IN) ─────────────────────────────
+    Write-Step "[5/7] Reconcile workloads"
+
+function Get-ManagedResource {
+    <#
+    .SYNOPSIS
+        Returns user-managed (non-platform) workloads of a given kind.
+        (Singular approved noun; plural meaning documented in the synopsis.)
+    #>
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '',
+        Justification = 'Returns the set of managed workloads for a kind; singular spelling refers to one item')]
+    param([Parameter(Mandatory)][string]$ResourceType)
+
+        $result = [System.Collections.Generic.List[object]]::new()
+        foreach ($item in (Get-K8sJson -KubectlArgs @('get', $ResourceType, '-A'))) {
+            $ns = Get-Prop (Get-Prop $item 'metadata') 'namespace'
+            if ($SkipNamespaces.Contains($ns)) { continue }
+            $replicas = Get-Prop (Get-Prop $item 'spec') 'replicas'
+            if ($null -eq $replicas) { $replicas = 1 }
+            if ([int]$replicas -le 0) { continue }
+            $result.Add($item)
+        }
+        return @($result)
+    }
+
+    function Test-BudgetSoft {
+        if ((Get-Date) -gt $script:Deadline) {
+            Write-Warn "Global time budget reached - stopping further waits and moving to verification."
+            Add-Finding "Time budget exhausted before reconcile completed"
+            return $false
+        }
+        return $true
+    }
+
+    if (-not $RestartWorkloads -or $SkipRestart) {
+        if ($SkipRestart) {
+            Write-Info "Skipped (-SkipRestart)."
+        }
+        else {
+            Write-Info "Skipped: -RestartWorkloads not specified. Uncordoning + targeted repair is the default (v1 restarted everything unconditionally, which is what caused the RWO deadlock)."
+        }
+    }
+    else {
+        # Gate on storage health BEFORE touching any RWO consumer.
+        if ($storageStatus.Available -and -not $storageStatus.Ok) {
+            Write-Warn "Longhorn is not fully healthy - waiting for it to converge before restarting RWO consumers."
+            $storageStatus = Wait-StorageReady -TimeoutSeconds 600 -PollSeconds 15
+        }
+        if ($storageStatus.Available -and -not $storageStatus.Ok) {
+            Write-Bad ("Proceeding with degraded storage: {0} attached volume(s) not healthy." -f $storageStatus.AttachedDegraded.Count)
+            Add-Finding "Reconcile started with degraded Longhorn volumes"
         }
 
-        # Phase B — Deployments (application workloads)
-        if (-not $allStsHealthy) {
-            Write-Host "  [!] Warning: Some database dependencies took longer to recover. Pausing 10s before Deployments..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 10
+        # Phase A - StatefulSets, strictly serialized: restart -> wait -> next.
+        $statefulsets = @(Get-ManagedResource -ResourceType 'statefulsets')
+        Write-Info "Phase A: serialized rolling restart of $($statefulsets.Count) StatefulSet(s)"
+        $stalledWorkloads = [System.Collections.Generic.List[string]]::new()
+
+        foreach ($sts in $statefulsets) {
+            if (-not (Test-BudgetSoft)) { break }
+            $ns = Get-Prop (Get-Prop $sts 'metadata') 'namespace'
+            $name = Get-Prop (Get-Prop $sts 'metadata') 'name'
+            $target = "$ns/$name"
+
+            # Per-resource re-gate: a mid-run storage degradation must not cascade.
+            if ($storageStatus.Available) {
+                $gate = Get-StorageStatus
+                if (-not $gate.Ok) { $gate = Wait-StorageReady -TimeoutSeconds 300 -PollSeconds 15 }
+                if (-not $gate.Ok) {
+                    Write-Warn "$target - Longhorn still degraded; skipping restart to avoid an RWO deadlock."
+                    Add-Finding "Skipped restart of $target (storage degraded)"
+                    $stalledWorkloads.Add($target)
+                    continue
+                }
+            }
+
+            $ok = Invoke-KubectlMutation -Description "rollout restart statefulset/$name -n $ns" `
+                -KubectlArgs @('rollout', 'restart', "statefulset/$name", '-n', $ns) `
+                -ActionType 'rollout-restart' -Target $target -AllowFailure
+            if (-not $ok) {
+                $stalledWorkloads.Add($target)
+                continue
+            }
+            if ($script:DryRun) { continue }
+
+            Write-Host "    waiting: $target " -NoNewline -ForegroundColor DarkGray
+            $rollout = Invoke-Kubectl -KubectlArgs @('rollout', 'status', "statefulset/$name", '-n', $ns, "--timeout=${RolloutTimeout}s") -AllowFailure
+            if ($rollout.Ok) {
+                Write-Host "[READY]" -ForegroundColor Green
+            }
+            else {
+                Write-Host "[STALLED]" -ForegroundColor Yellow
+                Write-Warn "$target did not become ready within ${RolloutTimeout}s. NOT force-deleting (v1 did, which caused the RWO deadlock) - run with -RepairStorage or investigate Longhorn."
+                Add-Finding "StatefulSet stalled: $target"
+                $stalledWorkloads.Add($target)
+            }
         }
 
-        Write-Host "`n  Phase B: Rolling restart of Deployments (application services)..." -ForegroundColor Gray
-        $deployments = Get-RestartableItems 'deployments'
-        Write-Verbose "Found $($deployments.Count) restartable Deployments."
+        # Phase B - Deployments (application services), serialized too.
+        $deployments = @(Get-ManagedResource -ResourceType 'deployments')
+        Write-Info "Phase B: serialized rolling restart of $($deployments.Count) Deployment(s)"
 
         foreach ($deploy in $deployments) {
-            $ns = $deploy.metadata.namespace
-            $name = $deploy.metadata.name
-            Write-Host "    Restarting deployment: $name [$ns]..." -ForegroundColor DarkGray
-            $null = kubectl rollout restart deployment/$name -n $ns 2>$null
+            if (-not (Test-BudgetSoft)) { break }
+            $ns = Get-Prop (Get-Prop $deploy 'metadata') 'namespace'
+            $name = Get-Prop (Get-Prop $deploy 'metadata') 'name'
+            $target = "$ns/$name"
+
+            $ok = Invoke-KubectlMutation -Description "rollout restart deployment/$name -n $ns" `
+                -KubectlArgs @('rollout', 'restart', "deployment/$name", '-n', $ns) `
+                -ActionType 'rollout-restart' -Target $target -AllowFailure
+            if (-not $ok) {
+                $stalledWorkloads.Add($target)
+                continue
+            }
+            if ($script:DryRun) { continue }
+
+            Write-Host "    waiting: $target " -NoNewline -ForegroundColor DarkGray
+            $rollout = Invoke-Kubectl -KubectlArgs @('rollout', 'status', "deployment/$name", '-n', $ns, "--timeout=${RolloutTimeout}s") -AllowFailure
+            if ($rollout.Ok) {
+                Write-Host "[READY]" -ForegroundColor Green
+            }
+            else {
+                Write-Host "[SLOW]" -ForegroundColor Yellow
+                Write-Info "$target is still rolling out - leaving it to its controllers (no force actions)."
+            }
         }
 
-        if ($deployments.Count -gt 0) {
-            Write-Host "  [+] Deployment rollouts triggered ($($deployments.Count))." -ForegroundColor Green
+        if ($stalledWorkloads.Count -gt 0) {
+            Write-Warn "$($stalledWorkloads.Count) workload(s) still need attention: $($stalledWorkloads -join ', ')"
         }
         else {
-            Write-Host "  [+] No restartable Deployments found." -ForegroundColor Green
+            Write-Ok "Every restarted workload reported ready."
         }
     }
-    elseif ($SkipRestart) {
-        Write-Host "`n[4/6] Skipping workload rebalancing (-SkipRestart active)." -ForegroundColor Gray
+
+# ── Step 6: Rebalance (OPT-IN, PDB-aware) ────────────────────────────
+    Write-Step "[6/7] Rebalance workload distribution"
+
+    if (-not $Rebalance) {
+        Write-Info "Skipped (-Rebalance not specified)."
     }
+    else {
+        # Protected nodes (control plane, kubernetes7) are never cordoned or drained.
+        $candidates = @($nodeState.Values | Where-Object { $_.Ready -and -not $_.IsProtected } | ForEach-Object { $_.Name })
+        Write-Info "Rebalance-eligible nodes: $($candidates.Count) (protected excluded: $($protectedNodes -join ', '))"
 
-    # ── Step 5: Workload Rebalancing across underutilized nodes ──────────
-    if ($Rebalance) {
-        Write-Host "`n[5/6] Analyzing workload distribution..." -ForegroundColor Yellow
-
-        $workerNodes = $nodesJson.items | Where-Object {
-            $labels = $_.metadata.labels
-            $isControlPlane = $labels.PSObject.Properties['node-role.kubernetes.io/control-plane'] -or
-                              $labels.PSObject.Properties['node-role.kubernetes.io/master']
-            $readyCond = @($_.status.conditions | Where-Object { $_.type -eq 'Ready' -and $_.status -eq 'True' })
-            (-not $isControlPlane) -and ($readyCond.Count -gt 0)
-        }
-        $workerNames = $workerNodes | ForEach-Object { $_.metadata.name }
-        Write-Verbose "Worker nodes: $($workerNames -join ', ')"
-
-        $allPodsRaw = kubectl get pods -A -o json 2>$null
-        $allPods = if ($allPodsRaw) { $allPodsRaw | ConvertFrom-Json } else { [pscustomobject]@{ items = @() } }
-        $dsPodOwners = [System.Collections.Generic.HashSet[string]]::new()
-
-        foreach ($pod in $allPods.items) {
-            if (-not $pod.metadata -or -not $pod.metadata.ownerReferences) { continue }
-            foreach ($ref in $pod.metadata.ownerReferences) {
-                if ($ref.kind -eq 'DaemonSet') {
-                    $null = $dsPodOwners.Add($pod.metadata.name)
+        $daemonSetPods = [System.Collections.Generic.HashSet[string]]::new()
+        foreach ($pod in $allPods) {
+            foreach ($ownerRef in @(Get-Prop (Get-Prop $pod 'metadata') 'ownerReferences')) {
+                if ((Get-Prop $ownerRef 'kind') -eq 'DaemonSet') {
+                    $null = $daemonSetPods.Add([string](Get-Prop (Get-Prop $pod 'metadata') 'name'))
                     break
                 }
             }
         }
 
         $podCountByNode = @{}
-        foreach ($w in $workerNames) { $podCountByNode[$w] = 0 }
-        foreach ($pod in $allPods.items) {
-            if (-not $pod.metadata -or -not $pod.spec) { continue }
-            $nodeName = $pod.spec.nodeName
-            if ($nodeName -and $podCountByNode.ContainsKey($nodeName) -and
-                (-not $dsPodOwners.Contains($pod.metadata.name)) -and
-                $pod.status.phase -eq 'Running') {
-                $podCountByNode[$nodeName]++
-            }
+        foreach ($nodeName in $candidates) { $podCountByNode[$nodeName] = 0 }
+
+        foreach ($pod in $allPods) {
+            $ns = Get-Prop (Get-Prop $pod 'metadata') 'namespace'
+            if ($SkipNamespaces.Contains($ns)) { continue }
+            $podName = [string](Get-Prop (Get-Prop $pod 'metadata') 'name')
+            $nodeName = [string](Get-Prop (Get-Prop $pod 'spec') 'nodeName')
+            if (-not $nodeName -or -not $podCountByNode.ContainsKey($nodeName)) { continue }
+            if ($daemonSetPods.Contains($podName)) { continue }
+            if ((Get-Prop (Get-Prop $pod 'status') 'phase') -ne 'Running') { continue }
+            $podCountByNode[$nodeName]++
         }
 
-        $totalWorkerPods = ($podCountByNode.Values | Measure-Object -Sum).Sum
-        $avgPods = if ($workerNames.Count -gt 0) { [math]::Round($totalWorkerPods / $workerNames.Count, 1) } else { 0 }
+        $totalMovable = ($podCountByNode.Values | Measure-Object -Sum).Sum
+        $average = 0
+        if ($candidates.Count -gt 0) { $average = [math]::Round($totalMovable / $candidates.Count, 1) }
 
-        Write-Host "  Worker pod distribution (avg: $avgPods pods/node):" -ForegroundColor Gray
-        $overloaded = [System.Collections.Generic.List[hashtable]]::new()
-        foreach ($w in ($workerNames | Sort-Object { $podCountByNode[$_] } -Descending)) {
-            $count = $podCountByNode[$w]
-            $marker = ""
-            if ($avgPods -gt 0 -and ($count / $avgPods) -ge $RebalanceThreshold) {
-                $marker = " <-- OVERLOADED"
-                $overloaded.Add(@{ Name = $w; Count = $count })
-            }
-            Write-Host "    $w : $count pods$marker" -ForegroundColor $(if ($marker) { 'Red' } else { 'Gray' })
+        Write-Info "Worker distribution (average $average movable pods/node):"
+        $overloaded = [System.Collections.Generic.List[string]]::new()
+        foreach ($nodeName in ($candidates | Sort-Object { $podCountByNode[$_] } -Descending)) {
+            $count = $podCountByNode[$nodeName]
+            $isOverloaded = ($average -gt 0 -and ($count / $average) -ge $RebalanceThreshold)
+            $marker = if ($isOverloaded) { ' <-- OVERLOADED' } else { '' }
+            Write-Info "  $nodeName : $count pods$marker"
+            if ($isOverloaded) { $overloaded.Add($nodeName) }
         }
 
         if ($overloaded.Count -eq 0) {
-            Write-Host "  [+] All nodes within balance threshold ($($RebalanceThreshold)x avg)." -ForegroundColor Green
+            Write-Ok "All eligible nodes are within $($RebalanceThreshold)x the average."
         }
         else {
-            Write-Host "`n  Rebalancing $($overloaded.Count) overloaded node(s)..." -ForegroundColor Yellow
-            foreach ($node in $overloaded) {
-                $name = $node.Name
-                Write-Host "`n  >> Processing node: $name ($($node.Count) pods)" -ForegroundColor Cyan
-
-                $null = kubectl cordon $name 2>$null
-
-                $podsToMove = $allPods.items | Where-Object {
-                    $_.spec.nodeName -eq $name -and
-                    $_.status.phase -eq 'Running' -and
-                    (-not $dsPodOwners.Contains($_.metadata.name)) -and
-                    (-not $SkipNamespaces.Contains($_.metadata.namespace))
+            foreach ($nodeName in $overloaded) {
+                Test-Budget "rebalancing $nodeName"
+                if ($protectedNodes -contains $nodeName) {
+                    Write-Warn "Refusing to drain protected node '$nodeName'."
+                    Add-Finding "Refused to drain protected node $nodeName"
+                    continue
                 }
 
-                if ($podsToMove.Count -eq 0) {
-                    Write-Host "    [b] No movable pods found." -ForegroundColor Gray
-                }
-                else {
-                    Write-Host "    [b] Evicting $($podsToMove.Count) pods gracefully..." -ForegroundColor DarkGray
-                    foreach ($pod in $podsToMove) {
-                        $pName = $pod.metadata.name
-                        $pNs = $pod.metadata.namespace
-                        Write-Host "      Evicting: $pName [$pNs]..." -ForegroundColor DarkGray
-                        $null = kubectl delete pod $pName -n $pNs --grace-period=30 --ignore-not-found 2>$null
-                    }
-                    Start-Sleep -Seconds 10
-                }
+                Write-Info "Draining $nodeName via the Eviction API (PodDisruptionBudgets are honoured)..."
+                # v1 used 'kubectl delete pod --grace-period=30' here, which bypasses PDBs
+                # entirely - unsafe with the maxUnavailable: 0 iiqstack/linguacafe PDBs.
+                $ok = Invoke-KubectlMutation -Description "drain $nodeName (eviction API, PDB-aware)" `
+                    -KubectlArgs @('drain', $nodeName, '--ignore-daemonsets', '--delete-emptydir-data', '--timeout=180s') `
+                    -ActionType 'drain' -Target $nodeName -AllowFailure
 
-                $null = kubectl uncordon $name 2>$null
-                Write-Host "    [+] $name uncordoned and rebalanced." -ForegroundColor Green
+                if (-not $ok) {
+                    Write-Warn "Drain of $nodeName reported blocked/failed - pods guarded by PodDisruptionBudget were left in place (this is the intended safe behaviour)."
+                    Add-Finding "Drain of $nodeName was partially blocked (likely a PDB with maxUnavailable: 0)"
+                }
+                # Always restore schedulability, even when the drain was blocked.
+                $null = Invoke-KubectlMutation -Description "uncordon $nodeName after rebalance" `
+                    -KubectlArgs @('uncordon', $nodeName) -ActionType 'uncordon' -Target $nodeName -AllowFailure
+                Write-Ok "$nodeName rebalanced and uncordoned."
             }
         }
+    }
+
+# ── Step 7: Verify (the checks v1 was missing) ───────────────────────
+    Write-Step "[7/7] Verification"
+
+    $nodeStateAfter = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
+        -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
+    $stillCordonedReady = @($nodeStateAfter.Values | Where-Object { $_.Unschedulable -and $_.Ready } | ForEach-Object { $_.Name })
+    $stillNotReady = @($nodeStateAfter.Values | Where-Object { -not $_.Ready } | ForEach-Object { $_.Name })
+
+    if ($stillCordonedReady.Count -gt 0) {
+        Write-Bad "Ready-but-cordoned node(s) remain: $($stillCordonedReady -join ', ')"
+        Add-Finding "Nodes still cordoned after run: $($stillCordonedReady -join ', ')"
     }
     else {
-        Write-Host "`n[5/6] Workload rebalancing skipped (-Rebalance not specified)." -ForegroundColor Gray
+        Write-Ok "No Ready node is left cordoned."
+    }
+    if ($stillNotReady.Count -gt 0) {
+        Write-Warn "Offline / NotReady node(s): $($stillNotReady -join ', ')"
+        Add-Finding "NotReady node(s) at end of run: $($stillNotReady -join ', ')"
     }
 
-    # ── Step 6: Cluster Verification & Health Assessment ─────────────────
-    Write-Host "`n[6/6] Current Cluster Status & Health Check" -ForegroundColor Yellow
-    Write-Host "========================================" -ForegroundColor Cyan
-    kubectl get nodes -o wide
-    Write-Host ""
-
-    # Check for degraded pods
-    $allCurrentPodsRaw = kubectl get pods -A -o json 2>$null
-    $degradedPods = [System.Collections.Generic.List[object]]::new()
-    if ($allCurrentPodsRaw) {
-        $allCurrentPods = $allCurrentPodsRaw | ConvertFrom-Json
-        foreach ($pod in $allCurrentPods.items) {
-            $phase = $pod.status.phase
-            $hasIssue = $false
-
-            if ($phase -notin @('Running', 'Succeeded')) {
-                $hasIssue = $true
-            }
-            elseif ($pod.status.PSObject.Properties['containerStatuses'] -and $pod.status.containerStatuses) {
-                foreach ($cs in $pod.status.containerStatuses) {
-                    if ($cs.state.PSObject.Properties['waiting'] -and $cs.state.waiting -and 
-                        $cs.state.waiting.PSObject.Properties['reason'] -and 
-                        $cs.state.waiting.reason -in @('CrashLoopBackOff', 'ImagePullBackOff', 'CreateContainerError', 'ErrImagePull')) {
-                        $hasIssue = $true
-                        break
-                    }
-                }
-            }
-
-            if ($hasIssue) {
-                $degradedPods.Add($pod)
+    foreach ($node in (Get-K8sJson -KubectlArgs @('get', 'nodes'))) {
+        $nodeName = Get-Prop (Get-Prop $node 'metadata') 'name'
+        foreach ($condition in @(Get-Prop (Get-Prop $node 'status') 'conditions')) {
+            $type = Get-Prop $condition 'type'
+            if (($type -in @('MemoryPressure', 'DiskPressure', 'PIDPressure', 'NetworkUnavailable')) -and
+                (Get-Prop $condition 'status') -eq 'True') {
+                Write-Warn "$nodeName reports $type=True"
+                Add-Finding "Node $nodeName has $type=True"
             }
         }
     }
 
-    if ($degradedPods.Count -gt 0) {
-        Write-Host "`n[!] The following $($degradedPods.Count) pod(s) need attention:" -ForegroundColor Red
-        foreach ($dp in $degradedPods) {
-            $waitReason = ""
-            if ($dp.status.PSObject.Properties['containerStatuses'] -and $dp.status.containerStatuses) {
-                $reasons = [System.Collections.Generic.List[string]]::new()
-                foreach ($cs in $dp.status.containerStatuses) {
-                    if ($cs.state.PSObject.Properties['waiting'] -and $cs.state.waiting -and $cs.state.waiting.PSObject.Properties['reason']) {
-                        $reasons.Add($cs.state.waiting.reason)
-                    }
-                }
-                if ($reasons.Count -gt 0) { $waitReason = " ($($reasons -join ', '))" }
-            }
-            $targetNode = if ($dp.spec.PSObject.Properties['nodeName']) { $dp.spec.nodeName } else { '<unassigned>' }
-            Write-Host "    - [$($dp.metadata.namespace)] $($dp.metadata.name) : $($dp.status.phase)$waitReason on node: $targetNode" -ForegroundColor Red
+    $storageAfter = Get-StorageStatus
+    if ($storageAfter.Available) {
+        Write-Info ("Longhorn: {0}/{1} healthy, {2} degraded, {3} detached, {4} node(s) not scheduling" -f `
+                $storageAfter.HealthyCount, $storageAfter.VolumeCount,
+            $storageAfter.AttachedDegraded.Count, $storageAfter.Detached.Count, $storageAfter.UnschedulableNodes.Count)
+        if ($storageAfter.Ok) { Write-Ok "Longhorn volumes are healthy." }
+        else { Write-Warn "Longhorn is still degraded."; Add-Finding "Longhorn degraded at end of run" }
+    }
+
+    $badAttachments = @(Get-K8sJson -KubectlArgs @('get', 'volumeattachments') |
+            Where-Object { (Get-Prop (Get-Prop $_ 'status') 'attached') -ne $true } |
+            ForEach-Object { Get-Prop (Get-Prop $_ 'metadata') 'name' })
+    if ($badAttachments.Count -gt 0) {
+        Write-Warn "$($badAttachments.Count) volume attachment(s) not attached."
+        Add-Finding "Unattached VolumeAttachment(s): $($badAttachments.Count)"
+    }
+
+    $badPdbs = [System.Collections.Generic.List[string]]::new()
+    foreach ($pdb in (Get-K8sJson -KubectlArgs @('get', 'pdb', '-A'))) {
+        $status = Get-Prop $pdb 'status'
+        $healthy = Get-Prop $status 'currentHealthy'
+        $desired = Get-Prop $status 'desiredHealthy'
+        if ($null -eq $healthy -or $null -eq $desired) { continue }
+        if ([int]$healthy -lt [int]$desired) {
+            $md = Get-Prop $pdb 'metadata'
+            $label = "$(Get-Prop $md 'namespace')/$(Get-Prop $md 'name')"
+            $badPdbs.Add("$label ($healthy/$desired healthy)")
         }
+    }
+    if ($badPdbs.Count -gt 0) {
+        foreach ($entry in $badPdbs) { Write-Warn "PDB below capacity: $entry" }
+        Add-Finding "PodDisruptionBudgets below capacity: $($badPdbs.Count)"
+    }
+
+    $unhealthyPods = [System.Collections.Generic.List[string]]::new()
+    foreach ($pod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-A'))) {
+        $md = Get-Prop $pod 'metadata'
+        $status = Get-Prop $pod 'status'
+        $label = "$(Get-Prop $md 'namespace')/$(Get-Prop $md 'name')"
+        $phase = Get-Prop $status 'phase'
+
+        if ($phase -in @('Running', 'Succeeded')) {
+            $waiting = Get-Prop (Get-Prop (Get-Prop @(Get-Prop $status 'containerStatuses')[0] 'state') 'waiting') 'reason'
+            if ($waiting -in @('CrashLoopBackOff', 'ImagePullBackOff', 'ErrImagePull', 'CreateContainerError', 'RunContainerError')) {
+                $unhealthyPods.Add("$label ($waiting)")
+            }
+            continue
+        }
+        if (Get-Prop $md 'deletionTimestamp') { $unhealthyPods.Add("$label (Terminating, phase=$phase)"); continue }
+        $unhealthyPods.Add("$label (phase=$phase)")
+    }
+
+    if ($unhealthyPods.Count -gt 0) {
+        Write-Warn "$($unhealthyPods.Count) pod(s) not healthy:"
+        foreach ($entry in $unhealthyPods) { Write-Info "  $entry" }
+        Add-Finding "$($unhealthyPods.Count) pod(s) not healthy at end of run"
     }
     else {
-        Write-Host "`n[+] All non-system pods are running and healthy!" -ForegroundColor Green
+        Write-Ok "All pods are Running/Succeeded with no container waiting errors."
     }
+
+    # ── Summary ──────────────────────────────────────────────────────────
+    $degradedTotal = $unhealthyPods.Count + $badPdbs.Count + $badAttachments.Count + $stillCordonedReady.Count
+    if ($storageAfter.Available) { $degradedTotal += $storageAfter.AttachedDegraded.Count }
 
     Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "  Cluster capacity restoration complete." -ForegroundColor Green
+    if ($degradedTotal -eq 0) {
+        Write-Host "  Result: cluster is healthy" -ForegroundColor Green
+    }
+    else {
+        Write-Host "  Result: $degradedTotal item(s) still degraded - see findings" -ForegroundColor Yellow
+    }
     Write-Host "========================================" -ForegroundColor Cyan
+
+    if ($FailOnDegraded -and $degradedTotal -gt 0) { $finalExitCode = 2 }
 }
 catch {
-    Write-Error "Failed to restore cluster capacity: $($_.Exception.Message)"
-    exit 1
+    Write-Bad "FATAL: $($_.Exception.Message)"
+    Add-Finding "FATAL: $($_.Exception.Message)"
+    $finalExitCode = 1
 }
+finally {
+    function Get-SafeVar {
+        param([string]$Name, $Default = $null)
+        $variable = Get-Variable -Name $Name -ErrorAction SilentlyContinue
+        if ($variable) { return $variable.Value }
+        return $Default
+    }
+
+    # Machine-readable run report - v1 produced nothing auditable at all.
+    try {
+        $report = [pscustomobject]@{
+            startedAt   = $script:StartedAt.ToString('o')
+            finishedAt  = (Get-Date).ToString('o')
+            durationSec = [math]::Round(((Get-Date) - $script:StartedAt).TotalSeconds, 1)
+            dryRun      = $script:DryRun
+            server      = [string](Get-SafeVar 'actualServer' 'unknown')
+            options     = [pscustomobject]@{
+                restartWorkloads = [bool]$RestartWorkloads
+                repairStorage    = [bool]$RepairStorage
+                rebalance        = [bool]$Rebalance
+                failOnDegraded   = [bool]$FailOnDegraded
+                skipRestart      = [bool]$SkipRestart
+            }
+            uncordoned  = @(Get-SafeVar 'uncordoned' @())
+            findings    = @($script:Findings)
+            actions     = @($script:Actions)
+            exitCode    = $finalExitCode
+        }
+        $report | ConvertTo-Json -Depth 8 | Set-Content -Path $ReportPath -Encoding utf8
+        Write-Host "`nRun report : $ReportPath" -ForegroundColor Cyan
+        Write-Host "Transcript : $transcriptFile" -ForegroundColor Cyan
+    }
+    catch {
+        Write-Warning "Could not write the run report to '$ReportPath': $($_.Exception.Message)"
+    }
+
+    if ($script:LockAcquired -and (Test-Path -Path $script:LockFile)) {
+        Remove-Item -Path $script:LockFile -Force -ErrorAction SilentlyContinue
+    }
+    if ($script:TranscriptStarted) {
+        # Swallowing is intentional here: a failed Stop-Transcript during teardown must
+        # never mask the real run result, and Stop-Transcript returns no handle.
+        try { Stop-Transcript | Out-Null } catch { Write-Verbose "Stop-Transcript: $($_.Exception.Message)" }
+    }
+
+    Write-Host ("Exit code  : {0}  (0=healthy, 1=fatal, 2=degraded)" -f $finalExitCode) -ForegroundColor Cyan
+}
+
+exit $finalExitCode

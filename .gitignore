@@ -30,5 +30,8 @@ kubernetes-manifests/monitoring/uptime-kuma-credentials.env
 # Logs
 shutdown.log
 *.log
+WindowsLab/logs/
+k3s-audits/
+WindowsLab/k3s-audits/
 
 

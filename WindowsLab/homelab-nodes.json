@@ -1,0 +1,108 @@
+{
+  "$comment": "Single source of truth for K3s homelab node identity and safety constraints. Consumed by WindowsLab/HomelabNodes.psm1 -> Start-K3sHomelab.ps1, Stop-K3sHomelab-Minimal.ps1, shutdown_homelab.ps1. Do not hardcode node lists in those scripts.",
+  "registryVersion": 1,
+  "cluster": {
+    "name": "k3s-homelab",
+    "apiServer": "https://192.168.0.21:6443",
+    "kubeconfigContext": "default",
+    "expectedNodes": 9,
+    "storageClass": "longhorn"
+  },
+  "survivors": ["nuc", "kubernetes5", "kubernetes7"],
+  "nodes": [
+    {
+      "name": "nuc",
+      "ip": "192.168.0.21",
+      "role": "control-plane",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": true,
+      "neverPowerOff": false,
+      "notes": "K3s control plane and API server endpoint. Never cordon/drain: the API lives here."
+    },
+    {
+      "name": "kubernetes1",
+      "ip": "192.168.0.19",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "General worker. Hosts iiq db-mysql after recovery."
+    },
+    {
+      "name": "kubernetes2",
+      "ip": "192.168.0.20",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "General worker. Hosts iiq db after recovery."
+    },
+    {
+      "name": "kubernetes3",
+      "ip": "192.168.0.22",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "General worker."
+    },
+    {
+      "name": "kubernetes4",
+      "ip": "192.168.0.23",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "General worker."
+    },
+    {
+      "name": "kubernetes5",
+      "ip": "192.168.0.24",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "Minimal-mode survivor (kept running with nuc + kubernetes7 during power-down)."
+    },
+    {
+      "name": "kubernetes6",
+      "ip": "192.168.0.25",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "General worker."
+    },
+    {
+      "name": "kubernetes7",
+      "ip": "192.168.0.26",
+      "role": "worker",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": true,
+      "neverPowerOff": true,
+      "notes": "PERMANENT SURVIVOR: physical power switch is broken, so a power-off is unrecoverable. NEVER cordon, drain or power it off. Carries the largest workload share while other nodes are down."
+    },
+    {
+      "name": "kubernetes8-debian",
+      "ip": "192.168.0.27",
+      "role": "worker",
+      "os": "Debian 13",
+      "sshUser": "suryendub",
+      "neverCordon": false,
+      "neverPowerOff": false,
+      "notes": "Debian worker. Frequently powered off during minimal mode; expect it NotReady with stale Longhorn instance-managers."
+    }
+  ],
+  "external": [
+    { "name": "nas", "ip": "192.168.0.128", "role": "nas", "os": "QNAP QTS", "notes": "NFS backup target for k3s-backup-to-nas.sh." },
+    { "name": "registry", "ip": "192.168.0.236", "role": "registry", "os": "unknown", "notes": "Local docker registry on port 5000; pinned by kube-system/registry-fixer." }
+  ]
+}

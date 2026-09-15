@@ -14,16 +14,26 @@ param(
 
 $ErrorActionPreference = 'Stop' # Critical for Catch block to trigger on external errors
 
-# --- CONFIGURATION (Hardcoded Fallback) ---
-$masterFallback = @{ Name = "nuc"; IP = "192.168.0.21" }
+# --- CONFIGURATION (fallback derived from the shared node registry) ---
+# WindowsLab/homelab-nodes.json is the single source of truth for node identity and for
+# the 'never power off' constraint (kubernetes7's power switch is broken).
+$registryModule = Join-Path -Path $PSScriptRoot -ChildPath 'HomelabNodes.psm1'
+if (-not (Test-Path -Path $registryModule)) {
+    throw "Node registry module not found at '$registryModule'. Restore WindowsLab/HomelabNodes.psm1 and WindowsLab/homelab-nodes.json from git."
+}
+Import-Module $registryModule -Force -DisableNameChecking
+
+$neverPowerOff = @(Get-NeverPowerOffNodeNames)
+$registryNodes = @(Get-HomelabNodes)
+$masterRecord = @($registryNodes | Where-Object { $_.role -eq 'control-plane' } | Select-Object -First 1)
+if ($masterRecord.Count -eq 0) {
+    throw "No control-plane node is defined in homelab-nodes.json."
+}
+$masterFallback = @{ Name = $masterRecord[0].name; IP = $masterRecord[0].ip }
 $workerFallback = @(
-    @{ Name = "kubernetes1"; IP = "192.168.0.19" },
-    @{ Name = "kubernetes2"; IP = "192.168.0.20" },
-    @{ Name = "kubernetes3"; IP = "192.168.0.22" },
-    @{ Name = "kubernetes4"; IP = "192.168.0.23" },
-    @{ Name = "kubernetes5"; IP = "192.168.0.24" },
-    @{ Name = "kubernetes6"; IP = "192.168.0.25" },
-    @{ Name = "kubernetes8-debian"; IP = "192.168.0.27" }
+    $registryNodes |
+        Where-Object { $_.role -ne 'control-plane' -and ($neverPowerOff -notcontains $_.name) } |
+        ForEach-Object { @{ Name = $_.name; IP = $_.ip } }
 )
 
 Write-Host "--- K3s Cluster Shutdown Sequence (v8) ---" -ForegroundColor Cyan
@@ -39,19 +49,21 @@ if ($Mode -eq "Fallback") {
     try {
         Write-Host "Attempting dynamic node discovery..." -ForegroundColor Gray
         # Correct flag is --request-timeout
-        $allNodes = kubectl get nodes -o json --request-timeout=10s | ConvertFrom-Json
-        
+        # 'allNodes' collides with the PowerShell automatic variable; keep it prefixed.
+        $registryAllNodes = kubectl get nodes -o json --request-timeout=10s | ConvertFrom-Json
+
         function Get-IPv4 {
             param($addresses)
             return ($addresses | Where-Object { $_.type -eq 'InternalIP' -and $_.address -match '^\d{1,3}(\.\d{1,3}){3}$' } | Select-Object -First 1 -ExpandProperty address)
         }
 
-        $masterNode = $allNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
-        # Exclude master and kubernetes7 from worker list.
-        # kubernetes7 is DELIBERATELY spared: its power switch is broken -
-        # powering it off means it can never be turned back on. NEVER add it
-        # to shutdown targets until the hardware is repaired.
-        $workerNodes = $allNodes.items | Where-Object { $_.metadata.name -ne $masterNode.metadata.name -and $_.metadata.name -ne 'kubernetes7' }
+        $masterNode = $registryAllNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
+        # Exclude the control plane and every node flagged neverPowerOff (registry:
+        # WindowsLab/homelab-nodes.json). kubernetes7 is DELIBERATELY spared - its power
+        # switch is broken, so powering it off means it can never be turned back on.
+        $workerNodes = $registryAllNodes.items | Where-Object {
+            $_.metadata.name -ne $masterNode.metadata.name -and ($neverPowerOff -notcontains $_.metadata.name)
+        }
 
         $masterIp = Get-IPv4 -addresses $masterNode.status.addresses
         foreach ($node in $workerNodes) {
@@ -73,6 +85,16 @@ if ($Mode -eq "Fallback") {
 if ($actualMode -eq "FALLBACK") {
     $masterIp = $masterFallback.IP
     foreach ($w in $workerFallback) { $targets += [PSCustomObject]@{ Name = $w.Name; IP = $w.IP } }
+}
+
+# Hard safety net: never power off a node flagged neverPowerOff in the registry.
+foreach ($target in $targets) {
+    if ($neverPowerOff -contains $target.Name) {
+        throw "Refusing to power off '$($target.Name)': marked neverPowerOff in homelab-nodes.json (broken power switch - unrecoverable)."
+    }
+}
+if ($neverPowerOff -contains $masterFallback.Name) {
+    throw "Refusing to power off control-plane node '$($masterFallback.Name)': marked neverPowerOff in homelab-nodes.json."
 }
 
 Write-Host "Active Mode: $actualMode" -ForegroundColor Cyan
@@ -120,7 +142,7 @@ if (!$Force) {
 # 3. SHUTDOWN LOOP
 foreach ($worker in $targets) {
     Write-Host "`n--- Node: $($worker.Name) ---" -ForegroundColor Yellow
-    
+
     if ($actualMode -eq "DYNAMIC" -and !$SkipDrain) {
         Write-Host "  - Draining..."
         kubectl cordon $worker.Name | Out-Null

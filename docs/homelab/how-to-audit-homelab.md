@@ -9,11 +9,19 @@ This guide explains how to run cluster-wide audits, verify SSL/TLS certificate c
 The homelab cluster undergoes periodic health and compliance audits via parallel SSH execution.
 
 ### 1. Execute the Audit Script
-Run the PowerShell audit orchestrator from your local workstation:
+
+Run the PowerShell audit orchestrator from the repo root on your local workstation:
+
 ```powershell
-# Triggers parallel collection across all 9 nodes
-.\WindowsLab/Run-K3sAudit.ps1
+# Audits every node registered in WindowsLab/homelab-nodes.json
+pwsh -File WindowsLab/Run-K3sAudit.ps1
 ```
+
+Options: `-Nodes nuc,kubernetes7` audits only the listed nodes; credentials resolve from
+`WindowsLab/cred.xml` (a clixml export) or the SecretStore entry `k3s-homelab-sudo`
+(see `how-to-manage-homelab-power.md`), falling back to an interactive secure prompt.
+The orchestrator uploads `scripts/k3s-prod-audit.sh` (the single source of truth for the
+node-level audit), runs it as root, and downloads one tarball per node.
 
 ### 2. Verify Output Tarballs
 The orchestrator copies node-level logs into the local directory. Verify the audit packages:
