@@ -5,3 +5,4 @@ resources:
   - audiobookshelf.yaml
   - calibre-web-with-importer.yaml
   - bookorbit.yaml
+  - bookhoarder.yaml

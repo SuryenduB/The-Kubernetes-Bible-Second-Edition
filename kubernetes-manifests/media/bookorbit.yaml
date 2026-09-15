@@ -151,6 +151,15 @@ spec:
       labels:
         app: bookorbit
     spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - kubernetes4
       securityContext:
         fsGroup: 1000
       initContainers:
