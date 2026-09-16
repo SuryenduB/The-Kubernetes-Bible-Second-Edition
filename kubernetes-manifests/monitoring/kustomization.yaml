@@ -9,6 +9,7 @@ resources:
   - availability.yaml
   - longhorn-backup-monitor.yaml
   - kuvasz.yaml
+  - lantern.yaml
 
 # API credentials come from a local-only env file (gitignored) so the
 # password never lands in Git. disableNameSuffixHash keeps the Secret
