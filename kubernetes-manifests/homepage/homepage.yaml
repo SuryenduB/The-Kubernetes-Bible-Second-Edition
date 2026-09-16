@@ -129,6 +129,11 @@ data:
             href: "http://pooml.tail35421d.ts.net"
             description: "Logs, Metrics & Alerts"
             ping: "pooml.tail35421d.ts.net"
+        - OmniSight:
+            icon: "mdi-eye-settings"
+            href: "http://omnisight.tail35421d.ts.net"
+            description: "Multi-platform Monitoring"
+            ping: "omnisight.tail35421d.ts.net"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
