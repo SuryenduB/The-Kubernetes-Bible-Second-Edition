@@ -134,6 +134,11 @@ data:
             href: "http://omnisight.tail35421d.ts.net"
             description: "Multi-platform Monitoring"
             ping: "omnisight.tail35421d.ts.net"
+        - Dozzle:
+            icon: "mdi-text-box-search-outline"
+            href: "http://dozzle.tail35421d.ts.net"
+            description: "Kubernetes log viewer"
+            ping: "dozzle.tail35421d.ts.net"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
