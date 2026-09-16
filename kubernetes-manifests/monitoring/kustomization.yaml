@@ -17,6 +17,7 @@ resources:
   - lan-sheriff.yaml
   - homelab-monitor.yaml
   - trove.yaml
+  - logchef.yaml
 
 # API credentials come from a local-only env file (gitignored) so the
 # password never lands in Git. disableNameSuffixHash keeps the Secret

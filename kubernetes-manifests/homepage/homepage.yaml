@@ -159,6 +159,11 @@ data:
             href: "http://trove.tail35421d.ts.net"
             description: "Read-only infrastructure catalogue"
             ping: "trove.tail35421d.ts.net"
+        - Logchef:
+            icon: "mdi-text-search"
+            href: "http://logchef.tail35421d.ts.net"
+            description: "Log analytics workspace"
+            ping: "logchef.tail35421d.ts.net"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
