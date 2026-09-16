@@ -14,6 +14,7 @@ resources:
   - omnisight.yaml
   - dozzle.yaml
   - languard.yaml
+  - lan-sheriff.yaml
 
 # API credentials come from a local-only env file (gitignored) so the
 # password never lands in Git. disableNameSuffixHash keeps the Secret

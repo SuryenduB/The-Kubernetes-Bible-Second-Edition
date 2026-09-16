@@ -144,6 +144,11 @@ data:
             href: "http://languard.tail35421d.ts.net"
             description: "LAN discovery and monitoring"
             ping: "languard.tail35421d.ts.net"
+        - LAN Sheriff:
+            icon: "mdi-shield-search"
+            href: "http://lan-sheriff.tail35421d.ts.net"
+            description: "Network traffic monitoring"
+            ping: "lan-sheriff.tail35421d.ts.net"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
