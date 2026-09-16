@@ -1,0 +1,187 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: trove-data
+  namespace: monitoring
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trove
+  namespace: monitoring
+  labels:
+    app: trove
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: trove
+  template:
+    metadata:
+      labels:
+        app: trove
+    spec:
+      securityContext:
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [kubernetes4]
+      containers:
+        - name: server
+          image: ghcr.io/techdox/trove-server:0.18.1
+          env:
+            - name: TROVE_BOOTSTRAP_AGENT
+              value: homelab-k8s
+            - name: TROVE_BOOTSTRAP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: trove-bootstrap
+                  key: token
+            - name: TROVE_DATA_DIR
+              value: /data
+          ports:
+            - name: http
+              containerPort: 8080
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: trove-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: trove
+  namespace: monitoring
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "trove"
+spec:
+  type: ClusterIP
+  selector:
+    app: trove
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+    - name: agent
+      port: 8080
+      targetPort: http
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: trove-agent
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: trove-agent-readonly
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: trove-agent-readonly
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: trove-agent-readonly
+subjects:
+  - kind: ServiceAccount
+    name: trove-agent
+    namespace: monitoring
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trove-agent
+  namespace: monitoring
+  labels:
+    app: trove-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trove-agent
+  template:
+    metadata:
+      labels:
+        app: trove-agent
+    spec:
+      serviceAccountName: trove-agent
+      containers:
+        - name: agent
+          image: ghcr.io/techdox/trove-agent-k8s:0.18.1
+          env:
+            - name: TROVE_SERVER_URL
+              value: http://trove.monitoring.svc:8080
+            - name: TROVE_CLUSTER_NAME
+              value: homelab
+            - name: TROVE_INTERVAL
+              value: 30s
+            - name: TROVE_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: trove-bootstrap
+                  key: token
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
