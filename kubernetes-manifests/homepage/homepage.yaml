@@ -114,6 +114,11 @@ data:
             href: "http://uptime-kuma"
             description: "Uptime Monitoring"
             ping: "uptime-kuma"
+        - Kuvasz:
+            icon: "mdi-shield-check"
+            href: "http://kuvasz.tail35421d.ts.net"
+            description: "Uptime & SSL Monitoring"
+            ping: "kuvasz.tail35421d.ts.net"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
