@@ -149,6 +149,11 @@ data:
             href: "http://lan-sheriff.tail35421d.ts.net"
             description: "Network traffic monitoring"
             ping: "lan-sheriff.tail35421d.ts.net"
+        - HomeLab Monitor:
+            icon: "mdi-monitor-dashboard"
+            href: "http://homelab-monitor.tail35421d.ts.net"
+            description: "Host and homelab metrics"
+            ping: "homelab-monitor.tail35421d.ts.net"
         - Longhorn UI:
             icon: "longhorn.png"
             href: "http://192.168.0.21:30080"
