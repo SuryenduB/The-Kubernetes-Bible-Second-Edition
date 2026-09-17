@@ -5,170 +5,185 @@ metadata:
   name: homepage
 ---
 # Homepage dashboard config (services / settings / widgets). Edits here are
-# picked up by the gethomepage container via the mounted ConfigMap.
+# mounted with subPath; update the pod-template checksum below after config edits.
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: homepage-config
   namespace: homepage
 data:
+  # href is opened by the browser; siteMonitor runs inside this pod.
+  # Do not use ICMP ping against Tailscale proxies for HTTP availability.
   services.yaml: |
     - AI & Development:
-        - ArgoCD:
-            icon: "argo-cd.png"
-            href: "https://100.120.217.99"
-            description: "GitOps & Deployment"
-            ping: "100.120.217.99"
-        - OpenWebUI:
-            icon: "openai.png"
-            href: "http://100.88.101.12:8080"
-            description: "Local AI Chat (Ollama)"
-            ping: "100.88.101.12"
-        - OpenLingo:
-            icon: "mdi-translate"
-            href: "http://100.93.223.48"
-            description: "Structured Language Platform"
-            ping: "100.93.223.48"
-        - AI Language Tutor:
-            icon: "mdi-book-open"
-            href: "http://100.89.142.109"
-            description: "Custom AI Language Learning"
-            ping: "100.89.142.109"
+      - ArgoCD:
+          icon: argo-cd.png
+          href: https://argocd.tail35421d.ts.net
+          description: GitOps & Deployment
+          siteMonitor: https://argocd-server.argocd.svc:443
+      - OpenWebUI:
+          icon: openai.png
+          href: http://openwebui.tail35421d.ts.net:8080
+          description: Local AI Chat (Ollama)
+          siteMonitor: http://openwebui.ai.svc:8080
+      - OpenLingo:
+          icon: mdi-translate
+          href: http://openlingo.tail35421d.ts.net
+          description: Structured Language Platform
+          siteMonitor: http://openlingo.openlingo.svc
+      - AI Language Tutor:
+          icon: mdi-book-open
+          href: http://lang-tutor.tail35421d.ts.net
+          description: Custom AI Language Learning
+          siteMonitor: http://ai-lang-backend.ai-language-learning.svc
+      - Ollama:
+          icon: ollama.png
+          description: AI model API (internal only; use OpenWebUI)
+          siteMonitor: http://ollama.ai.svc:11434/
     - Management & Identity:
-        - IdentityIQ:
-            icon: "mdi-fingerprint"
-            href: "http://100.77.88.70:8080"
-            description: "Identity Governance"
-            ping: "100.77.88.70"
-        - phpLDAPadmin:
-            icon: "openldap.png"
-            href: "http://100.117.119.33"
-            description: "LDAP Management"
-            ping: "100.117.119.33"
-        - ActiveMQ:
-            icon: "apache.png"
-            href: "http://100.88.133.126:8161"
-            description: "Middleware Console"
-            ping: "100.88.133.126"
-        - Mailpit:
-            icon: "mailpit.png"
-            href: "http://100.101.229.101:8025"
-            description: "Email Testing Dashboard"
-            ping: "100.101.229.101"
+      - IdentityIQ:
+          icon: mdi-fingerprint
+          href: http://iiq-main.tail35421d.ts.net/identityiq/
+          description: Identity Governance
+          siteMonitor: http://iiq.iiqstack.svc/identityiq/
+      - phpLDAPadmin:
+          icon: openldap.png
+          href: https://iiq-ldap-admin.tail35421d.ts.net
+          description: LDAP Management
+          siteMonitor: https://phpldapadmin.iiqstack.svc:443
+      - ActiveMQ:
+          icon: apache.png
+          href: http://iiq-mq-admin.tail35421d.ts.net:8161
+          description: Middleware Console
+          siteMonitor: http://activemq.iiqstack.svc:8161
+      - Mailpit:
+          icon: mailpit.png
+          href: http://iiq-mail.tail35421d.ts.net:8025
+          description: Email Testing Dashboard
+          siteMonitor: http://mail.iiqstack.svc:8025
     - Media:
-        - AudioBookShelf:
-            icon: "audiobookshelf.png"
-            href: "http://100.70.79.12"
-            description: "Audiobooks & Podcasts"
-            ping: "100.70.79.12"
-        - Calibre-Web:
-            icon: "calibre.png"
-            href: "http://100.94.86.107:8083"
-            description: "Ebook Management"
-            ping: "100.94.86.107"
-        - LinguaCafe:
-            icon: "linguacafe.png"
-            href: "http://100.88.145.42"
-            description: "Language Reading App"
-            ping: "100.88.145.42"
-        - BookLogr:
-            icon: "mdi-bookshelf"
-            href: "http://booklogr.tail35421d.ts.net"
-            description: "Personal Reading Tracker"
-            ping: "booklogr.tail35421d.ts.net"
-        - LibrisLog:
-            icon: "mdi-book-heart"
-            href: "http://librislog.tail35421d.ts.net"
-            description: "Household Reading Tracker"
-            ping: "librislog.tail35421d.ts.net"
+      - AudioBookShelf:
+          icon: audiobookshelf.png
+          href: http://audiobookshelf.tail35421d.ts.net
+          description: Audiobooks & Podcasts
+          siteMonitor: http://audiobookshelf.media.svc
+      - Calibre-Web:
+          icon: calibre.png
+          href: http://calibre-web.tail35421d.ts.net:8083
+          description: Ebook Management
+          siteMonitor: http://calibre-web.media.svc:8083
+      - LinguaCafe:
+          icon: linguacafe.png
+          href: http://linguacafe.tail35421d.ts.net
+          description: Language Reading App
+          siteMonitor: http://linguacafe.linguacafe.svc
+      - BookLogr:
+          icon: mdi-bookshelf
+          href: http://booklogr.tail35421d.ts.net
+          description: Personal Reading Tracker
+          siteMonitor: http://booklogr.media.svc
+      - LibrisLog:
+          icon: mdi-book-heart
+          href: http://librislog.tail35421d.ts.net
+          description: Household Reading Tracker
+          siteMonitor: http://librislog.media.svc
+      - BookHoarder:
+          icon: mdi-bookshelf
+          href: http://bookhoarder.tail35421d.ts.net
+          description: Book library
+          siteMonitor: http://bookhoarder.media.svc
+      - BookOrbit:
+          icon: mdi-bookshelf
+          href: http://bookorbit.tail35421d.ts.net
+          description: Book library
+          siteMonitor: http://bookorbit.media.svc
     - Dashboards:
-        - Homarr:
-            icon: "homarr.png"
-            href: "http://homarr.tail35421d.ts.net"
-            description: "Customizable Homelab Dashboard"
-            ping: "homarr.tail35421d.ts.net"
-        - Cairn:
-            icon: "mdi-view-dashboard-outline"
-            href: "http://cairn.tail35421d.ts.net"
-            description: "Homelab Service Directory"
-            ping: "cairn.tail35421d.ts.net"
+      - Homarr:
+          icon: homarr.png
+          href: http://homarr.tail35421d.ts.net
+          description: Customizable Homelab Dashboard
+          siteMonitor: http://homarr.dashboard.svc
+      - Cairn:
+          icon: mdi-view-dashboard-outline
+          href: http://cairn.tail35421d.ts.net
+          description: Homelab Service Directory
+          siteMonitor: http://cairn.dashboard.svc
     - Server Management:
-        - HomeLab Manger:
-            icon: "mdi-server-cog"
-            href: "http://homelab-manger.tail35421d.ts.net"
-            description: "Homelab Hardware Manager"
-            ping: "homelab-manger.tail35421d.ts.net"
-        - RemotePower:
-            icon: "mdi-remote-desktop"
-            href: "http://remotepower.tail35421d.ts.net"
-            description: "Remote Server Management"
-            ping: "remotepower.tail35421d.ts.net"
+      - HomeLab Manger:
+          icon: mdi-server-cog
+          href: http://homelab-manger.tail35421d.ts.net
+          description: Homelab Hardware Manager
+          siteMonitor: http://homelab-manger.server-management.svc
+      - RemotePower:
+          icon: mdi-remote-desktop
+          href: http://remotepower.tail35421d.ts.net
+          description: Remote Server Management
+          siteMonitor: http://remotepower.server-management.svc
     - Monitoring & Infrastructure:
-        - Beszel:
-            icon: "beszel.png"
-            href: "http://100.90.224.84"
-            description: "Cluster Monitoring"
-            ping: "100.90.224.84"
-        - Uptime-Kuma:
-            icon: "uptime-kuma.png"
-            href: "http://uptime-kuma"
-            description: "Uptime Monitoring"
-            ping: "uptime-kuma"
-        - Kuvasz:
-            icon: "mdi-shield-check"
-            href: "http://kuvasz.tail35421d.ts.net"
-            description: "Uptime & SSL Monitoring"
-            ping: "kuvasz.tail35421d.ts.net"
-        - Lantern:
-            icon: "mdi-lan-connect"
-            href: "http://lantern.tail35421d.ts.net"
-            description: "Homelab Status Dashboard"
-            ping: "lantern.tail35421d.ts.net"
-        - Pooml:
-            icon: "mdi-chart-timeline-variant"
-            href: "http://pooml.tail35421d.ts.net"
-            description: "Logs, Metrics & Alerts"
-            ping: "pooml.tail35421d.ts.net"
-        - OmniSight:
-            icon: "mdi-eye-settings"
-            href: "http://omnisight.tail35421d.ts.net"
-            description: "Multi-platform Monitoring"
-            ping: "omnisight.tail35421d.ts.net"
-        - Dozzle:
-            icon: "mdi-text-box-search-outline"
-            href: "http://dozzle.tail35421d.ts.net"
-            description: "Kubernetes log viewer"
-            ping: "dozzle.tail35421d.ts.net"
-        - LanGuard:
-            icon: "mdi-lan-connect"
-            href: "http://languard.tail35421d.ts.net"
-            description: "LAN discovery and monitoring"
-            ping: "languard.tail35421d.ts.net"
-        - LAN Sheriff:
-            icon: "mdi-shield-search"
-            href: "http://lan-sheriff.tail35421d.ts.net"
-            description: "Network traffic monitoring"
-            ping: "lan-sheriff.tail35421d.ts.net"
-        - HomeLab Monitor:
-            icon: "mdi-monitor-dashboard"
-            href: "http://homelab-monitor.tail35421d.ts.net"
-            description: "Host and homelab metrics"
-            ping: "homelab-monitor.tail35421d.ts.net"
-        - Trove:
-            icon: "mdi-server-network"
-            href: "http://trove.tail35421d.ts.net"
-            description: "Read-only infrastructure catalogue"
-            ping: "trove.tail35421d.ts.net"
-        - Logchef:
-            icon: "mdi-text-search"
-            href: "http://logchef.tail35421d.ts.net"
-            description: "Log analytics workspace"
-            ping: "logchef.tail35421d.ts.net"
-        - Longhorn UI:
-            icon: "longhorn.png"
-            href: "http://192.168.0.21:30080"
-            description: "Storage Management"
-            ping: "192.168.0.21"
+      - Beszel:
+          icon: beszel.png
+          href: http://beszel.tail35421d.ts.net
+          description: Cluster Monitoring
+          siteMonitor: http://beszel-hub.monitoring.svc
+      - Uptime-Kuma:
+          icon: uptime-kuma.png
+          href: http://uptime-kuma.tail35421d.ts.net
+          description: Uptime Monitoring
+          siteMonitor: http://uptime-kuma.monitoring.svc
+      - Kuvasz:
+          icon: mdi-shield-check
+          href: http://kuvasz.tail35421d.ts.net
+          description: Uptime & SSL Monitoring
+          siteMonitor: http://kuvasz.monitoring.svc
+      - Lantern:
+          icon: mdi-lan-connect
+          href: http://lantern.tail35421d.ts.net
+          description: Homelab Status Dashboard
+          siteMonitor: http://lantern.monitoring.svc
+      - Pooml:
+          icon: mdi-chart-timeline-variant
+          href: http://pooml.tail35421d.ts.net
+          description: Logs, Metrics & Alerts
+          siteMonitor: http://pooml-ui.monitoring.svc
+      - OmniSight:
+          icon: mdi-eye-settings
+          href: http://omnisight.tail35421d.ts.net
+          description: Multi-platform Monitoring
+          siteMonitor: http://omnisight.monitoring.svc
+      - Dozzle:
+          icon: mdi-text-box-search-outline
+          href: http://dozzle.tail35421d.ts.net
+          description: Kubernetes log viewer
+          siteMonitor: http://dozzle.monitoring.svc
+      - LanGuard:
+          icon: mdi-lan-connect
+          href: http://languard.tail35421d.ts.net
+          description: LAN discovery and monitoring
+          siteMonitor: http://languard.monitoring.svc
+      - LAN Sheriff:
+          icon: mdi-shield-search
+          href: http://lan-sheriff.tail35421d.ts.net
+          description: Network traffic monitoring
+          siteMonitor: http://lan-sheriff.monitoring.svc
+      - HomeLab Monitor:
+          icon: mdi-monitor-dashboard
+          href: http://homelab-monitor.tail35421d.ts.net
+          description: Host and homelab metrics
+          siteMonitor: http://homelab-monitor.monitoring.svc
+      - Trove:
+          icon: mdi-server-network
+          href: http://trove.tail35421d.ts.net
+          description: Read-only infrastructure catalogue
+          siteMonitor: http://trove.monitoring.svc
+      - Logchef:
+          icon: mdi-text-search
+          href: http://logchef.tail35421d.ts.net
+          description: Log analytics workspace
+          siteMonitor: http://logchef.monitoring.svc
+      - Longhorn UI:
+          icon: longhorn.png
+          description: Storage management (internal only; no browser endpoint)
+          siteMonitor: http://longhorn-frontend.longhorn-system.svc
   settings.yaml: |
     title: "My Homelab Dashboard"
     headerStyle: "boxed"
@@ -176,8 +191,23 @@ data:
       image: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=2070"
       opacity: 30
     layout:
-      Homelab:
-        style: "grid"
+      AI & Development:
+        style: "row"
+        columns: 4
+      Management & Identity:
+        style: "row"
+        columns: 4
+      Media:
+        style: "row"
+        columns: 4
+      Dashboards:
+        style: "row"
+        columns: 4
+      Server Management:
+        style: "row"
+        columns: 4
+      Monitoring & Infrastructure:
+        style: "row"
         columns: 4
   widgets.yaml: |
     - kubernetes:
@@ -201,6 +231,8 @@ spec:
       app: homepage
   template:
     metadata:
+      annotations:
+        checksum/config: "bd014aadd8090c1b83300bbb4c6ba4d7b949cc8b52a015842a9f22e94f46298b"
       labels:
         app: homepage
     spec:
@@ -210,7 +242,7 @@ spec:
         imagePullPolicy: Always
         env:
         - name: HOMEPAGE_ALLOWED_HOSTS
-          value: "100.82.63.72,homepage-homepage,homepage.homepage.svc.cluster.local,homepage.homepage.svc"
+          value: "100.82.63.72,homepage-homepage,homepage-homepage.tail35421d.ts.net,homepage.homepage.svc.cluster.local,homepage.homepage.svc"
         ports:
         - containerPort: 3000
         volumeMounts:
@@ -243,3 +275,51 @@ spec:
   ports:
   - port: 80
     targetPort: 3000
+---
+# Only Homepage may probe the IIQ web applications; database ports stay private.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-homepage-web-monitoring
+  namespace: iiqstack
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values: [iiq, phpldapadmin, activemq, mail]
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: homepage
+      podSelector:
+        matchLabels:
+          app: homepage
+    ports:
+    - {protocol: TCP, port: 8080}
+    - {protocol: TCP, port: 443}
+    - {protocol: TCP, port: 8161}
+    - {protocol: TCP, port: 8025}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-homepage-web-monitoring
+  namespace: linguacafe
+spec:
+  podSelector:
+    matchLabels:
+      app: linguacafe
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: homepage
+      podSelector:
+        matchLabels:
+          app: homepage
+    ports:
+    - {protocol: TCP, port: 80}
