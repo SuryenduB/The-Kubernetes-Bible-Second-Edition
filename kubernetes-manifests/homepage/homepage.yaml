@@ -170,6 +170,11 @@ data:
           href: http://gotify.tail35421d.ts.net
           description: Push notification server
           siteMonitor: http://gotify.monitoring.svc
+      - Apprise:
+          icon: mdi-bell-cog
+          href: http://apprise.tail35421d.ts.net
+          description: Notification gateway (150+ services)
+          siteMonitor: http://apprise.monitoring.svc/status
       - LanGuard:
           icon: mdi-lan-connect
           href: http://languard.tail35421d.ts.net
@@ -247,7 +252,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "7ffed5307e3d019fa5169e12349d8664dacf7f64b4af67ffb18dd8766573b6fe"
+        checksum/config: "e3d56708f8c456f74a69ed8cf427f11d81027bbdaedaba90c083283f0ff29dc3"
       labels:
         app: homepage
     spec:

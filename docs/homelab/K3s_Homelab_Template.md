@@ -97,6 +97,7 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | Beszel Hub | `monitoring` | <http://beszel.tail35421d.ts.net> |
 | Dozzle | `monitoring` | <http://dozzle.tail35421d.ts.net> |
 | Gotify | `monitoring` | <http://gotify.tail35421d.ts.net> |
+| Apprise | `monitoring` | <http://apprise.tail35421d.ts.net> |
 | Homelab Monitor | `monitoring` | <http://homelab-monitor.tail35421d.ts.net> |
 | Kuvasz | `monitoring` | <http://kuvasz.tail35421d.ts.net> |
 | LAN Sheriff | `monitoring` | <http://lan-sheriff.tail35421d.ts.net> |
