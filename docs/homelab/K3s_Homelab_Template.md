@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-06-27 | **Status**: ✅ Production Ready | **Version**: K3s v1.34.6+k3s1
+**Last Updated**: 2026-09-17 | **Scope**: Application inventory and MagicDNS refreshed; other audit snapshots retain their original dates | **Version**: K3s v1.34.6+k3s1
 
 ---
 
@@ -49,24 +49,75 @@ For executing cluster tasks, refer to the following goal-oriented **How-to Guide
 
 ### Web Applications (Tailscale MagicDNS)
 
-All services are accessible via Tailscale MagicDNS at `*.tail35421d.ts.net`.
+Inventory refreshed on **2026-09-17** from live workloads, Service ports, and the Tailscale operator's recorded device FQDNs. Hostnames below are registered names, not end-to-end reachability tests. Access requires a connected Tailscale client and applicable tailnet permissions.
 
-| Application | MagicDNS URL | Internal LAN URL | Description |
-|-------------|-------------|------------------|-------------|
-| **IdentityIQ** | [http://iiq.tail35421d.ts.net:8080/identityiq](http://iiq.tail35421d.ts.net:8080/identityiq) | http://192.168.0.21/identityiq | SailPoint Identity Governance |
-| **AudioBookShelf**| [http://audiobookshelf.tail35421d.ts.net](http://audiobookshelf.tail35421d.ts.net) | http://audiobookshelf.media.svc | Media Server (Audiobooks) |
-| **Calibre-Web** | [http://calibre-web.tail35421d.ts.net:8083](http://calibre-web.tail35421d.ts.net:8083) | http://calibre-web.media.svc:8083 | Ebook Management |
-| **OpenWebUI** | [http://openwebui.tail35421d.ts.net:8080](http://openwebui.tail35421d.ts.net:8080) | http://openwebui.local | AI Chat Interface |
-| **phpLDAPadmin** | [http://phpldapadmin.tail35421d.ts.net](http://phpldapadmin.tail35421d.ts.net) | http://192.168.0.21:30081 | LDAP Directory Manager |
-| **ActiveMQ UI** | [http://iiq-mq-admin.tail35421d.ts.net:8161](http://iiq-mq-admin.tail35421d.ts.net:8161) | http://192.168.0.21:30082 | Middleware Console |
-| **Mailpit UI** | [http://iiq-mail.tail35421d.ts.net:8025](http://iiq-mail.tail35421d.ts.net:8025) | http://192.168.0.21:30083 | Email Testing Dashboard |
-| **ArgoCD** | [https://argocd.tail35421d.ts.net](https://argocd.tail35421d.ts.net) | https://argocd.example.com | GitOps CD Platform |
-| **Beszel Hub** | [http://beszel.tail35421d.ts.net](http://beszel.tail35421d.ts.net) | http://beszel-hub.monitoring.svc | Lightweight Cluster Monitoring |
-| **Homepage** | [http://homepage-homepage.tail35421d.ts.net](http://homepage-homepage.tail35421d.ts.net) | http://homepage.homepage.svc | Homelab Dashboard |
-| **Longhorn UI** | [http://nuc:30080](http://nuc:30080) | http://192.168.0.21:30080 | Storage Management |
-| **AI-Language-Learning**| [http://lang-tutor.tail35421d.ts.net](http://lang-tutor.tail35421d.ts.net) | http://ai-lang-backend.ai-language-learning.svc | Custom AI Language Tutor |
-| **OpenLingo** | [http://openlingo.tail35421d.ts.net](http://openlingo.tail35421d.ts.net) | http://openlingo.openlingo.svc | Structured Language Platform |
-| **LinguaCafe** | [http://linguacafe.tail35421d.ts.net](http://linguacafe.tail35421d.ts.net) | http://linguacafe.linguacafe.svc | Self-hosted Language Reading App |
+| MagicDNS setting | Verified value |
+|------------------|----------------|
+| Tailnet DNS domain | `tail35421d.ts.net` |
+
+#### AI & Language Learning
+
+| Application | Namespace | MagicDNS access | Purpose |
+|-------------|-----------|-----------------|---------|
+| Ollama | `ai` | Internal only; no dedicated Tailscale proxy found | Local AI model serving |
+| Open WebUI | `ai` | <http://openwebui.tail35421d.ts.net:8080> | AI chat interface |
+| AI Language Tutor | `ai-language-learning` | <http://lang-tutor.tail35421d.ts.net> | Custom language-learning backend |
+| OpenLingo | `openlingo` | <http://openlingo.tail35421d.ts.net> | Language-learning platform |
+| LinguaCafe | `linguacafe` | <http://linguacafe.tail35421d.ts.net> | Language learning through reading |
+
+#### Books & Media
+
+| Application | Namespace | MagicDNS access |
+|-------------|-----------|-----------------|
+| Audiobookshelf | `media` | <http://audiobookshelf.tail35421d.ts.net> |
+| Calibre-Web | `media` | <http://calibre-web.tail35421d.ts.net:8083> |
+| BookHoarder | `media` | <http://bookhoarder.tail35421d.ts.net> |
+| Booklogr | `media` | <http://booklogr.tail35421d.ts.net> |
+| BookOrbit | `media` | <http://bookorbit.tail35421d.ts.net> |
+| LibrisLog | `media` | <http://librislog.tail35421d.ts.net> |
+
+#### Dashboards & Server Management
+
+| Application | Namespace | MagicDNS access |
+|-------------|-----------|-----------------|
+| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> |
+| Homarr | `dashboard` | <http://homarr.tail35421d.ts.net> |
+| Cairn | `dashboard` | <http://cairn.tail35421d.ts.net> |
+| Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net> |
+| RemotePower | `server-management` | <http://remotepower.tail35421d.ts.net> |
+
+The spelling `homelab-manger` matches the deployed Service and registered hostname.
+
+#### Monitoring & Observability
+
+| Application | Namespace | MagicDNS access |
+|-------------|-----------|-----------------|
+| Beszel Hub | `monitoring` | <http://beszel.tail35421d.ts.net> |
+| Dozzle | `monitoring` | <http://dozzle.tail35421d.ts.net> |
+| Homelab Monitor | `monitoring` | <http://homelab-monitor.tail35421d.ts.net> |
+| Kuvasz | `monitoring` | <http://kuvasz.tail35421d.ts.net> |
+| LAN Sheriff | `monitoring` | <http://lan-sheriff.tail35421d.ts.net> |
+| LanGuard | `monitoring` | <http://languard.tail35421d.ts.net> |
+| Lantern | `monitoring` | <http://lantern.tail35421d.ts.net> |
+| LogChef | `monitoring` | <http://logchef.tail35421d.ts.net> |
+| OmniSight | `monitoring` | <http://omnisight.tail35421d.ts.net> |
+| PooML | `monitoring` | <http://pooml.tail35421d.ts.net> |
+| Trove | `monitoring` | <http://trove.tail35421d.ts.net> (also exposes TCP 8080) |
+| Uptime Kuma | `monitoring` | <http://uptime-kuma.tail35421d.ts.net> |
+
+#### IdentityIQ Lab & Deployment Management
+
+| Application | Namespace | MagicDNS access | Purpose |
+|-------------|-----------|-----------------|---------|
+| SailPoint IdentityIQ | `iiqstack` | <http://iiq-main.tail35421d.ts.net/identityiq> | Identity governance |
+| phpLDAPadmin | `iiqstack` | <https://iiq-ldap-admin.tail35421d.ts.net> | LDAP directory management |
+| ActiveMQ UI | `iiqstack` | <http://iiq-mq-admin.tail35421d.ts.net:8161> | Message broker console |
+| Mailpit UI | `iiqstack` | <http://iiq-mail.tail35421d.ts.net:8025> | Email testing dashboard |
+| Counter | `iiqstack` | `iiq-counter.tail35421d.ts.net:12345` | Demo service; TCP endpoint |
+| SSH service | `iiqstack` | `iiq-ssh.tail35421d.ts.net:22` | SSH access |
+| Argo CD | `argocd` | <https://argocd.tail35421d.ts.net> | Deployment management |
+
+**Additional registered proxies:** `argocd-1.tail35421d.ts.net` exposes ports 80/443, and `openwebui-1.tail35421d.ts.net` exposes port 8080. Legacy Services in `default` also have `iiq.tail35421d.ts.net:8080` and `phpldapadmin.tail35421d.ts.net:80`; their backend reachability was not verified. Prefer the application-namespace endpoints above. A registered MagicDNS name does not guarantee a trusted HTTPS certificate.
 
 #### Reading on Mobile (Moon+ Reader via OPDS)
 
@@ -83,14 +134,38 @@ Other OPDS-compatible apps: KOReader, Aldiko, FBReader, PocketBook.
 
 ### Infrastructure Services (Tailscale Access)
 
-| Service | Tailscale Host | Port | Type |
-|---------|----------------|------|------|
-| **MSSQL** | `iiq-db` | 1433 | Primary DB |
-| **MySQL** | `iiq-db-mysql` | 3306 | Plugin DB |
-| **LDAP** | `iiq-ldap` | 389 | Directory |
-| **SSH Jump** | `iiq-ssh` | 22 | Terminal Access |
-| **Beszel Agent**| N/A (Internal) | 45876 | Node Monitoring (DaemonSet) |
-| **Counter** | `iiq-counter` | 12345 | Demo Service |
+| Service | Namespace | MagicDNS host | TCP port / access |
+|---------|-----------|---------------|-------------------|
+| MSSQL | `iiqstack` | `iiq-db.tail35421d.ts.net` | 1433 |
+| MySQL | `iiqstack` | `iiq-db-mysql.tail35421d.ts.net` | 3306 |
+| LDAP | `iiqstack` | `iiq-ldap.tail35421d.ts.net` | 389 |
+| SSH | `iiqstack` | `iiq-ssh.tail35421d.ts.net` | 22 |
+| ActiveMQ broker | `iiqstack` | `iiq-mq-admin.tail35421d.ts.net` | 61616 |
+| Mailpit SMTP | `iiqstack` | `iiq-mail.tail35421d.ts.net` | 1025 |
+| Counter | `iiqstack` | `iiq-counter.tail35421d.ts.net` | 12345 |
+
+### Supporting Components & Cluster Infrastructure
+
+These components are listed separately from user-facing applications. No dedicated MagicDNS proxy was found for the internal components below.
+
+| Component | Namespace(s) | Role / access |
+|-----------|--------------|---------------|
+| Longhorn and CSI components | `longhorn-system` | Persistent storage; UI Service is currently ClusterIP: `http://longhorn-frontend.longhorn-system.svc:80` (cluster-internal), not the previously documented NodePort 30080 |
+| Tailscale operator and proxies | `tailscale` | Publish the MagicDNS endpoints above; proxies are not separate apps |
+| CloudNativePG controller | `cnpg-system` | PostgreSQL operator |
+| Traefik | `kube-system` | Ingress controller |
+| CoreDNS | `kube-system` | Cluster DNS |
+| metrics-server | `kube-system` | Kubernetes resource metrics |
+| Local-path provisioner | `kube-system` | Local persistent storage provisioning |
+| NFS provisioner | `default` | NAS-backed persistent storage provisioning |
+| PostgreSQL | `ai-language-learning`, `openlingo`, `media`, `monitoring` | Databases for AI Language Tutor, OpenLingo, BookOrbit, and Kuvasz |
+| MariaDB | `linguacafe` | LinguaCafe database |
+| Redis | `linguacafe`, `argocd` | Supporting cache services |
+| Booklogr API and LibrisLog backend | `media` | Internal application backends |
+| Beszel agent and Trove agent | `monitoring` | Monitoring agents; not separate user-facing apps |
+| Argo CD controllers, repo server, Dex, and notifications | `argocd` | Supporting components of the Argo CD installation |
+
+**Readiness snapshot (2026-09-17):** All Deployments and StatefulSets checked met their desired Ready counts except IdentityIQ (**1/2 Ready**). Beszel was **1/1 Ready**. This is not a complete cluster-health or application-functionality audit; node and DaemonSet health are outside this inventory refresh.
 
 ---
 
