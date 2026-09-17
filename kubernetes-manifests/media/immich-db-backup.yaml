@@ -1,0 +1,87 @@
+# Static NAS claim permits explicit NFSv3 mount options used by this QNAP.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-db-backup-nas
+spec:
+  capacity: {storage: 20Gi}
+  accessModes: [ReadWriteMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, noatime]
+  claimRef: {namespace: media, name: immich-db-backup-nas}
+  nfs: {server: 192.168.0.128, path: /longhorn}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-db-backup-nas
+  namespace: media
+spec:
+  accessModes: [ReadWriteMany]
+  storageClassName: ""
+  volumeName: immich-db-backup-nas
+  resources:
+    requests: {storage: 20Gi}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: immich-db-backup
+  namespace: media
+spec:
+  schedule: "30 2 * * *"
+  timeZone: Etc/UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: immich-db-backup
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          containers:
+          - name: pg-dump
+            image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+            command: [/bin/sh, -ec]
+            args:
+            - |
+              umask 077
+              mkdir -p /backup/immich-db-dumps
+              stamp=$(date -u +%Y%m%dT%H%M%SZ)
+              file=/backup/immich-db-dumps/immich-${stamp}.dump
+              trap 'rm -f "${file}.partial"' EXIT
+              pg_dump --format=custom --no-owner --no-acl --file="${file}.partial"
+              pg_restore --list "${file}.partial" >/dev/null
+              mv "${file}.partial" "$file"
+              sha256sum "$file" > "${file}.sha256"
+              echo "Completed logical database backup: $file"
+              # Only this job's completed dumps; never prune Longhorn backup data.
+              find /backup/immich-db-dumps -maxdepth 1 -type f -name 'immich-*.dump*' -mtime +14 -delete
+            env:
+            - {name: PGHOST, value: immich-db.media.svc}
+            - {name: PGPORT, value: "5432"}
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef: {name: immich-secrets, key: DB_USERNAME}
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: {name: immich-secrets, key: DB_PASSWORD}
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef: {name: immich-secrets, key: DB_DATABASE_NAME}
+            resources:
+              requests: {cpu: 100m, memory: 128Mi}
+              limits: {cpu: "1", memory: 512Mi}
+            volumeMounts:
+            - {name: nas, mountPath: /backup}
+          volumes:
+          - name: nas
+            persistentVolumeClaim:
+              claimName: immich-db-backup-nas

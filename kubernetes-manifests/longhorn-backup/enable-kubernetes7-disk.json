@@ -1,0 +1,5 @@
+[
+  {"op":"test","path":"/spec/disks/default-disk-53f1ca514594ee10/path","value":"/var/lib/longhorn/"},
+  {"op":"test","path":"/spec/disks/default-disk-53f1ca514594ee10/allowScheduling","value":false},
+  {"op":"replace","path":"/spec/disks/default-disk-53f1ca514594ee10/allowScheduling","value":true}
+]

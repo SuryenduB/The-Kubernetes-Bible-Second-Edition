@@ -1,0 +1,65 @@
+# Manual restore drill: fresh ephemeral PostgreSQL, no Service, no production writes.
+# kubectl create -f <absolute path to this file> creates a uniquely named Job.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: immich-db-restore-check-manual
+  namespace: media
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 1800
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: immich-db-restore-check}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      containers:
+      - name: restore
+        image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+        args:
+        - /bin/bash
+        - -ec
+        - |
+          file=$(find /backup/immich-db-dumps -maxdepth 1 -type f -name 'immich-*.dump' | sort | tail -1)
+          test -n "$file"
+          sha256sum -c "${file}.sha256"
+          mkdir -p /var/lib/postgresql/data/pgdata
+          chown -R postgres:postgres /var/lib/postgresql/data
+          gosu postgres /usr/lib/postgresql/14/bin/initdb -D /var/lib/postgresql/data/pgdata -U postgres --auth=trust
+          gosu postgres /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql/data/pgdata -l /tmp/pg.log -o "-c config_file=/etc/postgresql/postgresql.conf -c listen_addresses=''" start
+          trap 'gosu postgres /usr/lib/postgresql/14/bin/pg_ctl -D /var/lib/postgresql/data/pgdata -m smart stop || true' EXIT
+          for i in $(seq 1 120); do
+            pg_isready -h /var/run/postgresql -U postgres && break
+            sleep 2
+          done
+          pg_isready -h /var/run/postgresql -U postgres
+          createdb -h /var/run/postgresql -U postgres restorecheck
+          # pre-data first: extensions (incl. vchord) must exist before data
+          # referencing them. Drop the initial full pass which conflicts with
+          # the types created by pre-data on reruns.
+          pg_restore --section=pre-data --exit-on-error --no-owner --no-acl -h /var/run/postgresql -U postgres -d restorecheck "$file"
+          pg_restore --section=data --exit-on-error --no-owner --no-acl -j 2 -h /var/run/postgresql -U postgres -d restorecheck "$file"
+          pg_restore --section=post-data --exit-on-error --no-owner --no-acl -h /var/run/postgresql -U postgres -d restorecheck "$file"
+          count=$(psql -h /var/run/postgresql -U postgres -d restorecheck -Atc "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'")
+          test "$count" -gt 0
+          psql -h /var/run/postgresql -U postgres -d restorecheck -c 'SELECT extname, extversion FROM pg_extension'
+          echo "RESTORE VERIFIED: $count public tables from $file"
+        env:
+        - {name: POSTGRES_HOST_AUTH_METHOD, value: trust}
+        - {name: POSTGRES_DB, value: restorecheck}
+        - {name: PGDATA, value: /var/lib/postgresql/data/pgdata}
+        resources:
+          requests: {cpu: 200m, memory: 512Mi}
+          limits: {cpu: "1", memory: 2Gi}
+        volumeMounts:
+        - {name: nas, mountPath: /backup, readOnly: true}
+        - {name: scratch, mountPath: /var/lib/postgresql/data}
+      volumes:
+      - name: nas
+        persistentVolumeClaim:
+          claimName: immich-db-backup-nas
+          readOnly: true
+      - name: scratch
+        emptyDir: {sizeLimit: 10Gi}

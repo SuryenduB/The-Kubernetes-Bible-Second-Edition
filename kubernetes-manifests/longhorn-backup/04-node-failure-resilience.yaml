@@ -1,0 +1,42 @@
+# Longhorn scheduling / failure-resilience Settings (Longhorn v1.8.1).
+# These Settings CRs carry `value` at the TOP LEVEL (no spec) in v1beta2.
+#
+# Rationale: 2026-09-17 audit found every replica of the Immich volumes
+# (db/library/model-cache, 3 each) scheduled onto kubernetes1. With soft
+# anti-affinity Longhorn is permitted to collapse replicas onto one node,
+# so a single node loss could remove every copy of the data.
+#
+# replica-soft-anti-affinity=false makes node-level anti-affinity STRICT:
+# Longhorn will not place two replicas of the same volume on one node
+# while other eligible nodes have space. Verify volume replica spread
+# after applying; if a volume cannot find eligible nodes it will show
+# fewer healthy replicas (see README note on kubernetes8-debian).
+#
+# node-down-pod-deletion-policy=delete-both-statefulset-and-deployment-pod
+# recreates app pods (including StatefulSet pods like immich-db-0) that
+# were running on a failed node, so workloads reschedule onto surviving
+# nodes instead of waiting for the node to return (previously do-nothing).
+#
+# replica-auto-balance=best-effort actively redistributes existing
+# replicas when a more balanced arrangement becomes possible.
+---
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: replica-soft-anti-affinity
+  namespace: longhorn-system
+value: "false"
+---
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: node-down-pod-deletion-policy
+  namespace: longhorn-system
+value: "delete-both-statefulset-and-deployment-pod"
+---
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: replica-auto-balance
+  namespace: longhorn-system
+value: "best-effort"

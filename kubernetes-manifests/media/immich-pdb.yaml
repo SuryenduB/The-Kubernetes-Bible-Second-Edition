@@ -1,0 +1,39 @@
+# Immich single-instance workloads: these PDBs block voluntary evictions.
+# They do not prevent hardware failures or controller-driven rollout downtime.
+# For planned maintenance, arrange an outage and adjust only the affected
+# Immich PDB; never remove unrelated namespace-wide disruption budgets.
+# Safe node-loss recovery also requires healthy storage on distinct nodes
+# and fencing the failed host before any force-deletion/reattachment.
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: immich-db-pdb
+  namespace: media
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: immich-db
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: immich-server-pdb
+  namespace: media
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: immich-server
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: immich-ml-pdb
+  namespace: media
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: immich-ml
