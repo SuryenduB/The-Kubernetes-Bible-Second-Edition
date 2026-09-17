@@ -13,6 +13,7 @@ resources:
   - pooml.yaml
   - omnisight.yaml
   - dozzle.yaml
+  - gotify.yaml
   - languard.yaml
   - lan-sheriff.yaml
   - homelab-monitor.yaml

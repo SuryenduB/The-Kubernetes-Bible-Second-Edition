@@ -155,6 +155,11 @@ data:
           href: http://dozzle.tail35421d.ts.net
           description: Kubernetes log viewer
           siteMonitor: http://dozzle.monitoring.svc
+      - Gotify:
+          icon: mdi-bell-ring
+          href: http://gotify.tail35421d.ts.net
+          description: Push notification server
+          siteMonitor: http://gotify.monitoring.svc
       - LanGuard:
           icon: mdi-lan-connect
           href: http://languard.tail35421d.ts.net
@@ -232,7 +237,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "bd014aadd8090c1b83300bbb4c6ba4d7b949cc8b52a015842a9f22e94f46298b"
+        checksum/config: "5be088974b99a90066152a6ae20d2f9a2b4c02bb047bef0adf87510a597f4dab"
       labels:
         app: homepage
     spec:

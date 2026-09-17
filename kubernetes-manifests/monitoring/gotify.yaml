@@ -1,0 +1,105 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gotify-secrets
+  namespace: monitoring
+type: Opaque
+stringData:
+  GOTIFY_DEFAULTUSER_NAME: "admin"
+  GOTIFY_DEFAULTUSER_PASS: "GotifyAdmin-2026-09-17-ChangeMe"
+  GOTIFY_SERVER_PORT: "80"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gotify-data
+  namespace: monitoring
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gotify
+  namespace: monitoring
+  labels:
+    app: gotify
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: gotify
+  template:
+    metadata:
+      labels:
+        app: gotify
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: [kubernetes4]
+      containers:
+        - name: gotify
+          image: gotify/server:3.1.0
+          ports:
+            - name: http
+              containerPort: 80
+          envFrom:
+            - secretRef:
+                name: gotify-secrets
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            timeoutSeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: gotify-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gotify
+  namespace: monitoring
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "gotify"
+spec:
+  type: ClusterIP
+  selector:
+    app: gotify
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
