@@ -2,7 +2,8 @@
 # Start-K3sHomelab.ps1  (full recovery by default)
 # Restores cluster capacity after a power-down. Every recovery phase now runs by default:
 # uncordon Ready nodes -> purge stranded/zombie pods -> repair Longhorn -> recycle CSI
-# plugins -> serialized workload reconcile -> PDB-aware rebalance -> verify.
+# plugins -> engine-frontend recovery for dead /dev/longhorn devices ->
+# serialized workload reconcile -> PDB-aware rebalance -> verify.
 # Use the -Skip* switches to opt out of individual phases.
 # Symmetrical counterpart to Stop-K3sHomelab-Minimal.ps1 / shutdown_homelab.ps1.
 
@@ -52,6 +53,22 @@
     Opt OUT of touching longhorn-system: no Longhorn CSI plugin recycling and no purge of
     zombie Longhorn pods left behind on offline nodes. Storage repair runs by default
     because it is the gate every RWO consumer depends on.
+
+.PARAMETER SkipHostMountRepair
+    Opt OUT of the last-resort storage recovery: when CSI plugin recycling plus a
+    graceful pod cycle still leaves Pending RWO pods (kernel 'Can't open blockdev' -
+    the /dev/longhorn device itself is dead), the Longhorn engine frontend on that
+    node is respawned by restarting the node's instance-manager. Survivors are then
+    moved off nodes with a proven-dead frontend (cordon, cycle, uncordon - protected
+    nodes are never cordoned), and anything still stuck is reported as a VOLUME WEDGE
+    with snapshot/backup restore guidance (detection only, never auto-restored).
+    Runs by default; a node is only touched when every blocked volume on it is
+    Longhorn-healthy (replicas available), Ready nodes only, one node at a time.
+
+.PARAMETER HostMountNodes
+    Optional node filter for the engine recovery (e.g. -HostMountNodes
+    @('kubernetes4','kubernetes5')). Empty (default) means every Ready node that
+    still has storage-blocked pods after the CSI recycle.
 
 .PARAMETER SkipRebalance
     Opt OUT of redistributing workloads off overloaded nodes using cordon + Eviction API
@@ -146,6 +163,12 @@ param(
     [switch]$SkipStorageRepair,
 
     [Parameter()]
+    [switch]$SkipHostMountRepair,
+
+    [Parameter()]
+    [string[]]$HostMountNodes = @(),
+
+    [Parameter()]
     [switch]$RepairMultipath,
 
     [Parameter()]
@@ -215,6 +238,7 @@ Set-StrictMode -Version Latest
 # Everything below reads these flags instead of the raw switches, so the default is
 # "do the whole recovery" and each -Skip* switch is a deliberate opt-out.
 $DoStorageRepair     = -not $SkipStorageRepair
+$DoHostMountRepair   = -not $SkipHostMountRepair
 $DoRebalance         = -not $SkipRebalance
 # Restart is suppressed by either -SkipRestartWorkloads or the legacy -SkipRestart.
 $DoRestartWorkloads  = (-not $SkipRestartWorkloads) -and (-not $SkipRestart)
@@ -423,6 +447,7 @@ function Get-PvcMap {
             Name        = $nm
             AccessModes = $modes
             IsRwo       = ($modes -contains 'ReadWriteOnce')
+            VolumeName  = [string](Get-Prop $sp 'volumeName')
         }
     }
     return $map
@@ -651,6 +676,156 @@ function Repair-PendingRwoMounts {
     return @($repairedPods)
 }
 
+function Get-PendingPodStatus {
+    <#
+        Re-checks candidate pods against live state. Returns one record per pod that
+        is still not Running/Succeeded, with its current node and whether it is only
+        waiting in init (volumes mounted, e.g. waiting for its database).
+    #>
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    param([object[]]$Candidates = @())
+
+    $livePods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
+    $out = [System.Collections.Generic.List[object]]::new()
+    foreach ($candidate in $Candidates) {
+        foreach ($pod in $livePods) {
+            $md = Get-Prop $pod 'metadata'
+            if ((Get-Prop $md 'namespace') -eq $candidate.Namespace -and (Get-Prop $md 'name') -eq $candidate.Name) {
+                $st = Get-Prop $pod 'status'
+                if ((Get-Prop $st 'phase') -notin @('Running', 'Succeeded')) {
+                    $conds = @(Get-Prop $st 'conditions')
+                    $initialized = @($conds | Where-Object { (Get-Prop $_ 'type') -eq 'Initialized' })
+                    $readyToStart = @($conds | Where-Object { (Get-Prop $_ 'type') -eq 'PodReadyToStartContainers' })
+                    $inInit = ($initialized.Count -gt 0 -and (Get-Prop $initialized[0] 'status') -ne 'True' -and
+                        $readyToStart.Count -gt 0 -and (Get-Prop $readyToStart[0] 'status') -eq 'True')
+                    $out.Add([pscustomobject]@{
+                            Namespace = $candidate.Namespace
+                            Name      = $candidate.Name
+                            Node      = [string](Get-Prop (Get-Prop $pod 'spec') 'nodeName')
+                            Phase     = [string](Get-Prop $st 'phase')
+                            InInit    = [bool]$inInit
+                            LivePod   = $pod
+                        })
+                }
+                break
+            }
+        }
+    }
+    return @($out)
+}
+
+function Repair-StaleVolumeFrontend {
+    <#
+        Last-resort Longhorn recovery for storage-blocked pods that survive the CSI
+        plugin recycle plus graceful pod cycle. Symptom: kubelet keeps reporting
+        'already mounted or mount point busy' while the kernel logs
+        '/dev/longhorn/<volume>: Can't open blockdev' and the device is absent from
+        /proc/mounts. The engine frontend on that node is wedged - the block device
+        itself is dead, so no amount of CSI recycling or pod cycling can mount it.
+        Respawning the node's instance-manager restarts every engine process on that
+        node (brief IO stall on that node's volumes) and re-exposes healthy frontends.
+
+        Guards: Ready nodes only, one node at a time, and a node is only touched when
+        every blocked volume on it is Longhorn-healthy (attached + healthy robustness,
+        i.e. replicas are available). Anything else is report-only.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [object[]]$BlockedPods = @(),
+        [hashtable]$PvcMap = @{},
+        $NodeState = $null,
+        [string[]]$NodeFilter = @()
+    )
+
+    if (-not $DoHostMountRepair) {
+        Write-Warn 'Engine recovery skipped (-SkipHostMountRepair); still-blocked RWO pods are report-only.'
+        return @()
+    }
+    if ($BlockedPods.Count -eq 0) { return @() }
+
+    $byNode = @{}
+    foreach ($pod in $BlockedPods) {
+        if (-not $pod.Node) { continue }
+        if ($NodeFilter.Count -gt 0 -and -not ($NodeFilter -contains $pod.Node)) { continue }
+        if (-not $byNode.ContainsKey($pod.Node)) { $byNode[$pod.Node] = [System.Collections.Generic.List[object]]::new() }
+        $byNode[$pod.Node].Add($pod)
+    }
+    if ($byNode.Count -eq 0) { return @() }
+
+    $volumes = Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', '-n', $StorageNamespace)
+    $livePods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
+    $repairedNodes = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($nodeName in @($byNode.Keys)) {
+        if ($null -ne $NodeState -and $NodeState.Contains($nodeName) -and -not $NodeState[$nodeName].Ready) {
+            Write-Warn "engine recovery skipped on '$nodeName': node is not Ready."
+            continue
+        }
+
+        $pvNames = [System.Collections.Generic.HashSet[string]]::new()
+        foreach ($pod in $byNode[$nodeName]) {
+            $live = @($livePods | Where-Object {
+                    (Get-Prop (Get-Prop $_ 'metadata') 'namespace') -eq $pod.Namespace -and
+                    (Get-Prop (Get-Prop $_ 'metadata') 'name') -eq $pod.Name
+                })
+            if ($live.Count -eq 0) { continue }
+            foreach ($claim in @(Get-PodPvcClaims -Pod $live[0])) {
+                if ($PvcMap.ContainsKey($claim) -and $PvcMap[$claim].VolumeName) {
+                    $null = $pvNames.Add($PvcMap[$claim].VolumeName)
+                }
+            }
+        }
+        if ($pvNames.Count -eq 0) {
+            Write-Warn "engine recovery skipped on '$nodeName': could not resolve Longhorn volumes for the blocked pods."
+            continue
+        }
+
+        $healthy = $true
+        foreach ($pv in $pvNames) {
+            $match = @($volumes | Where-Object { (Get-Prop (Get-Prop $_ 'metadata') 'name') -eq $pv })
+            if ($match.Count -eq 0) { Write-Bad "volume $pv not found in Longhorn; skipping engine recovery on '$nodeName'."; $healthy = $false; break }
+            $state = Get-Prop (Get-Prop $match[0] 'status') 'state'
+            $robustness = Get-Prop (Get-Prop $match[0] 'status') 'robustness'
+            if ($state -ne 'attached' -or $robustness -ne 'healthy') {
+                Write-Bad "volume $pv is $state/$robustness (not attached/healthy); skipping engine recovery on '$nodeName'."
+                Add-Finding "Engine recovery refused on ${nodeName}: volume ${pv} is ${state}/${robustness}"
+                $healthy = $false
+                break
+            }
+        }
+        if (-not $healthy) { continue }
+
+        Test-Budget "respawning instance-manager on $nodeName"
+        Write-Warn "Stale Longhorn frontend on '$nodeName' ($($pvNames.Count) healthy volume(s) affected) - respawning instance-manager."
+        $imPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace, '-l', 'longhorn.io/component=instance-manager')
+        $touched = $false
+        foreach ($imPod in ($imPods | Where-Object { [string](Get-Prop (Get-Prop $_ 'spec') 'nodeName') -eq $nodeName })) {
+            $imName = Get-Prop (Get-Prop $imPod 'metadata') 'name'
+            $ok = Invoke-KubectlMutation -Description "restart instance-manager $imName on $nodeName" `
+                -KubectlArgs @('delete', 'pod', '-n', $StorageNamespace, $imName, '--wait=true') `
+                -ActionType 'engine-recovery' -Target $imName -AllowFailure
+            if ($ok) { $touched = $true }
+        }
+        if (-not $touched) {
+            Write-Warn "no instance-manager pod found on '$nodeName'; nothing respawned."
+            continue
+        }
+        $repairedNodes.Add($nodeName)
+
+        if (-not $script:DryRun) {
+            Write-Info "Waiting 60s for the respawned engine(s) on '$nodeName' to re-expose frontends..."
+            Start-Sleep -Seconds 60
+        }
+    }
+
+    if ($repairedNodes.Count -gt 0 -and $script:DryRun) {
+        Write-Info 'dry-run: not waiting for respawned engine(s).'
+    }
+    return @($repairedNodes)
+}
+
 # ── Preflight ──────────────────────────────────────────────────────────
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
@@ -669,6 +844,7 @@ $phasePlan = @(
     "uncordon Ready nodes            : ON (always)"
     "purge stranded/zombie pods      : ON (always)"
     "repair Longhorn + recycle CSI   : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
+    "engine-frontend recovery        : $(if ($DoHostMountRepair) { 'ON' } else { 'SKIPPED (-SkipHostMountRepair)' })"
     "serialized workload reconcile   : $(if ($DoRestartWorkloads) { 'ON' } else { 'SKIPPED' })"
     "PDB-aware rebalance             : $(if ($DoRebalance) { 'ON' } else { 'SKIPPED (-SkipRebalance)' })"
 )
@@ -1065,6 +1241,142 @@ try {
                 else {
                     Write-Info "Waiting 45s for the cycled pods to reschedule..."
                     Start-Sleep -Seconds 45
+                }
+
+                # 4b-ii - Last resort: pods still Pending here have a dead engine
+                # frontend ('Can't open blockdev'), which CSI recycling and pod
+                # cycling cannot fix. Respawn the instance-manager on those nodes
+                # (healthy volumes only, Ready nodes only).
+                $recheckPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
+                $restillBlocked = [System.Collections.Generic.List[object]]::new()
+                foreach ($candidate in $stillBlocked) {
+                    foreach ($pod in $recheckPods) {
+                        $md = Get-Prop $pod 'metadata'
+                        if ((Get-Prop $md 'namespace') -eq $candidate.Namespace -and (Get-Prop $md 'name') -eq $candidate.Name) {
+                            if ((Get-Prop (Get-Prop $pod 'status') 'phase') -notin @('Running', 'Succeeded')) {
+                                # Pods still in init (volumes already mounted, waiting on
+                                # something else - e.g. flick-api waiting for its DB) must
+                                # not trigger engine recovery: only pods whose containers
+                                # cannot even start are mount-blocked.
+                                $conds = @(Get-Prop (Get-Prop $pod 'status') 'conditions')
+                                $initialized = @($conds | Where-Object { (Get-Prop $_ 'type') -eq 'Initialized' })
+                                $readyToStart = @($conds | Where-Object { (Get-Prop $_ 'type') -eq 'PodReadyToStartContainers' })
+                                $inInit = ($initialized.Count -gt 0 -and (Get-Prop $initialized[0] 'status') -ne 'True' -and
+                                    $readyToStart.Count -gt 0 -and (Get-Prop $readyToStart[0] 'status') -eq 'True')
+                                if (-not $inInit) { $restillBlocked.Add($candidate) }
+                                else { Write-Info "engine recovery not needed for [$($candidate.Namespace)] $($candidate.Name): still in init, volumes mounted." }
+                            }
+                            break
+                        }
+                    }
+                }
+                if ($restillBlocked.Count -gt 0) {
+                    $engineNodes = @(Repair-StaleVolumeFrontend -BlockedPods @($restillBlocked) `
+                            -PvcMap $pvcMap -NodeState $nodeState -NodeFilter $HostMountNodes)
+                    if ($engineNodes.Count -gt 0) { $repairedSomething = $true }
+
+                    # 4b-iii - Move pods off nodes whose frontend is proven dead (the engine
+                    # was just respawned there and the pod still cannot mount). Cordon the
+                    # node, gracefully delete the pod so it attaches elsewhere, uncordon.
+                    # One move per pod per run; protected nodes are never cordoned.
+                    $restillStatus = @(Get-PendingPodStatus -Candidates @($restillBlocked))
+                    $cordonedHere = [System.Collections.Generic.List[string]]::new()
+                    $movedPods = [System.Collections.Generic.List[object]]::new()
+                    foreach ($item in $restillStatus) {
+                        if ($item.InInit) {
+                            Write-Info "reschedule not needed for [$($item.Namespace)] $($item.Name): still in init, volumes mounted."
+                            continue
+                        }
+                        if (-not $item.Node -or -not ($engineNodes -contains $item.Node)) { continue }
+                        if ($nodeState.Contains($item.Node) -and $nodeState[$item.Node].IsProtected) {
+                            Write-Warn "reschedule skipped for [$($item.Namespace)] $($item.Name): '$($item.Node)' is protected and cannot be cordoned."
+                            continue
+                        }
+                        if (-not ($nodeState.Contains($item.Node) -and $nodeState[$item.Node].Unschedulable)) {
+                            Test-Budget "cordoning $($item.Node) for reschedule"
+                            $ok = Invoke-KubectlMutation -Description "cordon $($item.Node) to reschedule stuck volume consumer $($item.Namespace)/$($item.Name)" `
+                                -KubectlArgs @('cordon', $item.Node) `
+                                -ActionType 'reschedule' -Target $item.Node -AllowFailure
+                            if ($ok -and -not $cordonedHere.Contains($item.Node)) { $null = $cordonedHere.Add($item.Node) }
+                            elseif (-not $ok) { continue }
+                        }
+                        Test-Budget "rescheduling $($item.Name)"
+                        Write-Info "Rescheduling [$($item.Namespace)] $($item.Name) off '$($item.Node)' (frontend proven dead there)..."
+                        $ok = Invoke-KubectlMutation -Description "gracefully delete stuck volume consumer $($item.Namespace)/$($item.Name) for reschedule" `
+                            -KubectlArgs @('delete', 'pod', $item.Name, '-n', $item.Namespace, '--wait=true') `
+                            -ActionType 'reschedule' -Target "$($item.Namespace)/$($item.Name)" -AllowFailure
+                        if ($ok) { $movedPods.Add($item); $repairedSomething = $true }
+                    }
+                    if ($movedPods.Count -gt 0) {
+                        if ($script:DryRun) {
+                            Write-Info 'dry-run: not waiting for rescheduled pods.'
+                        }
+                        else {
+                            Write-Info "Waiting 60s for rescheduled pod(s) to attach elsewhere..."
+                            Start-Sleep -Seconds 60
+                        }
+                    }
+
+                    # 4b-iv - Volume-level wedge: still Pending after a move (or unmovable).
+                    # Detection plus restore guidance only - restoring a volume from a
+                    # snapshot/backup is a data-loss decision and is never executed here.
+                    $wedgeStatus = @(Get-PendingPodStatus -Candidates @($movedPods))
+                    foreach ($nodeName in $cordonedHere) {
+                        $null = Invoke-KubectlMutation -Description "uncordon $nodeName after reschedule" `
+                            -KubectlArgs @('uncordon', $nodeName) `
+                            -ActionType 'reschedule' -Target $nodeName -AllowFailure
+                    }
+                    $wedgeManual = [System.Collections.Generic.List[object]]::new()
+                    foreach ($item in $restillStatus) {
+                        if ($item.InInit) { continue }
+                        if ($item.Node -and ($engineNodes -contains $item.Node) -and
+                            $nodeState.Contains($item.Node) -and $nodeState[$item.Node].IsProtected) {
+                            $wedgeManual.Add($item)
+                        }
+                    }
+                    foreach ($item in $wedgeStatus) { $wedgeManual.Add($item) }
+                    if ($wedgeManual.Count -gt 0) {
+                        $snapshots = Get-K8sJson -KubectlArgs @('get', 'snapshots.longhorn.io', '-n', $StorageNamespace)
+                        $backups = Get-K8sJson -KubectlArgs @('get', 'backups.longhorn.io', '-n', $StorageNamespace)
+                        foreach ($item in $wedgeManual) {
+                            $pvNames = [System.Collections.Generic.HashSet[string]]::new()
+                            if ($null -ne $item.LivePod) {
+                                foreach ($claim in @(Get-PodPvcClaims -Pod $item.LivePod)) {
+                                    if ($pvcMap.ContainsKey($claim) -and $pvcMap[$claim].VolumeName) {
+                                        $null = $pvNames.Add($pvcMap[$claim].VolumeName)
+                                    }
+                                }
+                            }
+                            foreach ($pv in $pvNames) {
+                                $readySnaps = @($snapshots | Where-Object {
+                                        (Get-Prop (Get-Prop (Get-Prop $_ 'metadata') 'labels') 'longhornvolume') -eq $pv -and
+                                        (Get-Prop (Get-Prop $_ 'status') 'readyToUse') -eq $true
+                                    } | Sort-Object { Get-Prop (Get-Prop $_ 'metadata') 'creationTimestamp' } -Descending | Select-Object -First 3)
+                                $doneBackups = @($backups | Where-Object {
+                                        (Get-Prop (Get-Prop $_ 'status') 'volumeName') -eq $pv -and
+                                        (Get-Prop (Get-Prop $_ 'status') 'state') -eq 'Completed'
+                                    } | Sort-Object { Get-Prop (Get-Prop $_ 'metadata') 'creationTimestamp' } -Descending | Select-Object -First 3)
+                                $snapText = if ($readySnaps.Count -gt 0) {
+                                    ($readySnaps | ForEach-Object {
+                                            "{0} ({1})" -f (Get-Prop (Get-Prop $_ 'metadata') 'name'), (Get-Prop (Get-Prop $_ 'metadata') 'creationTimestamp')
+                                        }) -join ', '
+                                }
+                                else { 'none' }
+                                $backupText = if ($doneBackups.Count -gt 0) {
+                                    ($doneBackups | ForEach-Object {
+                                            "{0} ({1})" -f (Get-Prop (Get-Prop $_ 'metadata') 'name'), (Get-Prop (Get-Prop $_ 'metadata') 'creationTimestamp')
+                                        }) -join ', '
+                                }
+                                else { 'none' }
+                                Write-Bad "VOLUME WEDGE: $pv (used by $($item.Namespace)/$($item.Name)) fails on every node; replicas are healthy."
+                                Write-Info "  snapshots: $snapText"
+                                Write-Info "  backups: $backupText"
+                                Write-Info "  manual fix: restore the volume from a snapshot/backup to a NEW volume and swap the PVC."
+                                Add-Finding ("VOLUME WEDGE: {0} (used by {1}/{2}); snapshots: {3}; backups: {4} - restore manually" -f `
+                                        $pv, $item.Namespace, $item.Name, $snapText, $backupText)
+                            }
+                        }
+                    }
                 }
             }
         }
