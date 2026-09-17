@@ -567,6 +567,90 @@ function Get-NodeState {
     return $state
 }
 
+function Repair-PendingRwoMounts {
+    <#
+        Clears Longhorn/Kubelet stale mount state that appears after a rollout has
+        already started. This is intentionally limited to Pending RWO pods scheduled
+        on Ready nodes; stranded pods and terminating RWO pods are handled earlier.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param([string]$Reason = 'post-rollout')
+
+    if (-not $DoStorageRepair) { return @() }
+
+    $currentNodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
+        -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
+    $currentPvcMap = Get-PvcMap
+    $pendingRwoPods = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($pod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-A'))) {
+        $md = Get-Prop $pod 'metadata'
+        $sp = Get-Prop $pod 'spec'
+        $st = Get-Prop $pod 'status'
+        $ns = Get-Prop $md 'namespace'
+        if ($SkipNamespaces.Contains($ns)) { continue }
+        if ((Get-Prop $st 'phase') -ne 'Pending') { continue }
+
+        $nodeName = [string](Get-Prop $sp 'nodeName')
+        if (-not $nodeName -or -not $currentNodeState.Contains($nodeName) -or -not $currentNodeState[$nodeName].Ready) { continue }
+
+        $hasRwo = $false
+        foreach ($claim in @(Get-PodPvcClaims -Pod $pod)) {
+            if ($currentPvcMap.ContainsKey($claim) -and $currentPvcMap[$claim].IsRwo) { $hasRwo = $true; break }
+        }
+        if (-not $hasRwo) { continue }
+
+        $pendingRwoPods.Add([pscustomobject]@{
+            Namespace = $ns
+            Name      = Get-Prop $md 'name'
+            Node      = $nodeName
+        })
+    }
+
+    if ($pendingRwoPods.Count -eq 0) { return @() }
+
+    Write-Warn "$($pendingRwoPods.Count) Pending RWO pod(s) detected during $Reason - recycling CSI and cycling attachments."
+    $repairedNodes = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($pod in $pendingRwoPods) {
+        if ($repairedNodes.Contains($pod.Node)) { continue }
+        Test-Budget "recycling CSI plugin on $($pod.Node) during $Reason"
+        Write-Info "Recycling Longhorn CSI plugin on $($pod.Node) for post-rollout stale mount recovery..."
+        $pluginPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace, '-l', $CsiPluginLabelSelector)
+        foreach ($pluginPod in ($pluginPods | Where-Object { [string](Get-Prop (Get-Prop $_ 'spec') 'nodeName') -eq $pod.Node })) {
+            $pluginName = Get-Prop (Get-Prop $pluginPod 'metadata') 'name'
+            $null = Invoke-KubectlMutation -Description "restart longhorn-csi-plugin $pluginName on $($pod.Node)" `
+                -KubectlArgs @('delete', 'pod', '-n', $StorageNamespace, $pluginName, '--wait=true') `
+                -ActionType 'storage-repair' -Target $pluginName -AllowFailure
+        }
+        $null = $repairedNodes.Add($pod.Node)
+    }
+
+    if ($script:DryRun) {
+        Write-Info 'dry-run: not waiting for recycled CSI plugin(s) or cycling Pending RWO pods.'
+        return @($pendingRwoPods | ForEach-Object { "$($_.Namespace)/$($_.Name)" })
+    }
+
+    Write-Info "Waiting 30s for the recycled CSI plugin(s) before cycling Pending RWO pods..."
+    Start-Sleep -Seconds 30
+
+    $repairedPods = [System.Collections.Generic.List[string]]::new()
+    foreach ($pod in $pendingRwoPods) {
+        Test-Budget "cycling attachment for $($pod.Name) during $Reason"
+        Write-Info "Cycling attachment for [$($pod.Namespace)] $($pod.Name): graceful delete so the volume detaches and reattaches..."
+        $ok = Invoke-KubectlMutation -Description "gracefully delete stuck volume consumer $($pod.Namespace)/$($pod.Name)" `
+            -KubectlArgs @('delete', 'pod', $pod.Name, '-n', $pod.Namespace, '--wait=true') `
+            -ActionType 'attachment-cycle' -Target "$($pod.Namespace)/$($pod.Name)" -AllowFailure
+        if ($ok) { $repairedPods.Add("$($pod.Namespace)/$($pod.Name)") }
+    }
+
+    if ($repairedPods.Count -gt 0) {
+        Write-Info "Waiting 45s for repaired RWO pod(s) to reschedule..."
+        Start-Sleep -Seconds 45
+    }
+    return @($repairedPods)
+}
+
 # ── Preflight ──────────────────────────────────────────────────────────
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
@@ -1131,6 +1215,26 @@ function Get-ManagedResource {
                 Write-Warn "$target did not become ready within ${RolloutTimeout}s. NOT force-deleting (v1 did, which caused the RWO deadlock) - storage repair already runs by default, so investigate Longhorn if this repeats."
                 Add-Finding "StatefulSet stalled: $target"
                 $stalledWorkloads.Add($target)
+            }
+        }
+
+        if ($stalledWorkloads.Count -gt 0) {
+            $repairedRwoPods = @(Repair-PendingRwoMounts -Reason 'StatefulSet reconcile')
+            if ($repairedRwoPods.Count -gt 0 -and -not $script:DryRun) {
+                Write-Info "Rechecking stalled StatefulSet rollout(s) after RWO mount repair..."
+                foreach ($target in @($stalledWorkloads)) {
+                    if ($target -notmatch '^(?<ns>[^/]+)/(?<name>.+)$') { continue }
+                    $ns = $Matches['ns']
+                    $name = $Matches['name']
+                    Write-Host "    rechecking: $target " -NoNewline -ForegroundColor DarkGray
+                    $rollout = Invoke-Kubectl -KubectlArgs @('rollout', 'status', "statefulset/$name", '-n', $ns, "--timeout=${RolloutTimeout}s") -AllowFailure
+                    if ($rollout.Ok) {
+                        Write-Host "[READY]" -ForegroundColor Green
+                    }
+                    else {
+                        Write-Host "[STALLED]" -ForegroundColor Yellow
+                    }
+                }
             }
         }
 
