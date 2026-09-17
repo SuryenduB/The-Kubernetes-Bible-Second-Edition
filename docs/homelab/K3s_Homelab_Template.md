@@ -298,6 +298,64 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 
 ---
 
+## 🔑 Credential Register
+
+Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ/MSSQL/MySQL/LDAP/SSH, OpenLingo, LibrisLog, BookLogr, BookOrbit, LinguaCafe, Homarr, PooML, Lantern, Kuvasz, homelab-manger, RemotePower, Beszel agent, ai-language-learning) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
+
+### Undocumented credentials (now documented)
+
+| Secret | Namespace | Key(s) | Value |
+|--------|-----------|--------|-------|
+| `logchef-admin` | `monitoring` | `password` | `ZF7OSaNeaEMElvmOiNm4` |
+| `uptime-kuma-credentials` | `monitoring` | `username` / `password` | `suryendub` / `Joy2Gopal!` |
+| `longhorn-backup-kuma-push` | `monitoring` | `token` | `xADmtohED3` |
+| `trove-bootstrap` | `monitoring` | `token` | `trove_723c0310609660a9f637bbc0de038d082c7f19349a8bf7fc` |
+| `operator-oauth` | `tailscale` | `client_id` / `client_secret` | `kP3vXcDeXd11CNTRL` / `tskey-client-kP3vXcDeXd11CNTRL-h5adH2fVy831Vtxj55Vg93J3iie3C6uM` |
+| `argocd-secret` | `argocd` | `server.secretkey` | `HGuoPiZhc2MiEPOourHwS5noFQPaKzG4Vd8FmxF5IvA=` |
+
+### Argo CD admin password
+
+The live `admin.password` is a **bcrypt hash only** — the plaintext cannot be recovered from it. If lost, reset it:
+
+```bash
+kubectl -n argocd patch secret argocd-secret \
+  -p '{"stringData": {"admin.password": "<new-password>", "admin.passwordMtime": "'$(date +%FT%T%Z)'"}}'
+```
+
+### Known drift (manifest ≠ live value)
+
+Recreate these Secrets from the live values above before the next `kubectl apply -k kubernetes-manifests`, or the manifests will overwrite the working credentials:
+
+- `logchef.yaml` — stored `password` differs from live `logchef-admin`
+- `uptime-kuma-sync.yaml` / `uptime-kuma-monitors.yaml` — stored `password` differs from live `uptime-kuma-credentials` (stored `username` matches)
+- `trove.yaml` — stored bootstrap `token` differs from live `trove-bootstrap`
+- `argocd-initial-admin-secret` — stale; does **not** match the live admin password
+
+### Recovery commands
+
+```bash
+# Argo CD admin hash + server secretkey
+kubectl -n argocd get secret argocd-secret -o go-template='{{index .data "admin.password" | base64decode}}{{"\n"}}{{index .data "server.secretkey" | base64decode}}{{"\n"}}'
+# Logchef admin
+kubectl -n monitoring get secret logchef-admin -o go-template='{{index .data "password" | base64decode}}'
+# Uptime Kuma login + Longhorn-backup push token
+kubectl -n monitoring get secret uptime-kuma-credentials -o go-template='{{index .data "username" | base64decode}}:{{index .data "password" | base64decode}}'
+kubectl -n monitoring get secret longhorn-backup-kuma-push -o go-template='{{index .data "token" | base64decode}}'
+# Trove bootstrap token
+kubectl -n monitoring get secret trove-bootstrap -o go-template='{{index .data "token" | base64decode}}'
+# Tailscale operator OAuth
+kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "client_id" | base64decode}} / {{index .data "client_secret" | base64decode}}'
+```
+
+### Audit scope & notes
+
+- **Checked:** all 21 app/platform-level Secrets in user namespaces, raw + base64, against repo contents.
+- **Excluded:** `kube-system` service-account tokens, Kubernetes/Longhorn/Argo CD generated TLS certs, per-proxy Tailscale state Secrets (`ts-*`, operator-managed), node SSH/sudo (see [how-to-manage-homelab-power.md](how-to-manage-homelab-power.md)).
+- Values were compared as raw **and** base64 (`data:` encoding) to avoid false drift.
+- Sudo password is stored in PowerShell SecretStore (`k3s-homelab-sudo`), not in the cluster.
+
+---
+
 ## 🐳 Local Docker Registry
 
 ### Registry Server
