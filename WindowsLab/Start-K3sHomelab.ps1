@@ -1,7 +1,9 @@
 #Requires -Version 7.0
-# Start-K3sHomelab.ps1  (v2 - hardened)
-# Restores cluster capacity after a power-down: uncordons Ready nodes, repairs stranded
-# workloads (RWO-aware, storage-aware) and optionally reconciles/rebalances the cluster.
+# Start-K3sHomelab.ps1  (full recovery by default)
+# Restores cluster capacity after a power-down. Every recovery phase now runs by default:
+# uncordon Ready nodes -> purge stranded/zombie pods -> repair Longhorn -> recycle CSI
+# plugins -> serialized workload reconcile -> PDB-aware rebalance -> verify.
+# Use the -Skip* switches to opt out of individual phases.
 # Symmetrical counterpart to Stop-K3sHomelab-Minimal.ps1 / shutdown_homelab.ps1.
 
 <#
@@ -9,19 +11,31 @@
     Restores a powered-on K3s homelab to full capacity, safely and idempotently.
 
 .DESCRIPTION
-    v2 rewrite. Design rules learned from a real incident where the v1 blanket
+    The whole recovery runs by default, so a bare 'Start-K3sHomelab.ps1' performs:
+
+        uncordon Ready nodes -> purge stranded/zombie pods -> repair Longhorn ->
+        recycle CSI plugins -> serialized workload reconcile -> PDB-aware rebalance ->
+        verify
+
+    Individual phases are opt-OUT via -SkipStorageRepair, -SkipRestartWorkloads and
+    -SkipRebalance. The older opt-in switches (-RepairStorage, -RestartWorkloads,
+    -Rebalance) are still accepted but are now no-ops with a deprecation notice.
+
+    The destructive phases used to be opt-in because the original blanket
     'rollout restart + force-delete' pass turned a simple "7 nodes left cordoned"
-    problem into a Longhorn RWO deadlock:
+    problem into a Longhorn RWO deadlock. Every one of the safety rules learned from
+    that incident is still enforced - only the need to remember the switches is gone:
 
       * Uncordon ONLY nodes that are Ready. NotReady nodes stay cordoned and are reported.
       * NEVER force-delete a pod that owns a ReadWriteOnce volume while its node is still
         tearing it down - that caused Multi-Attach / "mount point busy" deadlocks.
-        RWO pods stuck Terminating are reported as a storage deadlock and, with
-        -RepairStorage, repaired by recycling the Longhorn CSI plugin on that node.
+        RWO pods stuck Terminating are reported as a storage deadlock and repaired (by
+        default now) by recycling the Longhorn CSI plugin on that node.
       * Storage is repaired BEFORE anything that consumes it, and workload restarts are
         gated on Longhorn volume health.
-      * Blanket rolling restarts are OPT-IN (-RestartWorkloads). Default behaviour is
-        targeted remediation of actually-broken workloads; uncordon alone is usually enough.
+      * Workload restarts run BY DEFAULT now. They are still serialized
+        (restart -> wait -> next) and gated on Longhorn volume health, and can be turned
+        off with -SkipRestartWorkloads (or the legacy -SkipRestart).
       * Restarts are serialized (restart -> wait -> next) instead of restart-all-then-validate.
       * Drains use the Eviction API so PodDisruptionBudgets are honoured. The iiqstack and
         linguacafe PDBs are maxUnavailable: 0 and must not be bypassed.
@@ -30,17 +44,30 @@
       * Every destructive action goes through one helper, so -DryRun/-WhatIf work and every
         change is recorded in a machine-readable run report.
 
+.PARAMETER SkipRestartWorkloads
+    Opt OUT of the deterministic full rolling restart of StatefulSets (serialized,
+    storage-gated) followed by Deployments. The restart runs by default.
+
+.PARAMETER SkipStorageRepair
+    Opt OUT of touching longhorn-system: no Longhorn CSI plugin recycling and no purge of
+    zombie Longhorn pods left behind on offline nodes. Storage repair runs by default
+    because it is the gate every RWO consumer depends on.
+
+.PARAMETER SkipRebalance
+    Opt OUT of redistributing workloads off overloaded nodes using cordon + Eviction API
+    drain (PodDisruptionBudgets respected, protected nodes skipped). Runs by default.
+
 .PARAMETER RestartWorkloads
-    OPT-IN deterministic full rolling restart of StatefulSets (serialized, storage-gated)
-    followed by Deployments. Off by default.
+    Legacy opt-in switch. Accepted but no longer required - it is a no-op that emits a
+    deprecation notice, because workload restarts already run by default.
 
 .PARAMETER RepairStorage
-    Allow the script to touch longhorn-system: recycle the Longhorn CSI plugin on nodes with
-    stale mounts, and delete zombie Longhorn pods left behind on offline nodes.
+    Legacy opt-in switch. Accepted but no longer required - it is a no-op that emits a
+    deprecation notice, because storage repair already runs by default.
 
 .PARAMETER Rebalance
-    Redistribute workloads off overloaded nodes using cordon + Eviction API drain
-    (PodDisruptionBudgets respected, protected nodes skipped).
+    Legacy opt-in switch. Accepted but no longer required - it is a no-op that emits a
+    deprecation notice, because the rebalance already runs by default.
 
 .PARAMETER RebalanceThreshold
     Pods-per-node ratio (relative to average) that marks a node as overloaded. Default: 1.5.
@@ -49,7 +76,8 @@
     Seconds to wait for a single StatefulSet/Deployment rollout. Default: 180.
 
 .PARAMETER MaxDurationMinutes
-    Global time budget for the whole run. Default: 45.
+    Global time budget for the whole run. Default: 120 (raised from 45 because the full
+    recovery - including the serialized restart of every workload - now runs by default).
 
 .PARAMETER WaitForNodesMinutes
     Wait up to N minutes for the expected nodes to report Ready. Default: 0 (no wait).
@@ -75,28 +103,36 @@
     Exit 2 when the post-run verification still finds degraded workloads.
 
 .PARAMETER SkipRestart
-    Legacy switch. Retained for backward compatibility; restart is now opt-in, so this
-    simply guarantees no workload restarts happen.
+    Legacy switch. Still honoured: guarantees no workload restarts happen (equivalent to
+    -SkipRestartWorkloads; both can be supplied together harmlessly).
 
 .EXAMPLE
     PS> .\Start-K3sHomelab.ps1 -DryRun
-    Preview the recovery without changing anything.
+    Preview the full recovery without changing anything. Start here.
 
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1 -RepairStorage
-    Standard recovery: uncordon Ready nodes, repair stranded RWO pods and storage.
+    PS> .\Start-K3sHomelab.ps1
+    The default run: uncordon Ready nodes, purge stranded workloads, repair Longhorn,
+    reconcile every workload serially, rebalance overloaded nodes and verify.
 
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1 -RestartWorkloads -RepairStorage
-    Full reconcile: uncordon, repair storage, then serialized restart of everything.
+    PS> .\Start-K3sHomelab.ps1 -SkipRestartWorkloads
+    Uncordon + storage repair + rebalance, but leave running workloads alone.
 
 .EXAMPLE
-    PS> .\Start-K3sHomelab.ps1 -Rebalance -RepairStorage
-    Recover and rebalance workload distribution (PDB-aware).
+    PS> .\Start-K3sHomelab.ps1 -SkipStorageRepair -SkipRestartWorkloads -SkipRebalance
+    Minimum-touch recovery: uncordon Ready nodes and purge stranded pods only.
+
+.EXAMPLE
+    PS> .\Start-K3sHomelab.ps1 -FailOnDegraded
+    Full recovery, and exit 2 when the post-run verification still finds degraded
+    workloads (useful from CI/cron).
 
 .NOTES
     Requires: kubectl, pwsh 7+. Optional: ssh/sshpass for node telemetry.
     Platform: Windows, Linux, macOS (PowerShell 7+).
+    Defaults: ALL recovery phases run. Only -FailOnDegraded (exit-code semantics) and the
+              waiting/budget knobs remain opt-in.
     Exit codes: 0 = healthy, 1 = fatal error, 2 = completed with degraded workloads
                 (only when -FailOnDegraded is supplied).
     Safety: this script never powers nodes on or off. Power the hardware on first, then run
@@ -105,6 +141,25 @@
 
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
+    # ── Opt-out switches: every recovery phase runs unless it is explicitly skipped ──
+    [Parameter()]
+    [switch]$SkipStorageRepair,
+
+    [Parameter()]
+    [switch]$RepairMultipath,
+
+    [Parameter()]
+    [ValidatePattern('^[a-z0-9][a-z0-9.-]*$')]
+    [string]$MultipathDebugPod,
+
+    [Parameter()]
+    [switch]$SkipRestartWorkloads,
+
+    [Parameter()]
+    [switch]$SkipRebalance,
+
+    # ── Legacy opt-in switches: kept so existing invocations keep working. ──
+    #    They are no-ops now, because the phases above already run by default.
     [Parameter()]
     [switch]$RestartWorkloads,
 
@@ -124,7 +179,7 @@ param(
 
     [Parameter()]
     [ValidateRange(1, 480)]
-    [int]$MaxDurationMinutes = 45,
+    [int]$MaxDurationMinutes = 120,
 
     [Parameter()]
     [ValidateRange(0, 240)]
@@ -156,6 +211,19 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+# ── Effective phase flags: the full recovery runs by default ───────────
+# Everything below reads these flags instead of the raw switches, so the default is
+# "do the whole recovery" and each -Skip* switch is a deliberate opt-out.
+$DoStorageRepair     = -not $SkipStorageRepair
+$DoRebalance         = -not $SkipRebalance
+# Restart is suppressed by either -SkipRestartWorkloads or the legacy -SkipRestart.
+$DoRestartWorkloads  = (-not $SkipRestartWorkloads) -and (-not $SkipRestart)
+# Callers that still pass an opt-in switch get a notice instead of a silent no-op.
+$LegacyOptInSwitches = @()
+if ($RestartWorkloads) { $LegacyOptInSwitches += '-RestartWorkloads' }
+if ($RepairStorage) { $LegacyOptInSwitches += '-RepairStorage' }
+if ($Rebalance) { $LegacyOptInSwitches += '-Rebalance' }
+
 # Namespaces owned by platform components: never restarted by the reconcile phase.
 $SkipNamespaces = [System.Collections.Generic.HashSet[string]]::new(
     [string[]]@('kube-system', 'longhorn-system', 'argocd', 'cnpg-system', 'tailscale'),
@@ -166,7 +234,7 @@ $SkipNamespaces = [System.Collections.Generic.HashSet[string]]::new(
 $StorageNamespace = 'longhorn-system'
 $CsiPluginLabelSelector = 'app=longhorn-csi-plugin'
 
-$script:DryRun = [bool]$DryRun
+$script:DryRun = [bool]($DryRun -or $WhatIfPreference)
 $script:StartedAt = Get-Date
 $script:Deadline = $script:StartedAt.AddMinutes($MaxDurationMinutes)
 $script:Actions = [System.Collections.Generic.List[object]]::new()
@@ -443,6 +511,13 @@ function Wait-StorageReady {
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
     $status = Get-StorageStatus
+    if ($script:DryRun -and -not $status.Ok) {
+        # A dry run must stay a fast preview: report the current state instead of waiting
+        # for a convergence that a no-op run can never cause.
+        Write-Info (("dry-run: not waiting for Longhorn to converge ({0}/{1} volumes healthy, {2} degraded, {3} longhorn node(s) unschedulable)" -f `
+                $status.HealthyCount, $status.VolumeCount, $status.AttachedDegraded.Count, $status.UnschedulableNodes.Count))
+        return $status
+    }
     while (-not $status.Ok -and $sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
         Test-Budget 'waiting for Longhorn to converge'
         Write-Info ("storage: {0}/{1} volumes healthy, {2} degraded, {3} longhorn node(s) unschedulable - waiting {4}s" -f `
@@ -495,13 +570,29 @@ function Get-NodeState {
 # ── Preflight ──────────────────────────────────────────────────────────
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
-Write-Host "  (v2 - storage-aware, safe by default)" -ForegroundColor Cyan
+Write-Host "  (full recovery by default)" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 if ($script:DryRun) {
     Write-Host "  MODE: DRY RUN - no changes will be made" -ForegroundColor Magenta
 }
 if ($WhatIfPreference) {
     Write-Host "  MODE: -WhatIf (equivalent to -DryRun for this script)" -ForegroundColor Magenta
+}
+
+# Make the effective run plan explicit - the point of the default is that a bare run does
+# everything, so the only interesting output here is what has been opted out of.
+$phasePlan = @(
+    "uncordon Ready nodes            : ON (always)"
+    "purge stranded/zombie pods      : ON (always)"
+    "repair Longhorn + recycle CSI   : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
+    "serialized workload reconcile   : $(if ($DoRestartWorkloads) { 'ON' } else { 'SKIPPED' })"
+    "PDB-aware rebalance             : $(if ($DoRebalance) { 'ON' } else { 'SKIPPED (-SkipRebalance)' })"
+)
+Write-Host "  Run plan:" -ForegroundColor DarkGray
+foreach ($line in $phasePlan) { Write-Host "    - $line" -ForegroundColor DarkGray }
+if ($LegacyOptInSwitches.Count -gt 0) {
+    Write-Host (("  NOTE: {0} is deprecated and no longer required - " +
+            'those phases run by default now.') -f ($LegacyOptInSwitches -join ', ')) -ForegroundColor Yellow
 }
 
 # Transcript + report destinations (both under WindowsLab/logs, which is gitignored).
@@ -531,7 +622,13 @@ if ($IsMacOS -and (($env:PATH -split ':') -notcontains '/usr/local/bin')) {
 }
 Write-Verbose "Platform: $(if ($IsWindows) {'Windows'} elseif ($IsMacOS) {'macOS'} elseif ($IsLinux) {'Linux'} else {'Unknown'})"
 Write-Verbose "PowerShell: $($PSVersionTable.PSVersion)"
-Write-Verbose "Parameters: RestartWorkloads=$RestartWorkloads RepairStorage=$RepairStorage Rebalance=$Rebalance RolloutTimeout=$RolloutTimeout MaxDurationMinutes=$MaxDurationMinutes WaitForNodesMinutes=$WaitForNodesMinutes StuckTerminatingMinutes=$StuckTerminatingMinutes DryRun=$DryRun FailOnDegraded=$FailOnDegraded SkipRestart=$SkipRestart"
+Write-Verbose ("Parameters: SkipStorageRepair={0} SkipRestartWorkloads={1} SkipRebalance={2} RolloutTimeout={3} " -f `
+        $SkipStorageRepair, $SkipRestartWorkloads, $SkipRebalance, $RolloutTimeout)
+Write-Verbose ("Effective: DoStorageRepair={0} DoRestartWorkloads={1} DoRebalance={2} MaxDurationMinutes={3} " -f `
+        $DoStorageRepair, $DoRestartWorkloads, $DoRebalance, $MaxDurationMinutes)
+Write-Verbose ("Parameters: WaitForNodesMinutes={0} StuckTerminatingMinutes={1} DryRun={2} FailOnDegraded={3} SkipRestart={4} " -f `
+        $WaitForNodesMinutes, $StuckTerminatingMinutes, $DryRun, $FailOnDegraded, $SkipRestart)
+Write-Verbose "Legacy opt-in switches supplied: $(if ($LegacyOptInSwitches.Count -gt 0) { $LegacyOptInSwitches -join ', ' } else { 'none' })"
 
 # Shared node registry - single source of truth for identity AND safety constraints.
 $registryModule = Join-Path -Path $PSScriptRoot -ChildPath 'HomelabNodes.psm1'
@@ -768,7 +865,7 @@ try {
         Write-Warn "stranded: [$($pod.Namespace)] $($pod.Name) on '$($pod.Node)' (node not Ready)"
     }
     foreach ($pod in $rwoDeadlocks) {
-        Write-Bad "deadlock: [$($pod.Namespace)] $($pod.Name) Terminating ${($pod.TerminatingMinutes)}m holding an RWO volume on Ready node '$($pod.Node)'"
+        Write-Bad "deadlock: [$($pod.Namespace)] $($pod.Name) Terminating $($pod.TerminatingMinutes)m holding an RWO volume on Ready node '$($pod.Node)'"
         Add-Finding "RWO deadlock: $($pod.Namespace)/$($pod.Name) on $($pod.Node)"
     }
     foreach ($pod in $unschedulablePods) {
@@ -797,7 +894,7 @@ try {
 
     # 4a - Longhorn pods left Terminating on nodes that are gone.
     #      (v1 could never do this: longhorn-system was in $SkipNamespaces.)
-    if ($RepairStorage -and $storageStatus.Available) {
+    if ($DoStorageRepair -and $storageStatus.Available) {
         foreach ($lhPod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace))) {
             $lhName = Get-Prop (Get-Prop $lhPod 'metadata') 'name'
             $lhNode = [string](Get-Prop (Get-Prop $lhPod 'spec') 'nodeName')
@@ -823,9 +920,9 @@ try {
     foreach ($pod in $volumeStuckPods) { $storageBlockedPods.Add($pod) }
 
     if ($storageBlockedPods.Count -gt 0) {
-        if (-not $RepairStorage) {
+        if (-not $DoStorageRepair) {
             foreach ($pod in $storageBlockedPods) {
-                Write-Warn "[$($pod.Namespace)] $($pod.Name) is blocked on storage at node '$($pod.Node)' (phase=$($pod.Phase)). Re-run with -RepairStorage to recycle the Longhorn CSI plugin."
+                Write-Warn "[$($pod.Namespace)] $($pod.Name) is blocked on storage at node '$($pod.Node)' (phase=$($pod.Phase)), but storage repair was skipped (-SkipStorageRepair). Drop that switch to let the script recycle the Longhorn CSI plugin."
             }
         }
         else {
@@ -844,8 +941,13 @@ try {
                 }
                 $null = $repairedNodes.Add($pod.Node)
             }
-            Write-Info "Waiting 30s for the recycled CSI plugin(s) before continuing..."
-            Start-Sleep -Seconds 30
+            if ($script:DryRun) {
+                Write-Info 'dry-run: not waiting for the recycled CSI plugin(s).'
+            }
+            else {
+                Write-Info "Waiting 30s for the recycled CSI plugin(s) before continuing..."
+                Start-Sleep -Seconds 30
+            }
 
             # Some attachments stay wedged in the CSI flow even after the plugin recycle.
             # What actually unblocked activemq-0/mail-0 in the real incident: a GRACEFUL
@@ -873,8 +975,13 @@ try {
                 if ($ok) { $repairedSomething = $true }
             }
             if ($stillBlocked.Count -gt 0) {
-                Write-Info "Waiting 45s for the cycled pods to reschedule..."
-                Start-Sleep -Seconds 45
+                if ($script:DryRun) {
+                    Write-Info 'dry-run: not waiting for the cycled pods to reschedule.'
+                }
+                else {
+                    Write-Info "Waiting 45s for the cycled pods to reschedule..."
+                    Start-Sleep -Seconds 45
+                }
             }
         }
     }
@@ -914,8 +1021,13 @@ try {
     }
 
     if ($repairedSomething) {
-        Write-Info "Waiting 20s for repaired workloads to be recreated..."
-        Start-Sleep -Seconds 20
+        if ($script:DryRun) {
+            Write-Info 'dry-run: not waiting for repaired workloads to be recreated.'
+        }
+        else {
+            Write-Info "Waiting 20s for repaired workloads to be recreated..."
+            Start-Sleep -Seconds 20
+        }
     }
 
     # ── Step 5: Reconcile workloads (OPT-IN) ─────────────────────────────
@@ -954,13 +1066,17 @@ function Get-ManagedResource {
         return $true
     }
 
-    if (-not $RestartWorkloads -or $SkipRestart) {
-        if ($SkipRestart) {
-            Write-Info "Skipped (-SkipRestart)."
+    if (-not $DoRestartWorkloads) {
+        if ($SkipRestart -and $SkipRestartWorkloads) {
+            Write-Info "Restart phase skipped (-SkipRestart and -SkipRestartWorkloads)."
+        }
+        elseif ($SkipRestartWorkloads) {
+            Write-Info "Restart phase skipped (-SkipRestartWorkloads)."
         }
         else {
-            Write-Info "Skipped: -RestartWorkloads not specified. Uncordoning + targeted repair is the default (v1 restarted everything unconditionally, which is what caused the RWO deadlock)."
+            Write-Info "Restart phase skipped (-SkipRestart)."
         }
+        Add-Finding 'Workload restart phase skipped by request'
     }
     else {
         # Gate on storage health BEFORE touching any RWO consumer.
@@ -1012,7 +1128,7 @@ function Get-ManagedResource {
             }
             else {
                 Write-Host "[STALLED]" -ForegroundColor Yellow
-                Write-Warn "$target did not become ready within ${RolloutTimeout}s. NOT force-deleting (v1 did, which caused the RWO deadlock) - run with -RepairStorage or investigate Longhorn."
+                Write-Warn "$target did not become ready within ${RolloutTimeout}s. NOT force-deleting (v1 did, which caused the RWO deadlock) - storage repair already runs by default, so investigate Longhorn if this repeats."
                 Add-Finding "StatefulSet stalled: $target"
                 $stalledWorkloads.Add($target)
             }
@@ -1059,8 +1175,8 @@ function Get-ManagedResource {
 # ── Step 6: Rebalance (OPT-IN, PDB-aware) ────────────────────────────
     Write-Step "[6/7] Rebalance workload distribution"
 
-    if (-not $Rebalance) {
-        Write-Info "Skipped (-Rebalance not specified)."
+    if (-not $DoRebalance) {
+        Write-Info "Skipped (-SkipRebalance)."
     }
     else {
         # Protected nodes (control plane, kubernetes7) are never cordoned or drained.
@@ -1266,6 +1382,16 @@ finally {
             dryRun      = $script:DryRun
             server      = [string](Get-SafeVar 'actualServer' 'unknown')
             options     = [pscustomobject]@{
+                # Effective phase plan actually used for this run.
+                effectiveRestartWorkloads = [bool]$DoRestartWorkloads
+                effectiveStorageRepair    = [bool]$DoStorageRepair
+                effectiveRebalance        = [bool]$DoRebalance
+                skipRestartWorkloads      = [bool]$SkipRestartWorkloads
+                skipStorageRepair         = [bool]$SkipStorageRepair
+                skipRebalance             = [bool]$SkipRebalance
+                legacyOptInSwitches       = @($LegacyOptInSwitches)
+                legacySkipRestart         = [bool]$SkipRestart
+                # Kept for backward compatibility with existing report consumers.
                 restartWorkloads = [bool]$RestartWorkloads
                 repairStorage    = [bool]$RepairStorage
                 rebalance        = [bool]$Rebalance
