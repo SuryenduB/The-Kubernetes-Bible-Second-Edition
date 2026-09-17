@@ -7,6 +7,9 @@ param(
     [Parameter(HelpMessage="Skip the kubectl drain process and power off immediately")]
     [switch]$SkipDrain,
 
+    [Parameter(HelpMessage="Also power off the local Mac running this script (DANGEROUS: kills your terminal and remote access mid-test). Default: skipped.")]
+    [switch]$ShutdownLocalMac,
+
     [Parameter(HelpMessage="Discovery Mode: Auto (detect), Dynamic (Force API), Fallback (Force Hardcoded)")]
     [ValidateSet("Auto", "Dynamic", "Fallback")]
     [string]$Mode = "Auto"
@@ -170,6 +173,13 @@ if (Get-Command sshpass -ErrorAction SilentlyContinue) {
     ssh -n -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null suryendub@$masterIp "echo $b64Pass | base64 -d | sudo -S poweroff"
 }
 
-Write-Host "`n--- Powering off Local Mac ---" -ForegroundColor Red
-"test" | sudo -S shutdown -h now
+# Guarded: powering off the machine running this script kills the terminal, kubectl
+# access and any chance to observe or recover the cluster mid-test. Opt-in only.
+if ($ShutdownLocalMac) {
+    Write-Host "`n--- Powering off Local Mac (-ShutdownLocalMac supplied) ---" -ForegroundColor Red
+    "test" | sudo -S shutdown -h now
+}
+else {
+    Write-Host "`n--- Local Mac left powered on (use -ShutdownLocalMac to include it) ---" -ForegroundColor Yellow
+}
 
