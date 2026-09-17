@@ -97,6 +97,11 @@ data:
           href: http://bookorbit.tail35421d.ts.net
           description: Book library
           siteMonitor: http://bookorbit.media.svc
+      - Immich:
+          icon: immich.png
+          href: http://immich.tail35421d.ts.net
+          description: Photo and video library
+          siteMonitor: http://immich.media.svc/api/server/ping
     - Dashboards:
       - Homarr:
           icon: homarr.png
@@ -237,7 +242,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "5be088974b99a90066152a6ae20d2f9a2b4c02bb047bef0adf87510a597f4dab"
+        checksum/config: "308edfdbdf6f1c4761eb82046de44cd427a61b34ed65bf5eeda859423e0da7f7"
       labels:
         app: homepage
     spec:

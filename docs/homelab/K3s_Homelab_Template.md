@@ -75,6 +75,7 @@ Inventory refreshed on **2026-09-17** from live workloads, Service ports, and th
 | Booklogr | `media` | <http://booklogr.tail35421d.ts.net> |
 | BookOrbit | `media` | <http://bookorbit.tail35421d.ts.net> |
 | LibrisLog | `media` | <http://librislog.tail35421d.ts.net> |
+| Immich | `media` | <http://immich.tail35421d.ts.net> |
 
 #### Dashboards & Server Management
 

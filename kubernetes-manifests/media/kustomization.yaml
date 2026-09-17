@@ -8,3 +8,4 @@ resources:
   - bookhoarder.yaml
   - booklogr.yaml
   - librislog.yaml
+  - immich.yaml
