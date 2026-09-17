@@ -5,3 +5,5 @@ resources:
   - 02-recurring-jobs.yaml
   - 03-filesystem-trim-optional.yaml
   - 04-node-failure-resilience.yaml
+  - 05-storage-reserve.yaml
+  - 06-storageclass-r1.yaml

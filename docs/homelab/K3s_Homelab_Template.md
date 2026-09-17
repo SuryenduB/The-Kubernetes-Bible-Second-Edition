@@ -77,6 +77,7 @@ Inventory refreshed on **2026-09-17** from live workloads, Service ports, and th
 | LibrisLog | `media` | <http://librislog.tail35421d.ts.net> |
 | Immich | `media` | <http://immich.tail35421d.ts.net> |
 | pgweb | `media` | <http://pgweb.tail35421d.ts.net> |
+| Flick | `media` | <http://flick.tail35421d.ts.net> |
 
 #### Dashboards & Server Management
 

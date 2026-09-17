@@ -1,0 +1,23 @@
+# Longhorn disk-reserve Setting (Longhorn v1.8.1).
+# This Setting CR carries `value` at the TOP LEVEL (no spec) in v1beta2.
+#
+# Rationale (2026-09-17): with the default 30% reserve plus the 25% minimal
+# free-space rule, every disk in the cluster refused new replicas
+# ("No available disk candidates", volumes detached+faulted), blocking the
+# Flick deployment. Lowering the per-disk reserve to 20% re-opens scheduling
+# on disks with real headroom (kubernetes1/5/7/8-debian) while the 25%
+# minimal-available rule still protects the nearly-full 105 GB disks.
+#
+# Trade-off: less rebuild headroom if a node is lost while disks are this
+# full - some volumes could stay degraded until space is freed or added.
+# Durable fixes: add disk capacity, or delete snapshots / unused volumes.
+#
+# Rollback: set value back to "30".
+# NOTE: Git is the source of truth - never edit via the Longhorn UI.
+---
+apiVersion: longhorn.io/v1beta2
+kind: Setting
+metadata:
+  name: storage-reserved-percentage-for-default-disk
+  namespace: longhorn-system
+value: "20"

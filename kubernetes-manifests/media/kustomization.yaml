@@ -11,3 +11,5 @@ resources:
   - immich.yaml
   - immich-pdb.yaml
   - immich-db-backup.yaml
+  - flick.yaml
+  - pgweb.yaml

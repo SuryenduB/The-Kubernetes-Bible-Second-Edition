@@ -1,0 +1,584 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: flick-secrets
+  namespace: media
+type: Opaque
+stringData:
+  POSTGRES_USER: "flick"
+  POSTGRES_PASSWORD: "FlickDB2026K3s01"
+  POSTGRES_DB: "flick"
+  DATABASE_URL: "postgres://flick:FlickDB2026K3s01@flick-db:5432/flick?sslmode=disable"
+  FLICK_SITE_ADDRESS: "http://flick.tail35421d.ts.net"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flick-migrations
+  namespace: media
+data:
+  20260610081955_init_db.sql: |
+    -- migrate:up
+
+    CREATE TYPE USER_ROLE AS ENUM (
+        'user',
+        'admin'
+    );
+
+    CREATE TYPE GROUP_ROLE AS ENUM (
+        'member',
+        'maintainer',
+        'owner'
+    );
+
+    CREATE TYPE OAUTH_STATUS AS ENUM (
+        'pending',
+        'approved',
+        'denied'
+    );
+
+    CREATE TABLE users (
+        id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        username       TEXT        NOT NULL UNIQUE,
+        email          TEXT        NOT NULL UNIQUE,
+        password_hash  TEXT        NOT NULL,
+        role           USER_ROLE   NOT NULL DEFAULT 'user',
+        blocked        BOOLEAN     NOT NULL DEFAULT false,
+        created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE groups (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        name        TEXT        NOT NULL UNIQUE,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE user_groups (
+        user_id     UUID NOT NULL REFERENCES users(id)  ON DELETE CASCADE,
+        group_id    UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        role        GROUP_ROLE NOT NULL DEFAULT 'member',
+        joined_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, group_id)
+    );
+
+    CREATE TABLE group_folders (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        group_id    UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        parent_id   UUID        REFERENCES group_folders(id) ON DELETE CASCADE,
+        name        TEXT        NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX idx_group_folders_group_id ON group_folders (group_id);
+    CREATE UNIQUE INDEX group_folders_unique_child ON group_folders (group_id, parent_id, name) WHERE parent_id IS NOT NULL;
+    CREATE UNIQUE INDEX group_folders_unique_root ON group_folders (group_id, name) WHERE parent_id IS NULL;
+
+    CREATE TABLE group_uploads (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        group_id    UUID        NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+        folder_id   UUID        REFERENCES group_folders(id) ON DELETE CASCADE,
+        code        TEXT        NOT NULL,
+        uploader_id UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX idx_group_uploads_group_id ON group_uploads (group_id);
+
+    CREATE TABLE sessions (
+        token       TEXT PRIMARY KEY,
+        user_id     UUID        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        expires_at  TIMESTAMPTZ NOT NULL,
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX sessions_user_id_idx ON sessions(user_id);
+    CREATE INDEX sessions_expires_at_idx ON sessions(expires_at);
+
+    CREATE TABLE anonymous_users (
+        id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE device_authorizations (
+          device_code   TEXT         PRIMARY KEY NOT NULL,
+          user_code     TEXT         UNIQUE NOT NULL,
+          status        oauth_status NOT NULL DEFAULT 'pending',
+          user_id       UUID,
+          session_token TEXT,
+          expires_at    TIMESTAMPTZ  NOT NULL,
+          created_at    TIMESTAMPTZ  NOT NULL DEFAULT now(),
+
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (session_token) REFERENCES sessions(token) ON DELETE CASCADE
+      );
+
+
+    -- migrate:down
+    DROP TABLE anonymous_users;
+    DROP TABLE group_uploads;
+    DROP TABLE group_folders;
+    DROP TABLE user_groups;
+    DROP TABLE groups;
+    DROP TABLE users;
+    DROP TABLE sessions;
+    DROP TABLE device_authorizations;
+    DROP TYPE USER_ROLE;
+    DROP TYPE GROUP_ROLE;
+    DROP TYPE OAUTH_STATUS;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flick-caddyfile
+  namespace: media
+data:
+  Caddyfile: |
+    {
+    	servers {
+    		trusted_proxies static private_ranges
+    	}
+    }
+
+    {$FLICK_SITE_ADDRESS:http://localhost} {
+    	handle /api/v1/* {
+    		reverse_proxy flick-api:15702
+    	}
+
+    	handle {
+    		reverse_proxy flick-web:3000
+    	}
+    }
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flick-db-pvc
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: flick-data-pvc
+  namespace: media
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flick-db
+  namespace: media
+  labels:
+    app: flick-db
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: flick-db
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: flick-db
+  namespace: media
+spec:
+  serviceName: flick-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flick-db
+  template:
+    metadata:
+      labels:
+        app: flick-db
+    spec:
+      enableServiceLinks: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - kubernetes4
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_DB
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: flick-db-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flick-api
+  namespace: media
+  labels:
+    app: flick-api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 15702
+      targetPort: 15702
+  selector:
+    app: flick-api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flick-api
+  namespace: media
+  labels:
+    app: flick-api
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: flick-api
+  template:
+    metadata:
+      labels:
+        app: flick-api
+    spec:
+      enableServiceLinks: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - kubernetes4
+      securityContext:
+        fsGroup: 65532
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - until nc -z -w 2 flick-db 5432; do echo "Waiting for postgres on 5432..."; sleep 2; done
+        - name: create-extension
+          image: postgres:16-alpine
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_PASSWORD
+          command:
+            - /bin/sh
+            - -c
+            - until psql -h flick-db -U flick -d flick -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"; do echo "Waiting for postgres..."; sleep 2; done
+        - name: migrate
+          image: ghcr.io/amacneil/dbmate:2
+          args: ["up"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: DATABASE_URL
+            - name: DBMATE_MIGRATIONS_DIR
+              value: "/db/migrations"
+          volumeMounts:
+            - name: migrations
+              mountPath: /db/migrations
+      containers:
+        - name: api
+          image: dellixou/flick-api:v0.2.8
+          ports:
+            - containerPort: 15702
+              name: http
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: DATABASE_URL
+            - name: POSTGRES_HOST
+              value: "flick-db"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_PASSWORD
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: POSTGRES_DB
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /home/nonroot/.flick
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: flick-data-pvc
+        - name: migrations
+          configMap:
+            name: flick-migrations
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flick-web
+  namespace: media
+  labels:
+    app: flick-web
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+  selector:
+    app: flick-web
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flick-web
+  namespace: media
+  labels:
+    app: flick-web
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: flick-web
+  template:
+    metadata:
+      labels:
+        app: flick-web
+    spec:
+      enableServiceLinks: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - kubernetes4
+      containers:
+        - name: web
+          image: dellixou/flick-web:v0.2.8
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: FLICK_SITE_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: FLICK_SITE_ADDRESS
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 45
+            periodSeconds: 20
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flick-caddy
+  namespace: media
+  labels:
+    app: flick-caddy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: flick-caddy
+  template:
+    metadata:
+      labels:
+        app: flick-caddy
+    spec:
+      enableServiceLinks: false
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values:
+                      - kubernetes4
+      containers:
+        - name: caddy
+          image: caddy:2-alpine
+          ports:
+            - containerPort: 80
+              name: http
+          env:
+            - name: FLICK_SITE_ADDRESS
+              valueFrom:
+                secretKeyRef:
+                  name: flick-secrets
+                  key: FLICK_SITE_ADDRESS
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: caddyfile
+              mountPath: /etc/caddy/Caddyfile
+              subPath: Caddyfile
+            - name: caddy-data
+              mountPath: /data
+            - name: caddy-config
+              mountPath: /config
+      volumes:
+        - name: caddyfile
+          configMap:
+            name: flick-caddyfile
+        - name: caddy-data
+          emptyDir: {}
+        - name: caddy-config
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flick
+  namespace: media
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/proxy-class: "tailscale-proxy"
+    tailscale.com/hostname: "flick"
+spec:
+  type: ClusterIP
+  selector:
+    app: flick-caddy
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

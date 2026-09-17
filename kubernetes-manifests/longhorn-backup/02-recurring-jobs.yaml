@@ -6,8 +6,11 @@
 # want to EXCLUDE a volume from these defaults (any explicit job on a
 # volume removes it from default-group scheduling).
 #
-# Snapshot chain watch: 12 retained 6h snapshots live on worker NVMe,
-# not the NAS. Post-Day-3, check headroom on k1/k5/k6 (replica-heavy).
+# Snapshot chain watch: 4 retained 6h snapshots (24 h window) live on worker
+# NVMe, not the NAS. Reduced from 12 on 2026-09-17: disks are ~80% full and
+# snapshot chains were compounding the pressure (297 snapshots cluster-wide).
+# Point-in-time depth now comes from backup-daily (14 d on QNAP).
+# Post-Day-3, check headroom on k1/k5/k6 (replica-heavy).
 # If DB volumes churn too fast, move them out of the default group and
 # apply a lighter snapshot job explicitly.
 ---
@@ -25,7 +28,7 @@ spec:
   task: snapshot
   groups:
     - default
-  retain: 12
+  retain: 4
   concurrency: 1
 ---
 apiVersion: longhorn.io/v1beta2

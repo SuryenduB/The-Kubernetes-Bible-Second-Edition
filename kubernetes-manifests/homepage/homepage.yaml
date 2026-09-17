@@ -107,6 +107,11 @@ data:
           href: http://pgweb.tail35421d.ts.net
           description: PostgreSQL explorer (all app DBs)
           siteMonitor: http://pgweb.media.svc
+      - Flick:
+          icon: mdi-file-swap
+          href: http://flick.tail35421d.ts.net
+          description: File sharing with short codes
+          siteMonitor: http://flick.media.svc/api/v1/stats
     - Dashboards:
       - Homarr:
           icon: homarr.png
@@ -252,7 +257,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "e3d56708f8c456f74a69ed8cf427f11d81027bbdaedaba90c083283f0ff29dc3"
+        checksum/config: "b3093dbcf8feb164b2e5ff8accf4e12242cea9a8d937336c317c62e96cc37b61"
       labels:
         app: homepage
     spec:
