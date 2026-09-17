@@ -4,6 +4,13 @@
 **Last validated against live state: 2026-09-06 ~13:00 UTC** — see §7 Validation record.
 Credentials in runbook commands are intentionally redacted to vault/env refs.
 
+> **Amendment 2026-09-17** (counts below §7 remain the 2026-09-06 record): disks hit ~80%
+> (40 volumes, ~222 GiB logical, ~300 snapshots), blocking new replica scheduling.
+> `snapshot-frequent` retain cut **12 → 4** (manifest: `kubernetes-manifests/longhorn-backup/02-recurring-jobs.yaml`);
+> per-disk reserve set to **20%** for newly added disks (`05-storage-reserve.yaml`;
+> existing disks keep baked-in absolute reserves); new single-replica
+> `longhorn-r1` StorageClass added (`06-storageclass-r1.yaml`) for lightweight data.
+
 This document consolidates and supersedes the backup information previously spread across
 `docs/homelab/how-to-audit-homelab.md` (§ backup rotation),
 `kubernetes-manifests/longhorn-backup/README.md`,
@@ -86,7 +93,7 @@ QNAP specifics that matter (learned the hard way, 2026-09-06):
 
 | Job | Task | Cron (UTC) | Retain | Concurrency | Group |
 |---|---|---|---|---|---|
-| `snapshot-frequent` | snapshot | `0 */6 * * *` | 12 | 1 | `default` |
+| `snapshot-frequent` | snapshot | `0 */6 * * *` | 4 (was 12 until 2026-09-17, see header amendment) | 1 | `default` |
 | `backup-daily` | backup | `30 3 * * *` | 14 | 1 | `default` |
 | `fs-trim-weekly` | filesystem-trim | `0 5 * * 0` (Sun 05:00) | — | 1 | `fs-trim` (opt-in per volume label) |
 
@@ -94,7 +101,7 @@ Mechanism: jobs in the **`default` group auto-schedule to every volume with no e
 all current and all future volumes, zero per-PVC wiring. (Explicit per-volume labels remove a volume
 from default scheduling; use for exceptions only, e.g. lighter snapshot retain on churn-heavy DBs.)
 `allow-recurring-job-while-volume-detached: true` is set, so detached volumes are still backed up.
-Snapshots live on **worker NVMe, not the NAS** — watch disk headroom (retain 12 × 6 h on busy DBs).
+Snapshots live on **worker NVMe, not the NAS** — watch disk headroom (retain 4 × 6 h on busy DBs since 2026-09-17).
 
 ### 3.3 Coverage (validated 2026-09-06 ~13:00 UTC)
 

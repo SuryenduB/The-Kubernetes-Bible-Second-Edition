@@ -163,9 +163,11 @@ These components are listed separately from user-facing applications. No dedicat
 | metrics-server | `kube-system` | Kubernetes resource metrics |
 | Local-path provisioner | `kube-system` | Local persistent storage provisioning |
 | NFS provisioner | `default` | NAS-backed persistent storage provisioning |
-| PostgreSQL | `ai-language-learning`, `openlingo`, `media`, `monitoring` | Databases for AI Language Tutor, OpenLingo, BookOrbit, and Kuvasz |
+| PostgreSQL | `ai-language-learning`, `openlingo`, `media`, `monitoring` | Databases for AI Language Tutor, OpenLingo, BookOrbit, Immich, Flick, and Kuvasz |
 | MariaDB | `linguacafe` | LinguaCafe database |
-| Redis | `linguacafe`, `argocd` | Supporting cache services |
+| Redis / Valkey | `linguacafe`, `argocd`, `media` | Supporting cache services; Valkey 9 backs Immich |
+| Flick API / web / Caddy | `media` | Internal Flick tiers; only Caddy has a MagicDNS proxy |
+| Immich ML | `media` | Machine-learning backend; only the server has a MagicDNS proxy |
 | Booklogr API and LibrisLog backend | `media` | Internal application backends |
 | Beszel agent and Trove agent | `monitoring` | Monitoring agents; not separate user-facing apps |
 | Argo CD controllers, repo server, Dex, and notifications | `argocd` | Supporting components of the Argo CD installation |
@@ -263,6 +265,16 @@ IdentityIQ requires multiple replicas to share the same `/webapps` directory. We
 Used for databases (MSSQL, MySQL) and middleware (ActiveMQ, LDAP).
 - **Benefit:** Provides native block-level performance and synchronous replication across 3 nodes.
 
+#### Capacity event 2026-09-17
+40 volumes (~222 GiB logical, ~300 snapshots) filled disks to ~80%, and new
+replicas stopped scheduling cluster-wide (volumes stuck detached+faulted).
+Mitigations, all in `kubernetes-manifests/longhorn-backup/`: snapshot retain
+12 → 4 (`02-recurring-jobs.yaml`), per-disk reserve 20% for newly added disks
+(`05-storage-reserve.yaml`; existing disks keep baked-in absolute reserves),
+and a single-replica `longhorn-r1` StorageClass (`06-storageclass-r1.yaml`)
+for lightweight, rebuildable data. Durable fixes: revive the NotReady
+`kubernetes8-debian` worker (127 GB idle), add disk, or delete data.
+
 ### 2. NAS-Backed Storage (Hybrid/Bulk)
 **NAS Server**: NASECDE55  
 **Address**: 192.168.0.128  
@@ -305,7 +317,7 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 
 ## 🔑 Credential Register
 
-Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ/MSSQL/MySQL/LDAP/SSH, OpenLingo, LibrisLog, BookLogr, BookOrbit, LinguaCafe, Homarr, PooML, Lantern, Kuvasz, homelab-manger, RemotePower, Beszel agent, ai-language-learning) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
+Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ/MSSQL/MySQL/LDAP/SSH, OpenLingo, LibrisLog, BookLogr, BookOrbit, LinguaCafe, Homarr, PooML, Lantern, Kuvasz, homelab-manger, RemotePower, Beszel agent, ai-language-learning, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
 
 ### Undocumented credentials (now documented)
 
