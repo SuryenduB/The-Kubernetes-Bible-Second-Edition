@@ -102,6 +102,11 @@ data:
           href: http://immich.tail35421d.ts.net
           description: Photo and video library
           siteMonitor: http://immich.media.svc/api/server/ping
+      - pgweb:
+          icon: mdi-database-search
+          href: http://pgweb.tail35421d.ts.net
+          description: PostgreSQL explorer (all app DBs)
+          siteMonitor: http://pgweb.media.svc
     - Dashboards:
       - Homarr:
           icon: homarr.png
@@ -242,7 +247,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "308edfdbdf6f1c4761eb82046de44cd427a61b34ed65bf5eeda859423e0da7f7"
+        checksum/config: "7ffed5307e3d019fa5169e12349d8664dacf7f64b4af67ffb18dd8766573b6fe"
       labels:
         app: homepage
     spec:

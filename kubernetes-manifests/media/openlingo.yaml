@@ -364,7 +364,7 @@ spec:
           port: 3000
 
 ---
-# Allow ingress to database from openlingo app only
+# Allow ingress to database from openlingo app, uptime-kuma, and pgweb only
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -387,6 +387,12 @@ spec:
           podSelector:
             matchLabels:
               app: uptime-kuma
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: media
+          podSelector:
+            matchLabels:
+              app: pgweb
       ports:
         - protocol: TCP
           port: 5432
