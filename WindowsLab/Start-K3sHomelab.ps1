@@ -1,8 +1,10 @@
 #Requires -Version 7.0
 # Start-K3sHomelab.ps1  (full recovery by default)
-# Restores cluster capacity after a power-down. Every recovery phase now runs by default:
-# uncordon Ready nodes -> purge stranded/zombie pods -> repair Longhorn -> recycle CSI
-# plugins -> engine-frontend recovery for dead /dev/longhorn devices ->
+# Restores cluster capacity after a power-down. Every recovery phase runs by default:
+# uncordon Ready nodes -> recover the cluster core (CoreDNS/Traefik/metrics-server) ->
+# recover the Longhorn control plane and instance-managers -> clear multipathd ->
+# purge stranded/zombie pods -> repair Longhorn -> recycle CSI plugins ->
+# engine-frontend recovery for dead /dev/longhorn devices ->
 # serialized workload reconcile -> PDB-aware rebalance -> verify.
 # Use the -Skip* switches to opt out of individual phases.
 # Symmetrical counterpart to Stop-K3sHomelab-Minimal.ps1 / shutdown_homelab.ps1.
@@ -14,13 +16,20 @@
 .DESCRIPTION
     The whole recovery runs by default, so a bare 'Start-K3sHomelab.ps1' performs:
 
-        uncordon Ready nodes -> purge stranded/zombie pods -> repair Longhorn ->
-        recycle CSI plugins -> serialized workload reconcile -> PDB-aware rebalance ->
-        verify
+        uncordon Ready nodes -> recover the cluster core (CoreDNS/Traefik/metrics-server/
+        local-path-provisioner) -> recover the Longhorn control plane and instance-managers ->
+        clear multipathd -> purge stranded/zombie pods -> repair Longhorn -> recycle CSI
+        plugins -> serialized workload reconcile -> PDB-aware rebalance -> verify
 
-    Individual phases are opt-OUT via -SkipStorageRepair, -SkipRestartWorkloads and
-    -SkipRebalance. The older opt-in switches (-RepairStorage, -RestartWorkloads,
-    -Rebalance) are still accepted but are now no-ops with a deprecation notice.
+    A power-cycle leaves the cluster core half-dead in a specific way: the API comes back but
+    CoreDNS does not, Longhorn's own managers then cannot resolve their webhook service, no
+    instance-manager is created, every volume stays 'unknown' and every consumer pod sits in
+    Pending. Steps 3 and 4 exist because uncordoning alone cannot get you out of that.
+
+    Individual phases are opt-OUT via -SkipPlatformRepair, -SkipMultipathRepair,
+    -SkipStorageRepair, -SkipRestartWorkloads and -SkipRebalance. The older opt-in switches
+    (-RepairStorage, -RestartWorkloads, -Rebalance, -RepairMultipath) are still accepted but
+    are now no-ops with a deprecation notice.
 
     The destructive phases used to be opt-in because the original blanket
     'rollout restart + force-delete' pass turned a simple "7 nodes left cordoned"
@@ -63,6 +72,30 @@
     nodes are never cordoned), and anything still stuck is reported as a VOLUME WEDGE
     with snapshot/backup restore guidance (detection only, never auto-restored).
     Runs by default; a node is only touched when every blocked volume on it is
+.PARAMETER SkipPlatformRepair
+    Opt OUT of the cluster-core recovery: no purge of zombie platform pods and no restart of
+    kube-system / longhorn-system controllers that are short of replicas. Runs by default,
+    because a power-cycle reliably leaves CoreDNS at 0/1, which silently breaks everything.
+
+.PARAMETER SkipMultipathRepair
+    Opt OUT of disabling multipathd on nodes where Longhorn flags it. Runs by default.
+    multipathd is Longhorn's documented cause of mounts failing with "Can't open blockdev";
+    disabling it is a real node-level change, reversible with 'systemctl enable --now
+    multipathd', so only flagged Ready nodes are touched, one at a time, never a protected node.
+
+.PARAMETER MultipathImage
+    Image for the temporary privileged repair pod. Default: busybox:1.36 (already pulled on
+    these nodes, so no image download is needed).
+
+.PARAMETER RepairMultipath
+    Legacy switch. Accepted but no longer required - multipathd remediation already runs by
+    default, so this is a no-op that emits a deprecation notice.
+
+.PARAMETER MultipathDebugPod
+    Optional name of an existing privileged hostPID pod to exec into instead of creating a
+    temporary repair pod. The pod is only used, never deleted.
+
+
     Longhorn-healthy (replicas available), Ready nodes only, one node at a time.
 
 .PARAMETER HostMountNodes
@@ -166,8 +199,19 @@ param(
     [switch]$SkipHostMountRepair,
 
     [Parameter()]
+    [switch]$SkipPlatformRepair,
+
+    [Parameter()]
+    [switch]$SkipMultipathRepair,
+
+    [Parameter()]
     [string[]]$HostMountNodes = @(),
 
+    [Parameter()]
+    [string]$MultipathImage = 'busybox:1.36',
+
+    # ── Legacy opt-in switch: kept so existing invocations keep working. ──
+    #    multipathd repair now runs by default, so this is a no-op with a notice.
     [Parameter()]
     [switch]$RepairMultipath,
 
@@ -228,7 +272,14 @@ param(
     [switch]$FailOnDegraded,
 
     [Parameter()]
-    [switch]$SkipRestart
+    [switch]$SkipRestart,
+
+    [Parameter()]
+    [ValidateRange(10, 300)]
+    [int]$GracefulDeleteTimeout = 30,
+
+    [Parameter()]
+    [switch]$SkipStaleAttachmentCleanup
 )
 
 $ErrorActionPreference = 'Stop'
@@ -239,7 +290,10 @@ Set-StrictMode -Version Latest
 # "do the whole recovery" and each -Skip* switch is a deliberate opt-out.
 $DoStorageRepair     = -not $SkipStorageRepair
 $DoHostMountRepair   = -not $SkipHostMountRepair
+$DoPlatformRepair    = -not $SkipPlatformRepair
+$DoMultipathRepair   = -not $SkipMultipathRepair
 $DoRebalance         = -not $SkipRebalance
+$DoStaleAttachmentCleanup = -not $SkipStaleAttachmentCleanup
 # Restart is suppressed by either -SkipRestartWorkloads or the legacy -SkipRestart.
 $DoRestartWorkloads  = (-not $SkipRestartWorkloads) -and (-not $SkipRestart)
 # Callers that still pass an opt-in switch get a notice instead of a silent no-op.
@@ -247,6 +301,7 @@ $LegacyOptInSwitches = @()
 if ($RestartWorkloads) { $LegacyOptInSwitches += '-RestartWorkloads' }
 if ($RepairStorage) { $LegacyOptInSwitches += '-RepairStorage' }
 if ($Rebalance) { $LegacyOptInSwitches += '-Rebalance' }
+if ($RepairMultipath) { $LegacyOptInSwitches += '-RepairMultipath' }
 
 # Namespaces owned by platform components: never restarted by the reconcile phase.
 $SkipNamespaces = [System.Collections.Generic.HashSet[string]]::new(
@@ -257,6 +312,15 @@ $SkipNamespaces = [System.Collections.Generic.HashSet[string]]::new(
 # Longhorn is only touched by the storage-repair phase, never by the restart phase.
 $StorageNamespace = 'longhorn-system'
 $CsiPluginLabelSelector = 'app=longhorn-csi-plugin'
+
+# The cluster's own control surface. It is excluded from the workload reconcile phase (it
+# must not be restarted as part of a rolling app restart) but it IS recovered explicitly by
+# the platform phase, because CoreDNS/Traefik/metrics-server/local-path-provisioner are
+# single-replica Deployments that do not come back by themselves after a power-cycle.
+$PlatformNamespace = 'kube-system'
+$PlatformWaitSeconds = 300
+$LonghornWaitSeconds = 420
+$MultipathWaitSeconds = 120
 
 $script:DryRun = [bool]($DryRun -or $WhatIfPreference)
 $script:StartedAt = Get-Date
@@ -325,12 +389,23 @@ function Invoke-Kubectl {
 
     $attempt = 0
     while ($true) {
-        $output = & kubectl @KubectlArgs 2>&1
+        # Capture stdout and stderr separately. Merging them (2>&1) corrupts JSON output the
+        # moment kubectl writes a warning to stderr - e.g. the v1.33+ "v1 Endpoints is
+        # deprecated" notice, which is exactly what made the cluster-DNS probe report zero
+        # endpoints forever even though CoreDNS had recovered.
+        $errFile = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "kubectl-err-$PID-$([guid]::NewGuid().ToString('N')).log"
+        $output = & kubectl @KubectlArgs 2>$errFile
         $code = $LASTEXITCODE
-        $text = ($output | Out-String).Trim()
+        $stderr = ''
+        if (Test-Path -Path $errFile) {
+            $stderr = ((Get-Content -Path $errFile -Raw) -replace '^\s+|\s+$', '')
+            Remove-Item -Path $errFile -Force -ErrorAction SilentlyContinue
+        }
+        $text = (($output | Out-String) + $stderr).Trim()
 
         if ($code -eq 0) {
-            return [pscustomobject]@{ Ok = $true; ExitCode = 0; Output = @($output) }
+            if ($stderr) { Write-Verbose "kubectl $($KubectlArgs -join ' ') (stderr): $stderr" }
+            return [pscustomobject]@{ Ok = $true; ExitCode = 0; Output = @($output); Stderr = $stderr }
         }
 
         $transient = $text -match 'Unable to connect to the server|connection refused|TLS handshake timeout|i/o timeout|EOF|etcdserver: request timed out|context deadline exceeded'
@@ -343,7 +418,7 @@ function Invoke-Kubectl {
         }
 
         if ($AllowFailure) {
-            return [pscustomobject]@{ Ok = $false; ExitCode = $code; Output = @($output) }
+            return [pscustomobject]@{ Ok = $false; ExitCode = $code; Output = @($output) + @($stderr); Stderr = $stderr }
         }
         throw "kubectl $($KubectlArgs -join ' ') failed (exit $code): $text"
     }
@@ -426,6 +501,210 @@ function Get-MinutesSince {
     return [math]::Round(([System.DateTimeOffset]::UtcNow - $parsed).TotalMinutes, 1)
 }
 
+function Invoke-SafeGracefulDelete {
+    <#
+        Graceful pod delete with a timeout, falling back to force-delete.
+
+        Why this exists: 'kubectl delete pod --wait=true' blocks indefinitely when the pod's
+        volume cannot unmount, which is how the recovery used to hang on one pod forever.
+
+        NB: the Start-Job payload mixes kubectl's output with the exit code. '$result -eq 0'
+        on that array misfires (a leading ErrorRecord makes it a collection-membership test),
+        which is how a SUCCESSFUL delete got treated as a failure and an instance-manager was
+        force-killed. The exit code is therefore isolated behind an explicit marker line and
+        parsed out - never compared against the whole payload.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter(Mandatory)][string]$PodName,
+        [Parameter(Mandatory)][string]$Description,
+        [Parameter()][string]$ActionType = 'attachment-cycle',
+        [Parameter()][string]$Target = '',
+        [Parameter()][int]$TimeoutSeconds = $GracefulDeleteTimeout
+    )
+
+    if ($script:DryRun) {
+        Write-Info "[DRY-RUN] gracefully delete [$Namespace] $PodName (timeout ${TimeoutSeconds}s, force fallback)"
+        Add-Action -Type 'dry-run' -Target $Target -Detail "kubectl delete pod $PodName -n $Namespace (timeout ${TimeoutSeconds}s + force fallback)"
+        return $true
+    }
+
+    $job = Start-Job -ScriptBlock {
+        param($ns, $name)
+        $out = & kubectl delete pod $name -n $ns --wait=true 2>&1
+        $code = $LASTEXITCODE
+        Write-Output "===EXITCODE===$code"
+        if ($out) { $out | ForEach-Object { Write-Output "===OUT===$_" } }
+    } -ArgumentList $Namespace, $PodName
+
+    $completed = $job | Wait-Job -Timeout $TimeoutSeconds
+    if ($completed) {
+        $lines = @(Receive-Job -Job $job | ForEach-Object { [string]$_ })
+        Remove-Job -Job $job -Force
+        $exitCodeLine = $lines | Where-Object { $_ -like '===EXITCODE===*' } | Select-Object -Last 1
+        $kubectlLines = @($lines | Where-Object { $_ -notlike '===*' -and $_ })
+        $exitCode = 1
+        if ($exitCodeLine) { $exitCode = [int]($exitCodeLine -replace '^===EXITCODE===', '') }
+
+        if ($exitCode -eq 0) {
+            Write-Info "Graceful delete succeeded for [$Namespace] $PodName"
+            Add-Action -Type $ActionType -Target $Target -Detail "kubectl delete pod $PodName -n $Namespace --wait=true (graceful)"
+            return $true
+        }
+        Write-Warn ("Graceful delete failed for [{0}] {1} (exit {2}): {3}" -f `
+                $Namespace, $PodName, $exitCode, (($kubectlLines | Out-String).Trim()))
+    }
+    else {
+        Remove-Job -Job $job -Force
+        Write-Warn "Graceful delete timed out after ${TimeoutSeconds}s for [$Namespace] $PodName, falling back to force-delete"
+    }
+
+    Write-Info "Force-deleting [$Namespace] $PodName (graceful delete failed/timed out)"
+    return (Invoke-KubectlMutation -Description "$Description (force-delete fallback)" `
+            -KubectlArgs @('delete', 'pod', $PodName, '-n', $Namespace, '--grace-period=0', '--force') `
+            -ActionType "$ActionType-force" -Target $Target -AllowFailure)
+}
+
+function Invoke-SafePodDelete {
+    <#
+        Pod delete with a timeout for INFRASTRUCTURE pods (CSI plugins, instance-managers).
+        Same payload/exit-code handling as Invoke-SafeGracefulDelete.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter(Mandatory)][string]$PodName,
+        [Parameter(Mandatory)][string]$Description,
+        [Parameter()][string]$ActionType = 'storage-repair',
+        [Parameter()][string]$Target = '',
+        [Parameter()][int]$TimeoutSeconds = $GracefulDeleteTimeout
+    )
+
+    if ($script:DryRun) {
+        Write-Info "[DRY-RUN] delete [$Namespace] $PodName (timeout ${TimeoutSeconds}s, force fallback)"
+        Add-Action -Type 'dry-run' -Target $Target -Detail "kubectl delete pod $PodName -n $Namespace (timeout ${TimeoutSeconds}s + force fallback)"
+        return $true
+    }
+
+    $job = Start-Job -ScriptBlock {
+        param($ns, $name)
+        $out = & kubectl delete pod $name -n $ns --wait=true 2>&1
+        $code = $LASTEXITCODE
+        Write-Output "===EXITCODE===$code"
+        if ($out) { $out | ForEach-Object { Write-Output "===OUT===$_" } }
+    } -ArgumentList $Namespace, $PodName
+
+    $completed = $job | Wait-Job -Timeout $TimeoutSeconds
+    if ($completed) {
+        $lines = @(Receive-Job -Job $job | ForEach-Object { [string]$_ })
+        Remove-Job -Job $job -Force
+        $exitCodeLine = $lines | Where-Object { $_ -like '===EXITCODE===*' } | Select-Object -Last 1
+        $kubectlLines = @($lines | Where-Object { $_ -notlike '===*' -and $_ })
+        $exitCode = 1
+        if ($exitCodeLine) { $exitCode = [int]($exitCodeLine -replace '^===EXITCODE===', '') }
+
+        if ($exitCode -eq 0) {
+            Write-Info "Delete succeeded for [$Namespace] $PodName"
+            Add-Action -Type $ActionType -Target $Target -Detail "kubectl delete pod $PodName -n $Namespace --wait=true"
+            return $true
+        }
+        Write-Warn ("Delete failed for [{0}] {1} (exit {2}): {3}" -f `
+                $Namespace, $PodName, $exitCode, (($kubectlLines | Out-String).Trim()))
+    }
+    else {
+        Remove-Job -Job $job -Force
+        Write-Warn "Delete timed out after ${TimeoutSeconds}s for [$Namespace] $PodName, falling back to force-delete"
+    }
+
+    Write-Info "Force-deleting [$Namespace] $PodName (delete failed/timed out)"
+    return (Invoke-KubectlMutation -Description "$Description (force-delete fallback)" `
+            -KubectlArgs @('delete', 'pod', '-n', $Namespace, $PodName, '--grace-period=0', '--force') `
+            -ActionType "$ActionType-force" -Target $Target -AllowFailure)
+}
+
+function Get-StaleVolumeAttachment {
+    <#
+        A VolumeAttachment is stale when the Longhorn volume it references reports a
+        currentNodeID that is NOT the attachment's node. That means the cluster's
+        attach/detach controller still believes the volume is attached where Longhorn says
+        it is not - the consumer pod on the target node then sits in Pending forever with
+        "driver.longhorn.io not found in the list of registered CSI drivers" or
+        "volume attachment is being deleted".
+
+        Longhorn's currentNodeID is the authority here: it is the node that actually serves
+        the block device.
+    #>
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    param()
+
+    $out = [System.Collections.Generic.List[object]]::new()
+    $vas = Get-K8sJson -KubectlArgs @('get', 'volumeattachment')
+    if ($vas.Count -eq 0) { return @() }
+
+    foreach ($va in $vas) {
+        $name = [string](Get-Prop (Get-Prop $va 'metadata') 'name')
+        $node = [string](Get-Prop (Get-Prop $va 'spec') 'nodeName')
+        $pv = [string](Get-Prop (Get-Prop (Get-Prop $va 'spec') 'source') 'persistentVolumeName')
+        $attached = (Get-Prop (Get-Prop $va 'status') 'attached') -eq $true
+        if (-not $attached) { continue }   # already detaching/detached - not our problem
+
+        $volume = @(Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', '-n', $StorageNamespace, $pv))
+        if ($volume.Count -eq 0) { continue }
+        $lhNode = [string](Get-Prop (Get-Prop $volume[0] 'status') 'currentNodeID')
+        if (-not $lhNode) { continue }
+        if ($lhNode -eq $node) { continue }   # attachment agrees with Longhorn - healthy
+
+        $out.Add([pscustomobject]@{
+                Name        = $name
+                Node        = $node
+                Volume      = $pv
+                LonghornNode = $lhNode
+            })
+    }
+    return @($out)
+}
+
+function Clear-StaleVolumeAttachment {
+    <#
+        Deletes stale VolumeAttachments so the attach/detach controller re-attaches the
+        volume where Longhorn actually serves it. Never touches an attachment whose node
+        matches Longhorn's currentNodeID, and never a volume that is not faulted/attached
+        elsewhere. Returns the list of cleared attachment names.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param()
+
+    $stale = @(Get-StaleVolumeAttachment)
+    if ($stale.Count -eq 0) {
+        Write-Ok 'No stale VolumeAttachments found.'
+        return @()
+    }
+
+    if (-not $DoStaleAttachmentCleanup) {
+        Write-Warn "stale VolumeAttachment(s) detected but cleanup skipped (-SkipStaleAttachmentCleanup):"
+        foreach ($item in $stale) {
+            Write-Info "  $($item.Name): volume $($item.Volume) attached on '$($item.Node)' but Longhorn serves it on '$($item.LonghornNode)'"
+        }
+        Add-Finding "Stale VolumeAttachment(s) not cleared: $($stale.Count)"
+        return @()
+    }
+
+    $cleared = [System.Collections.Generic.List[string]]::new()
+    foreach ($item in $stale) {
+        Test-Budget "clearing stale VolumeAttachment $($item.Name)"
+        Write-Info ("Stale VolumeAttachment: {0} (volume {1} on '{2}', Longhorn serves it on '{3}') - clearing." -f `
+                $item.Name, $item.Volume, $item.Node, $item.LonghornNode)
+        $ok = Invoke-KubectlMutation -Description "delete stale volumeattachment $($item.Name)" `
+            -KubectlArgs @('delete', 'volumeattachment', $item.Name) `
+            -ActionType 'stale-attachment-cleanup' -Target $item.Volume -AllowFailure
+        if ($ok) { $cleared.Add($item.Name) }
+    }
+    return @($cleared)
+}
+
 function Get-PvcMap {
     <#
         namespace/name -> PVC metadata including whether it is ReadWriteOnce.
@@ -488,12 +767,22 @@ function Get-StorageStatus {
 
     $attachedDegraded = [System.Collections.Generic.List[object]]::new()
     $detached = [System.Collections.Generic.List[string]]::new()
+    $faulted = [System.Collections.Generic.List[object]]::new()
     $healthy = 0
 
     foreach ($volume in $volumes) {
         $name = Get-Prop (Get-Prop $volume 'metadata') 'name'
         $state = Get-Prop (Get-Prop $volume 'status') 'state'
         $robustness = Get-Prop (Get-Prop $volume 'status') 'robustness'
+        $created = Get-Prop (Get-Prop $volume 'status') 'created'
+
+        # 'faulted' is qualitatively different from 'degraded': replays are exhausted and the
+        # volume needs a restore, not a retry. It is tracked separately so it can be reported
+        # as a data-plane fault and never counted as merely slow.
+        if ($robustness -eq 'faulted') {
+            $faulted.Add([pscustomobject]@{ Name = $name; State = $state; Created = $created })
+            continue
+        }
 
         if ($state -eq 'attached') {
             if ($robustness -eq 'healthy') { $healthy++ }
@@ -518,8 +807,10 @@ function Get-StorageStatus {
         HealthyCount        = $healthy
         AttachedDegraded    = @($attachedDegraded)
         Detached            = @($detached)
+        Faulted             = @($faulted)
         UnschedulableNodes  = @($unschedulable)
-        Ok                  = ($volumes.Count -gt 0 -and $attachedDegraded.Count -eq 0 -and $unschedulable.Count -eq 0)
+        Ok                  = ($volumes.Count -gt 0 -and $attachedDegraded.Count -eq 0 -and
+            $faulted.Count -eq 0 -and $unschedulable.Count -eq 0)
     }
 }
 
@@ -826,6 +1117,579 @@ function Repair-StaleVolumeFrontend {
     return @($repairedNodes)
 }
 
+# ── Platform (cluster core) recovery ───────────────────────────────────
+# Why this exists: after a power-cycle the cluster's own control surface is the last thing
+# to come back, and it does not come back by itself. CoreDNS, Traefik, metrics-server and
+# local-path-provisioner are single-replica Deployments; when their node disappears the pod
+# goes to ContainerStatusUnknown, the ReplicaSet refuses to replace a pod that still exists,
+# and the Deployment sits at 0/1 forever.
+#
+# A dead CoreDNS is a hard blocker for everything downstream, and that is the part that is
+# easy to miss: Longhorn's managers cannot resolve their own conversion-webhook service
+# without cluster DNS, so their readiness fails, Longhorn never marks the node Ready, no
+# instance-manager is created, every volume stays 'unknown' and each consumer pod sits in
+# Pending. That is the chain that makes a plain 'kubectl uncordon' look like it did nothing.
+function Get-ControllerWorkloadStatus {
+    <#
+    .SYNOPSIS
+        Readiness of every Deployment/DaemonSet in a namespace, so recovery can restart
+        exactly the controllers that are short of replicas.
+    #>
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '',
+        Justification = 'Returns one row per controller workload in the namespace; the plural meaning is the contract')]
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter()][string[]]$NameFilter = @(),
+        [Parameter()][string[]]$NameExclude = @()
+    )
+
+    $out = [System.Collections.Generic.List[object]]::new()
+    foreach ($kind in @('deployment', 'daemonset')) {
+        foreach ($item in (Get-K8sJson -KubectlArgs @('get', $kind, '-n', $Namespace))) {
+            $name = [string](Get-Prop (Get-Prop $item 'metadata') 'name')
+            if (-not $name) { continue }
+            if ($NameFilter.Count -gt 0 -and -not ($NameFilter -contains $name)) { continue }
+
+            $excluded = $false
+            foreach ($pattern in $NameExclude) { if ($name -like $pattern) { $excluded = $true; break } }
+            if ($excluded) { continue }
+
+            if ($kind -eq 'deployment') {
+                $desired = Get-Prop (Get-Prop $item 'spec') 'replicas'
+                if ($null -eq $desired) { $desired = 1 }
+                $ready = Get-Prop (Get-Prop $item 'status') 'readyReplicas'
+            }
+            else {
+                $desired = Get-Prop (Get-Prop $item 'status') 'desiredNumberScheduled'
+                $ready = Get-Prop (Get-Prop $item 'status') 'numberReady'
+            }
+            if ($null -eq $desired) { $desired = 0 }
+            if ($null -eq $ready) { $ready = 0 }
+
+            $out.Add([pscustomobject]@{
+                    Kind      = $kind
+                    Name      = $name
+                    Namespace = $Namespace
+                    Desired   = [int]$desired
+                    Ready     = [int]$ready
+                    Healthy   = ([int]$desired -gt 0 -and [int]$ready -ge [int]$desired)
+                })
+        }
+    }
+    return @($out)
+}
+function Repair-PlatformNamespace {
+    <#
+    .SYNOPSIS
+        Brings one platform namespace back: purge zombie controller pods, then restart only
+        the controllers that are short of replicas.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter()][string]$Reason = 'platform recovery',
+        [Parameter()][string[]]$NameFilter = @(),
+        [Parameter()][string[]]$NameExclude = @(),
+        [Parameter()][string[]]$RestartExclude = @(),
+        [Parameter()]$NodeState = $null
+    )
+
+    if (-not $DoPlatformRepair) {
+        Write-Warn "platform recovery skipped for '$Namespace' (-SkipPlatformRepair)."
+        return [pscustomobject]@{ Restarted = @(); Purged = @() }
+    }
+
+    $purged = [System.Collections.Generic.List[string]]::new()
+    foreach ($zombie in (Get-PlatformZombiePod -Namespace $Namespace -NameFilter $NameFilter `
+                -NameExclude $NameExclude -NodeState $NodeState)) {
+        Test-Budget "purging zombie platform pod $($zombie.Name)"
+        Write-Info "purging zombie platform pod [$Namespace] $($zombie.Name) ($($zombie.Why))"
+        $ok = Invoke-KubectlMutation -Description "force-delete zombie platform pod $Namespace/$($zombie.Name)" `
+            -KubectlArgs @('delete', 'pod', $zombie.Name, '-n', $Namespace, '--grace-period=0', '--force') `
+            -ActionType 'platform-repair' -Target "$Namespace/$($zombie.Name)" -AllowFailure
+        if ($ok) { $purged.Add($zombie.Name) }
+    }
+
+    $restarted = [System.Collections.Generic.List[string]]::new()
+    foreach ($workload in (Get-ControllerWorkloadStatus -Namespace $Namespace -NameFilter $NameFilter `
+                -NameExclude $NameExclude)) {
+        if ($workload.Healthy) { continue }
+        $excluded = $false
+        foreach ($pattern in $RestartExclude) { if ($workload.Name -like $pattern) { $excluded = $true; break } }
+        if ($excluded) { continue }
+
+        Test-Budget "restarting $($workload.Kind)/$($workload.Name) during $Reason"
+        Write-Warn "$Namespace/$($workload.Kind)/$($workload.Name) is $($workload.Ready)/$($workload.Desired) ready - restarting."
+        $ok = Invoke-KubectlMutation -Description "rollout restart $($workload.Kind)/$($workload.Name) -n $Namespace ($Reason)" `
+            -KubectlArgs @('rollout', 'restart', "$($workload.Kind)/$($workload.Name)", '-n', $Namespace) `
+            -ActionType 'platform-repair' -Target "$Namespace/$($workload.Name)" -AllowFailure
+        if ($ok) { $restarted.Add("$Namespace/$($workload.Name)") }
+    }
+
+    return [pscustomobject]@{ Restarted = @($restarted); Purged = @($purged) }
+}
+function Get-PlatformZombiePod {
+    <#
+    .SYNOPSIS
+        Platform-owned pods that can never recover on their own and block their controller
+        from creating a replacement (kubelet lost them, or their node is gone).
+    #>
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter()][string[]]$NameFilter = @(),
+        [Parameter()][string[]]$NameExclude = @(),
+        [Parameter()]$NodeState = $null
+    )
+
+    $out = [System.Collections.Generic.List[object]]::new()
+    foreach ($pod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $Namespace))) {
+        $md = Get-Prop $pod 'metadata'
+        $st = Get-Prop $pod 'status'
+        $name = [string](Get-Prop $md 'name')
+        if (-not $name) { continue }
+        if (Get-Prop $md 'deletionTimestamp') { continue }
+
+        if ($NameFilter.Count -gt 0) {
+            $matched = $false
+            foreach ($pattern in $NameFilter) { if ($name -like $pattern) { $matched = $true; break } }
+            if (-not $matched) { continue }
+        }
+        $excluded = $false
+        foreach ($pattern in $NameExclude) { if ($name -like $pattern) { $excluded = $true; break } }
+        if ($excluded) { continue }
+
+        $phase = [string](Get-Prop $st 'phase')
+        $reason = [string](Get-Prop $st 'reason')
+        $node = [string](Get-Prop (Get-Prop $pod 'spec') 'nodeName')
+
+        $zombie = $false
+        $why = ''
+        if ($phase -in @('Unknown', 'Failed')) { $zombie = $true; $why = "phase=$phase" }
+        elseif ($reason -eq 'NodeLost') { $zombie = $true; $why = 'NodeLost' }
+        elseif ($null -ne $NodeState -and $node -and $NodeState.Contains($node) -and -not $NodeState[$node].Ready) {
+            $zombie = $true
+            $why = "stranded on NotReady node '$node'"
+        }
+        else {
+            foreach ($cs in @(Get-Prop $st 'containerStatuses')) {
+                $terminatedReason = Get-Prop (Get-Prop (Get-Prop $cs 'state') 'terminated') 'reason'
+                if ($terminatedReason -eq 'ContainerStatusUnknown') {
+                    $zombie = $true
+                    $why = 'ContainerStatusUnknown'
+                    break
+                }
+            }
+        }
+        if (-not $zombie) { continue }
+
+        $out.Add([pscustomobject]@{ Namespace = $Namespace; Name = $name; Node = $node; Why = $why })
+    }
+    return @($out)
+}
+function Get-DnsEndpointCount {
+    <#
+    .SYNOPSIS
+        Ready kube-dns endpoint addresses. Zero means cluster DNS cannot answer anything.
+
+    .DESCRIPTION
+        Prefers EndpointSlice (current API); falls back to the deprecated v1 Endpoints. Only
+        addresses the API reports as ready are counted - an EndpointSlice endpoint with
+        'ready=false' is not a working DNS server, and v1 Endpoints lists the same address
+        once per port, so a single ready backend is reported once.
+    #>
+    [CmdletBinding()]
+    [OutputType([int])]
+    param()
+
+    $ready = 0
+    foreach ($slice in (Get-K8sJson -KubectlArgs @('get', 'endpointslice', '-n', $PlatformNamespace,
+                '-l', 'kubernetes.io/service-name=kube-dns'))) {
+        foreach ($ep in @(Get-Prop $slice 'endpoints')) {
+            if ((Get-Prop (Get-Prop $ep 'conditions') 'ready') -eq $true) { $ready++ }
+        }
+    }
+    if ($ready -gt 0) { return $ready }
+
+    # v1 Endpoints fallback: count a backend once, regardless of how many ports it exposes.
+    $ips = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($ep in (Get-K8sJson -KubectlArgs @('get', 'endpoints', 'kube-dns', '-n', $PlatformNamespace))) {
+        foreach ($subset in @(Get-Prop $ep 'subsets')) {
+            foreach ($address in @(Get-Prop $subset 'addresses')) {
+                $ip = [string](Get-Prop $address 'ip')
+                if ($ip) { $null = $ips.Add($ip) }
+            }
+        }
+    }
+    return $ips.Count
+}
+
+function Wait-DnsReady {
+    <#
+    .SYNOPSIS
+        Waits for cluster DNS to have a ready endpoint. This is the gate for the whole
+        recovery: without it Longhorn's own managers cannot reach their webhook service.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter()][int]$TimeoutSeconds = 300,
+        [Parameter()][int]$PollSeconds = 10
+    )
+
+    $count = Get-DnsEndpointCount
+    if ($count -gt 0) { return $true }
+    if ($script:DryRun) {
+        Write-Info 'dry-run: not waiting for cluster DNS to come back.'
+        return $false
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($count -eq 0 -and $sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        Test-Budget 'waiting for cluster DNS'
+        Write-Info "kube-dns still has no ready endpoint - waiting ${PollSeconds}s..."
+        Start-Sleep -Seconds $PollSeconds
+        $count = Get-DnsEndpointCount
+    }
+    $sw.Stop()
+    return ($count -gt 0)
+}
+# ── Longhorn control-plane recovery ────────────────────────────────────
+# Why this exists: 'volume unknown' with crashlooping csi-plugin pods is not a volume problem,
+# it is a control-plane problem. When a whole cluster is power-cycled, Longhorn's own
+# controllers come back before CoreDNS does, fail their readiness checks, never update the
+# longhorn Node status, and therefore never recreate the instance-managers that every mount
+# depends on. Recycling CSI plugin pods (the newer storage-repair phase) cannot help with
+# that, because there is no instance-manager left to serve the block device.
+function Get-LonghornControlPlaneStatus {
+    <#
+    .SYNOPSIS
+        Longhorn's own control-plane health: controller readiness, instance-managers versus
+        what the ready nodes should host, and Longhorn's view of node readiness.
+        Longhorn v1.8+ runs one consolidated instance-manager per Ready node.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param()
+
+    $managers = @(Get-ControllerWorkloadStatus -Namespace $StorageNamespace -NameFilter @('longhorn-manager'))
+    $plugins = @(Get-ControllerWorkloadStatus -Namespace $StorageNamespace -NameFilter @('longhorn-csi-plugin'))
+
+    $lhNodes = Get-K8sJson -KubectlArgs @('get', 'nodes.longhorn.io', '-n', $StorageNamespace)
+    $readyNodes = 0
+    $multipathNodes = [System.Collections.Generic.List[string]]::new()
+    foreach ($lhNode in $lhNodes) {
+        $names = [string](Get-Prop (Get-Prop $lhNode 'metadata') 'name')
+        foreach ($condition in @(Get-Prop (Get-Prop $lhNode 'status') 'conditions')) {
+            $type = Get-Prop $condition 'type'
+            if ($type -eq 'Ready' -and (Get-Prop $condition 'status') -eq 'True') { $readyNodes++ }
+            if ($type -eq 'Multipathd' -and (Get-Prop $condition 'status') -ne 'True' -and $names) {
+                $multipathNodes.Add($names)
+            }
+        }
+    }
+
+    $imCount = @(Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace,
+            '-l', 'longhorn.io/component=instance-manager')).Count
+    # Longhorn v1.8+ runs one consolidated 'aio' instance-manager per node (engine + replica
+    # duties combined), NOT the older split pair. One per Ready node is the healthy target;
+    # waiting for two per node stalls forever because Longhorn never creates the second one.
+    $expectedIm = $readyNodes
+
+    $managerReady = 0
+    $managerDesired = 0
+    if ($managers.Count -gt 0) { $managerReady = $managers[0].Ready; $managerDesired = $managers[0].Desired }
+    $pluginReady = 0
+    $pluginDesired = 0
+    if ($plugins.Count -gt 0) { $pluginReady = $plugins[0].Ready; $pluginDesired = $plugins[0].Desired }
+
+    return [pscustomobject]@{
+        ManagerReady            = $managerReady
+        ManagerDesired          = $managerDesired
+        PluginReady             = $pluginReady
+        PluginDesired           = $pluginDesired
+        NodeReady               = $readyNodes
+        NodeCount               = @($lhNodes).Count
+        InstanceManagerCount    = $imCount
+        ExpectedInstanceManager = $expectedIm
+        MultipathNodes          = @($multipathNodes)
+        Ok                      = ($managerDesired -gt 0 -and $managerReady -ge $managerDesired -and
+            $pluginDesired -gt 0 -and $pluginReady -ge $pluginDesired -and
+            $readyNodes -gt 0 -and $imCount -ge $expectedIm)
+    }
+}
+
+
+function Repair-LonghornControlPlane {
+    <#
+    .SYNOPSIS
+        Restores Longhorn's own controllers and instance-managers before any volume is touched.
+
+    .DESCRIPTION
+        Only fault-tolerant controller workloads are restarted - never engine-image, never a
+        share-manager, never an instance-manager pod. Instance-managers cannot be created
+        directly: they appear once Longhorn's node status flips to Ready, which needs working
+        cluster DNS first (see the platform phase). One is expected per Ready node (v1.8+ uses a
+        single consolidated 'aio' manager) - zero means no volume on that node can attach at all.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param()
+
+    $status = Get-LonghornControlPlaneStatus
+    Write-Info ("longhorn control plane: manager {0}/{1}, csi-plugin {2}/{3}, instance-managers {4}/{5}, nodes Ready {6}/{7}" -f `
+            $status.ManagerReady, $status.ManagerDesired, $status.PluginReady, $status.PluginDesired,
+        $status.InstanceManagerCount, $status.ExpectedInstanceManager, $status.NodeReady, $status.NodeCount)
+
+    if ($status.Ok) {
+        Write-Ok 'Longhorn control plane is ready.'
+        return $status
+    }
+
+    $null = Repair-PlatformNamespace -Namespace $StorageNamespace -Reason 'Longhorn control-plane recovery' `
+        -NameExclude @('engine-image-*', 'instance-manager-*', 'share-manager-*') `
+        -RestartExclude @('engine-image-*', 'instance-manager-*')
+
+    if ($script:DryRun) {
+        Write-Info 'dry-run: not waiting for Longhorn controllers / instance-managers.'
+        return Get-LonghornControlPlaneStatus
+    }
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $LonghornWaitSeconds) {
+        Test-Budget 'waiting for the Longhorn control plane'
+        $status = Get-LonghornControlPlaneStatus
+        if ($status.Ok) { break }
+
+        # Say which node(s) are lagging, not just a bare ratio - "7/14 instance-managers" hides
+        # the fact that the missing ones are all on one node.
+        $lagging = @()
+        foreach ($lhNode in (Get-K8sJson -KubectlArgs @('get', 'nodes.longhorn.io', '-n', $StorageNamespace))) {
+            $name = [string](Get-Prop (Get-Prop $lhNode 'metadata') 'name')
+            if (-not $name) { continue }
+            $ready = $false
+            foreach ($condition in @(Get-Prop (Get-Prop $lhNode 'status') 'conditions')) {
+                if ((Get-Prop $condition 'type') -eq 'Ready' -and (Get-Prop $condition 'status') -eq 'True') { $ready = $true; break }
+            }
+            if (-not $ready) { $lagging += "$name(notReady)" }
+        }
+        $imNodes = @{}
+        foreach ($pod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace,
+                    '-l', 'longhorn.io/component=instance-manager'))) {
+            $node = [string](Get-Prop (Get-Prop $pod 'spec') 'nodeName')
+            if ($node) { $imNodes[$node] = ($imNodes[$node] + 1) }
+        }
+        foreach ($lhNode in (Get-K8sJson -KubectlArgs @('get', 'nodes.longhorn.io', '-n', $StorageNamespace))) {
+            $name = [string](Get-Prop (Get-Prop $lhNode 'metadata') 'name')
+            if (-not $name -or $lagging -contains "$name(notReady)") { continue }
+            if (-not $imNodes.ContainsKey($name)) { $lagging += "$name(noIM)" }
+        }
+
+        $remaining = [math]::Max(0, [math]::Round($LonghornWaitSeconds - $sw.Elapsed.TotalSeconds))
+        Write-Info ("waiting {0}s left: manager {1}/{2}, csi-plugin {3}/{4}, instance-managers {5}/{6}, nodes Ready {7}/{8}" -f `
+                $remaining, $status.ManagerReady, $status.ManagerDesired, $status.PluginReady, $status.PluginDesired,
+            $status.InstanceManagerCount, $status.ExpectedInstanceManager, $status.NodeReady, $status.NodeCount)
+        if ($lagging.Count -gt 0) {
+            Write-Info "  still waiting on: $($lagging -join ', ')"
+        }
+        if ($sw.Elapsed.TotalSeconds -lt $LonghornWaitSeconds) { Start-Sleep -Seconds 20 }
+    }
+    $sw.Stop()
+
+    if ($status.Ok) {
+        Write-Ok ("Longhorn control plane recovered ({0} instance-manager(s) across {1} ready node(s))." -f `
+                $status.InstanceManagerCount, $status.NodeReady)
+    }
+    else {
+        Write-Bad ("Longhorn control plane still degraded after {0}s - moving on; the volume-repair phase will retry." -f $LonghornWaitSeconds)
+        Write-Info ("  instance-managers {0}/{1}, nodes Ready {2}/{3}" -f `
+                $status.InstanceManagerCount, $status.ExpectedInstanceManager, $status.NodeReady, $status.NodeCount)
+        Add-Finding ("Longhorn control plane degraded after {0}s wait" -f $LonghornWaitSeconds)
+    }
+    return $status
+}
+
+
+# ── multipathd remediation ─────────────────────────────────────────────
+# Longhorn reports 'Multipathd=True/False' per node: when multipathd is running it can claim
+# Longhorn's /dev/longhorn devices and the mount fails with "Can't open blockdev". Longhorn
+# computes this condition for us, so detection costs nothing and needs no node access.
+function Get-MultipathNodeName {
+    <#
+    .SYNOPSIS
+        Nodes where Longhorn reports multipathd running (its Multipathd condition is not True).
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '',
+        Justification = 'Returns the collection of affected nodes; the plural meaning is the contract')]
+    param()
+
+    return @((Get-LonghornControlPlaneStatus).MultipathNodes)
+}
+
+
+function Repair-Multipathd {
+    <#
+    .SYNOPSIS
+        Disables multipathd on the nodes where Longhorn flags it, because a running
+        multipathd claims Longhorn's devices and mounts then fail with "Can't open blockdev".
+
+    .DESCRIPTION
+        Deliberately narrow: only nodes Longhorn itself flags, only Ready nodes, one at a time,
+        and never a protected node. The command runs inside a privileged pod that joins the
+        host PID/mount namespaces, so it is a real node-level change - reversible with
+        'systemctl enable --now multipathd'. -MultipathDebugPod points at an existing
+        privileged pod to exec into instead of creating one; that pod is never deleted.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '',
+        Justification = 'Returns the collection of nodes that were remediated; the plural meaning is the contract')]
+    param(
+        [Parameter()]$NodeState = $null
+    )
+
+    $targets = @(Get-MultipathNodeName)
+    if ($targets.Count -eq 0) {
+        Write-Ok 'multipathd is not flagged on any Longhorn node.'
+        return @()
+    }
+
+    if (-not $DoMultipathRepair) {
+        Write-Warn "multipathd is running on $(($targets -join ', ')) but repair was skipped (-SkipMultipathRepair)."
+        Add-Finding "multipathd running (Longhorn flags it as a known issue): $($targets -join ', ')"
+        return @()
+    }
+
+    $repaired = [System.Collections.Generic.List[string]]::new()
+    foreach ($nodeName in $targets) {
+        if ($null -ne $NodeState -and $NodeState.Contains($nodeName) -and -not $NodeState[$nodeName].Ready) {
+            Write-Warn "multipath repair skipped on '$nodeName': node is not Ready."
+            continue
+        }
+        if ($null -ne $NodeState -and $NodeState.Contains($nodeName) -and $nodeState[$nodeName].IsProtected) {
+            Write-Warn "multipath repair skipped on protected node '$nodeName'."
+            continue
+        }
+
+        Test-Budget "disabling multipathd on $nodeName"
+        Write-Info "Disabling multipathd on '$nodeName' (Longhorn reports it as a known issue)..."
+
+        if ($script:DryRun) {
+            Write-Info "[DRY-RUN] disable multipathd on $nodeName via a privileged host-namespace shell"
+            Add-Action -Type 'dry-run' -Target $nodeName -Detail "multipathd disable on $nodeName"
+            continue
+        }
+
+        $phase = ''
+        if ($MultipathDebugPod) {
+            $ok = Invoke-KubectlMutation -Description "disable multipathd on $nodeName via $MultipathDebugPod" `
+                -KubectlArgs @('exec', '-n', $PlatformNamespace, $MultipathDebugPod, '--',
+                    'nsenter', '-t', '1', '-m', '-u', '-i', '-n', '-p', '--',
+                    'sh', '-c', 'systemctl disable --now multipathd; systemctl mask multipathd') `
+                -ActionType 'multipath-repair' -Target $nodeName -AllowFailure
+            if ($ok) { $phase = 'Succeeded' }
+        }
+        else {
+$podName = ("multipath-repair-{0}" -f $nodeName) -replace '[^a-z0-9-]', '-'
+            if ($podName.Length -gt 63) { $podName = $podName.Substring(0, 63) }
+            $manifestPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "multipath-$nodeName.json"
+            [pscustomobject]@{
+                apiVersion = 'v1'
+                kind       = 'Pod'
+                metadata   = [pscustomobject]@{
+                    name      = $podName
+                    namespace = $PlatformNamespace
+                    labels    = [pscustomobject]@{ app = 'multipath-repair' }
+                }
+                spec       = [pscustomobject]@{
+                    nodeName      = $nodeName
+                    hostPID       = $true
+                    restartPolicy = 'Never'
+                    tolerations   = @([pscustomobject]@{ operator = 'Exists' })
+                    containers    = @([pscustomobject]@{
+                            name            = 'repair'
+                            image           = $MultipathImage
+                            imagePullPolicy = 'IfNotPresent'
+                            securityContext = [pscustomobject]@{ privileged = $true }
+                            command         = @('nsenter', '-t', '1', '-m', '-u', '-i', '-n', '-p', '--',
+                                'sh', '-c', 'systemctl disable --now multipathd; systemctl mask multipathd')
+                        })
+                }
+            } | ConvertTo-Json -Depth 8 | Set-Content -Path $manifestPath -Encoding utf8
+
+            $null = Invoke-KubectlMutation -Description "start multipath repair pod $podName on $nodeName" `
+                -KubectlArgs @('apply', '-f', $manifestPath) `
+                -ActionType 'multipath-repair' -Target $nodeName -AllowFailure
+
+            $sw = [System.Diagnostics.Stopwatch]::StartNew()
+            while ($sw.Elapsed.TotalSeconds -lt $MultipathWaitSeconds) {
+                Start-Sleep -Seconds 5
+                $live = @(Get-K8sJson -KubectlArgs @('get', 'pod', $podName, '-n', $PlatformNamespace))
+                if ($live.Count -gt 0) {
+                    $phase = [string](Get-Prop (Get-Prop $live[0] 'status') 'phase')
+                    if ($phase -in @('Succeeded', 'Failed')) { break }
+                }
+            }
+            $sw.Stop()
+
+            # Always clean up, even when the pod never started (image missing, node pressure).
+            $null = Invoke-KubectlMutation -Description "remove multipath repair pod $podName" `
+                -KubectlArgs @('delete', 'pod', $podName, '-n', $PlatformNamespace,
+                    '--grace-period=0', '--force', '--ignore-not-found') `
+                -ActionType 'multipath-repair' -Target $nodeName -AllowFailure
+            Remove-Item -Path $manifestPath -Force -ErrorAction SilentlyContinue
+        }
+
+        if ($phase -eq 'Succeeded') {
+            Write-Ok "multipathd disabled on $nodeName."
+            $repaired.Add($nodeName)
+        }
+        else {
+            Write-Warn "multipathd could not be disabled on $nodeName (repair pod phase='$phase') - continuing."
+            Add-Finding "multipathd still running on $nodeName"
+        }
+    }
+
+    return @($repaired)
+}
+function Get-LatestVolumeBackupName {
+    <#
+    .SYNOPSIS
+        Newest completed Longhorn backup for a volume, or $null when the volume has none.
+
+    .DESCRIPTION
+        The actionable half of a faulted-volume report: "restore it" is useless advice without
+        a backup name, and a volume with no backup at all can only be rebuilt.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][string]$VolumeName
+    )
+
+    $newest = $null
+    $newestAt = ''
+    foreach ($backup in (Get-K8sJson -KubectlArgs @('get', 'backups.longhorn.io', '-n', $StorageNamespace))) {
+        $status = Get-Prop $backup 'status'
+        if ([string](Get-Prop $status 'volumeName') -ne $VolumeName) { continue }
+        if ([string](Get-Prop $status 'state') -ne 'Completed') { continue }
+
+        $at = [string](Get-Prop $status 'backupCreatedAt')
+        if ($newestAt -eq '' -or $at -gt $newestAt) {
+            $newestAt = $at
+            $newest = [string](Get-Prop (Get-Prop $backup 'metadata') 'name')
+        }
+    }
+    return $newest
+}
+
+
 # ── Preflight ──────────────────────────────────────────────────────────
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
@@ -842,6 +1706,9 @@ if ($WhatIfPreference) {
 # everything, so the only interesting output here is what has been opted out of.
 $phasePlan = @(
     "uncordon Ready nodes            : ON (always)"
+    "platform core + DNS recovery    : $(if ($DoPlatformRepair) { 'ON' } else { 'SKIPPED (-SkipPlatformRepair)' })"
+    "Longhorn control-plane recovery : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
+    "multipathd remediation          : $(if ($DoMultipathRepair) { 'ON' } else { 'SKIPPED (-SkipMultipathRepair)' })"
     "purge stranded/zombie pods      : ON (always)"
     "repair Longhorn + recycle CSI   : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
     "engine-frontend recovery        : $(if ($DoHostMountRepair) { 'ON' } else { 'SKIPPED (-SkipHostMountRepair)' })"
@@ -951,7 +1818,7 @@ $finalExitCode = 0
 
 try {
     # ── Step 1: Inventory ────────────────────────────────────────────────
-    Write-Step "[1/7] Inventory - expected vs actual nodes"
+    Write-Step "[1/9] Inventory - expected vs actual nodes"
 
     $nodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
         -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
@@ -990,7 +1857,7 @@ try {
     }
 
     # ── Step 2: Uncordon ONLY Ready nodes ────────────────────────────────
-    Write-Step "[2/7] Uncordoning nodes"
+    Write-Step "[2/9] Uncordoning nodes"
 
     $cordonedBefore = @($nodeState.Values | Where-Object { $_.Unschedulable })
     $uncordonTargets = @($cordonedBefore | Where-Object { $_.Ready })
@@ -1030,8 +1897,41 @@ try {
     $nodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
         -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
 
+    # ── Step 3: Platform (cluster core) recovery ─────────────────────────
+    Write-Step "[3/9] Platform recovery - cluster core and DNS"
+
+    $platform = Repair-PlatformNamespace -Namespace $PlatformNamespace -Reason 'cluster core recovery' `
+        -NodeState $nodeState
+    if ($platform.Purged.Count -gt 0) { Write-Ok "purged $($platform.Purged.Count) zombie platform pod(s)." }
+    if ($platform.Restarted.Count -gt 0) { Write-Ok "restarted $($platform.Restarted.Count) platform controller(s)." }
+
+    if (Wait-DnsReady -TimeoutSeconds $PlatformWaitSeconds) {
+        Write-Ok "cluster DNS is answering ($(Get-DnsEndpointCount) kube-dns endpoint(s))."
+    }
+    else {
+        Add-Finding 'Cluster DNS (kube-dns) has no ready endpoint after platform recovery'
+        if ($script:DryRun) {
+            Write-Warn 'cluster DNS has no ready endpoint (dry-run: not waited for).'
+        }
+        else {
+            Write-Bad 'cluster DNS still has no ready endpoint - every storage and app phase depends on it.'
+        }
+    }
+
+    # ── Step 4: Longhorn control plane, then multipathd ──────────────────
+    Write-Step "[4/9] Longhorn control plane and host mount blockers"
+
+    if ($DoStorageRepair) {
+        $null = Repair-LonghornControlPlane
+    }
+    else {
+        Write-Info 'Longhorn control-plane recovery skipped (-SkipStorageRepair).'
+    }
+    $null = Repair-Multipathd -NodeState $nodeState
+
+
     # ── Step 3: Diagnose workloads and storage ───────────────────────────
-    Write-Step "[3/7] Diagnosing workloads and storage"
+    Write-Step "[5/9] Diagnosing workloads and storage"
 
     $pvcMap = Get-PvcMap
     $allPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
@@ -1146,13 +2046,29 @@ try {
     }
 
     # ── Step 4: Repair (storage first, then stranded workloads) ──────────
-    Write-Step "[4/7] Repair - storage first, then stranded workloads"
+    Write-Step "[6/9] Repair - storage first, then stranded workloads"
 
     $repairedSomething = $false
     $deadNodeNames = @($nodeState.Values | Where-Object { -not $_.Ready } | ForEach-Object { $_.Name })
     $deadNodeNames += $missingNodes
 
-    # 4a - Longhorn pods left Terminating on nodes that are gone.
+    # 4a-0 - Clear stale VolumeAttachments before CSI plugin recycling
+    # This fixes the case where pods are stuck in Pending because Kubernetes holds
+    # onto old attachments for volumes that Longhorn has reattached elsewhere.
+    if ($DoStorageRepair -and $DoStaleAttachmentCleanup -and $storageStatus.Available) {
+        $cleared = @(Clear-StaleVolumeAttachment)
+        if ($cleared.Count -gt 0) {
+            Write-Info "Cleared $($cleared.Count) stale VolumeAttachment(s)"
+            $repairedSomething = $true
+            # Wait a moment for the attach/detach controller to re-attach
+            if (-not $script:DryRun) {
+                Write-Info "Waiting 10s for the attach/detach controller to re-attach volumes..."
+                Start-Sleep -Seconds 10
+            }
+        }
+    }
+
+    # 4a-1 - Longhorn pods left Terminating on nodes that are gone.
     #      (v1 could never do this: longhorn-system was in $SkipNamespaces.)
     if ($DoStorageRepair -and $storageStatus.Available) {
         foreach ($lhPod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-n', $StorageNamespace))) {
@@ -1427,7 +2343,7 @@ try {
     }
 
     # ── Step 5: Reconcile workloads (OPT-IN) ─────────────────────────────
-    Write-Step "[5/7] Reconcile workloads"
+    Write-Step "[7/9] Reconcile workloads"
 
 function Get-ManagedResource {
     <#
@@ -1589,7 +2505,7 @@ function Get-ManagedResource {
     }
 
 # ── Step 6: Rebalance (OPT-IN, PDB-aware) ────────────────────────────
-    Write-Step "[6/7] Rebalance workload distribution"
+    Write-Step "[8/9] Rebalance workload distribution"
 
     if (-not $DoRebalance) {
         Write-Info "Skipped (-SkipRebalance)."
@@ -1669,7 +2585,7 @@ function Get-ManagedResource {
     }
 
 # ── Step 7: Verify (the checks v1 was missing) ───────────────────────
-    Write-Step "[7/7] Verification"
+    Write-Step "[9/9] Verification"
 
     $nodeStateAfter = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
         -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
@@ -1702,11 +2618,66 @@ function Get-ManagedResource {
 
     $storageAfter = Get-StorageStatus
     if ($storageAfter.Available) {
-        Write-Info ("Longhorn: {0}/{1} healthy, {2} degraded, {3} detached, {4} node(s) not scheduling" -f `
+        Write-Info ("Longhorn: {0}/{1} healthy, {2} degraded, {3} faulted, {4} detached, {5} node(s) not scheduling" -f `
                 $storageAfter.HealthyCount, $storageAfter.VolumeCount,
-            $storageAfter.AttachedDegraded.Count, $storageAfter.Detached.Count, $storageAfter.UnschedulableNodes.Count)
+            $storageAfter.AttachedDegraded.Count, $storageAfter.Faulted.Count,
+            $storageAfter.Detached.Count, $storageAfter.UnschedulableNodes.Count)
         if ($storageAfter.Ok) { Write-Ok "Longhorn volumes are healthy." }
         else { Write-Warn "Longhorn is still degraded."; Add-Finding "Longhorn degraded at end of run" }
+    }
+
+    # A faulted volume is a data-plane fault: no amount of retrying fixes it, so name the
+    # restore point instead of leaving the operator with "volume X is broken".
+    if ($storageAfter.Faulted.Count -gt 0) {
+        Write-Bad "$($storageAfter.Faulted.Count) faulted Longhorn volume(s) - these need a restore, not a retry:"
+        foreach ($faultedVolume in $storageAfter.Faulted) {
+            $backupName = Get-LatestVolumeBackupName -VolumeName $faultedVolume.Name
+            $claimRef = ''
+            $pv = @(Get-K8sJson -KubectlArgs @('get', 'pv', $faultedVolume.Name))
+            if ($pv.Count -gt 0) {
+                $claim = Get-Prop (Get-Prop $pv[0] 'spec') 'claimRef'
+                if ($claim) { $claimRef = "{0}/{1}" -f (Get-Prop $claim 'namespace'), (Get-Prop $claim 'name') }
+            }
+            if ($backupName) {
+                Write-Info "  $($faultedVolume.Name) $claimRef (state=$($faultedVolume.State)) -> restore from $backupName"
+            }
+            else {
+                Write-Info "  $($faultedVolume.Name) $claimRef (state=$($faultedVolume.State)) -> no backup found; rebuild required"
+            }
+        }
+        Add-Finding "Faulted Longhorn volumes: $($storageAfter.Faulted.Count)"
+    }
+
+    # Cluster core and DNS: if these are down, every other green line in this report is moot.
+    $dnsEndpoints = Get-DnsEndpointCount
+    if ($dnsEndpoints -gt 0) {
+        Write-Ok "cluster DNS has $dnsEndpoints ready endpoint(s)."
+    }
+    else {
+        Write-Bad 'cluster DNS (kube-dns) has no ready endpoint - apps cannot resolve services.'
+        Add-Finding 'Cluster DNS has no ready endpoint at end of run'
+    }
+
+    $platformBad = @(Get-ControllerWorkloadStatus -Namespace $PlatformNamespace | Where-Object { -not $_.Healthy })
+    if ($platformBad.Count -gt 0) {
+        foreach ($workload in $platformBad) {
+            Write-Warn "cluster-core controller below capacity: $($workload.Namespace)/$($workload.Name) ($($workload.Ready)/$($workload.Desired))"
+        }
+        Add-Finding "Cluster-core controllers below capacity: $($platformBad.Count)"
+    }
+    else {
+        Write-Ok 'Every cluster-core controller is at full capacity.'
+    }
+
+    $lhAfter = Get-LonghornControlPlaneStatus
+    if ($lhAfter.Ok) {
+        Write-Ok "Longhorn control plane healthy ($($lhAfter.InstanceManagerCount) instance-manager(s) across $($lhAfter.NodeReady) ready node(s))."
+    }
+    else {
+        Write-Bad ("Longhorn control plane degraded: manager {0}/{1}, csi-plugin {2}/{3}, instance-managers {4}/{5}, nodes Ready {6}/{7}" -f `
+                $lhAfter.ManagerReady, $lhAfter.ManagerDesired, $lhAfter.PluginReady, $lhAfter.PluginDesired,
+            $lhAfter.InstanceManagerCount, $lhAfter.ExpectedInstanceManager, $lhAfter.NodeReady, $lhAfter.NodeCount)
+        Add-Finding 'Longhorn control plane degraded at end of run'
     }
 
     $badAttachments = @(Get-K8sJson -KubectlArgs @('get', 'volumeattachments') |
@@ -1763,7 +2734,13 @@ function Get-ManagedResource {
 
     # ── Summary ──────────────────────────────────────────────────────────
     $degradedTotal = $unhealthyPods.Count + $badPdbs.Count + $badAttachments.Count + $stillCordonedReady.Count
-    if ($storageAfter.Available) { $degradedTotal += $storageAfter.AttachedDegraded.Count }
+    if ($storageAfter.Available) {
+        $degradedTotal += $storageAfter.AttachedDegraded.Count
+        $degradedTotal += $storageAfter.Faulted.Count
+    }
+    $degradedTotal += $platformBad.Count
+    if ($dnsEndpoints -eq 0) { $degradedTotal++ }
+    if (-not $lhAfter.Ok) { $degradedTotal++ }
 
     Write-Host "`n========================================" -ForegroundColor Cyan
     if ($degradedTotal -eq 0) {
@@ -1801,9 +2778,13 @@ finally {
                 # Effective phase plan actually used for this run.
                 effectiveRestartWorkloads = [bool]$DoRestartWorkloads
                 effectiveStorageRepair    = [bool]$DoStorageRepair
+                effectivePlatformRepair   = [bool]$DoPlatformRepair
+                effectiveMultipathRepair  = [bool]$DoMultipathRepair
                 effectiveRebalance        = [bool]$DoRebalance
                 skipRestartWorkloads      = [bool]$SkipRestartWorkloads
                 skipStorageRepair         = [bool]$SkipStorageRepair
+                skipPlatformRepair        = [bool]$SkipPlatformRepair
+                skipMultipathRepair       = [bool]$SkipMultipathRepair
                 skipRebalance             = [bool]$SkipRebalance
                 legacyOptInSwitches       = @($LegacyOptInSwitches)
                 legacySkipRestart         = [bool]$SkipRestart
