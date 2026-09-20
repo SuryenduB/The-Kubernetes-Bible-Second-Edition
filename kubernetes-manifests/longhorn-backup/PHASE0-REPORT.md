@@ -86,7 +86,42 @@ roll CSI plugin, run IO smoke test, verify backups still Complete.
   official Longhorn manifest upgrade order (manager DS → driver-deployer → UI → CSI) or
   the Helm chart rather than piecemeal `set image`.
 
-## Phase 2 GATE — v1.9.2 → v1.10.x NOT STARTED (blocked)
+## Phase 2 — Longhorn v1.9.2 → v1.10.x (started <fill date>)
+
+### Pre-upgrade health (must ALL be green before proceeding)
+- [ ] 10/10 nodes Ready (incl. server-252)
+- [ ] DS `longhorn-manager` 9/9 on v1.9.2, DS `longhorn-csi-plugin` 9/9, engine-image 9/9
+- [ ] 37/37 volumes attached + healthy
+- [ ] BackupTarget available=true, recent Completed backups syncing
+- [ ] engine-image DS still on `longhorn-engine:v1.8.1` — expected (v1 images only roll
+      during a v1→v2 data-engine migration; minor-version hops do NOT bump engine images).
+      Do NOT touch it manually.
+
+### Upgrade procedure (official manifest path — NOT piecemeal set image)
+Per Longhorn docs, minor-version upgrades must apply the release's full manifest set
+(CRDs first, then manager, then driver-deployer/UI/CSI). Order:
+1. `kubectl apply -f longhorn-1.10.x-crd.yaml` (or chart `longhorn-crds`)
+2. `kubectl apply -f longhorn-1.10.x.yaml` (manager + driver-deployer + CSI + UI)
+3. Wait for DS `longhorn-manager` rollout → 9/9; DS `longhorn-csi-plugin` rollout → 9/9
+4. Run IO smoke test (write/read a scratch PVC), confirm no detached/degraded volumes
+5. Verify backups still Complete + BackupTarget syncing
+
+### Commands used
+(record actual commands + image tags here)
+- manager DS: `...`
+- driver-deployer: `...`
+- UI: `...`
+- csi-plugin DS: `...`
+
+### Post-upgrade verification
+- [ ] DS longhorn-manager 9/9 on v1.10.x, csi-plugin 9/9 on v1.10.x
+- [ ] Deployments: driver-deployer 1/1, UI 2/2, csi-* 3/3 each
+- [ ] 37/37 volumes attached + healthy
+- [ ] IO smoke test passed (scratch PVC write/read/delete)
+- [ ] Backups still completing
+
+### Incidents / notes
+-
 
 - **Blocker: `server-252` went NotReady ~18:30Z** (kubelet stopped posting; `Ready=Unknown`,
   machine unreachable over SSH). It is still an etcd voter and holds
