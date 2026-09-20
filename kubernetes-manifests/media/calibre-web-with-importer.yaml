@@ -18,7 +18,7 @@ spec:
       containers:
       # Container 1: Calibre Web (UI & Web Server)
       - name: calibre-web
-        image: ghcr.io/linuxserver/calibre-web:0.6.25-ls358
+        image: ghcr.io/linuxserver/calibre-web:0.6.27-ls401
         ports:
         - containerPort: 8083
         resources:

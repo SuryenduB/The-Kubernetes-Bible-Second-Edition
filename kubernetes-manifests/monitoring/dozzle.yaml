@@ -77,7 +77,7 @@ spec:
                     values: [kubernetes4]
       containers:
         - name: dozzle
-          image: amir20/dozzle:v11.0.0
+          image: amir20/dozzle:v11.1.0
           ports:
             - name: http
               containerPort: 8080
