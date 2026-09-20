@@ -65,3 +65,36 @@ roll CSI plugin, run IO smoke test, verify backups still Complete.
   complete once the new images are available on the nodes.
 - Git policy: every version update is committed and pushed to `main`.
 
+## Phase 1 — Longhorn v1.8.1 → v1.9.2 (COMPLETED 2026-09-20)
+
+- Verified live after DaemonSet rollouts settled:
+  - DS `longhorn-manager`: 8/8 desired, all pods now `longhornio/longhorn-manager:v1.9.2`
+    (+ `longhorn-share-manager:v1.9.2`); DS `longhorn-csi-plugin` 7/8 (v1.9.2 image, 1 pod
+    pending only on NotReady node server-252 — expected)
+  - Deployments all v1.9.2 and fully ready: `longhorn-driver-deployer` 1/1,
+    `longhorn-ui` 2/2, `csi-attacher` 3/3, `csi-provisioner` 3/3, `csi-resizer` 3/3,
+    `csi-snapshotter` 3/3
+  - Volumes: **37/37 attached + healthy**
+  - Backups: `Completed` CRs present and syncing (e.g. `backup-fdfb3bd0cb094e3d` synced
+    2026-09-20 16:30Z; `backup-fdc012f5d56c47e5` completed 16:10Z)
+- Incident fixed during Phase 1: stale `VolumeAttachment`
+  `csi-d16b2e19…` referenced a deleted PV and kept `csi-attacher` CrashLooping → removed
+  its `external-attacher/driver-longhorn-io` finalizer; object deleted, all 3
+  `csi-attacher` pods now Running.
+- Note: the manual `kubectl set image` path worked but left a gap (manager/UI updated
+  first, DS `longhorn-manager` lagged at v1.8.1 for a while). Lesson for Phase 2: use the
+  official Longhorn manifest upgrade order (manager DS → driver-deployer → UI → CSI) or
+  the Helm chart rather than piecemeal `set image`.
+
+## Phase 2 GATE — v1.9.2 → v1.10.x NOT STARTED (blocked)
+
+- **Blocker: `server-252` went NotReady ~18:30Z** (kubelet stopped posting; `Ready=Unknown`,
+  machine unreachable over SSH). It is still an etcd voter and holds
+  `longhorn-manager`/`instance-manager`/replica state, so a Longhorn minor-version hop now
+  is unsafe (DaemonSet rollout would hang on the NotReady node; volumes are fine on the
+  9 Ready nodes: **9/10 Ready, 37/37 volumes healthy**).
+- Required before Phase 2 kickoff: recover server-252 (power/console check, k3s-agent +
+  kubelet healthy, node Ready, Longhorn node schedulable + replicas rebalanced) **or**
+  take an explicit decision to drain/delete it (quorum impact: 3→2 etcd voters).
+- Ask: revive server-252 first, or proceed with an explicit drain-and-delete decision?
+
