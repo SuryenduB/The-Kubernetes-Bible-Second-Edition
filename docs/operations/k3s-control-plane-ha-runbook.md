@@ -30,13 +30,14 @@ k3s kubectl get --raw=/readyz
 sudo systemctl start k3s      # member returned to "started", node Ready, EtcdIsVoter=True
 ```
 
-> ⚠️ **Follow-up incident (same day):** the `server-252` VM then went offline at the
-> **hypervisor level** (~15 min after joining) - no ICMP, ports 22/6443/2379/8472 closed.
-> The cluster was unaffected because quorum is 2 of 3 (`/readyz` stayed `ok`; `.21`/`.236`
-> endpoint health `true`, `.252` `false`), and **no Longhorn replica had been placed on it**,
-> so no volume was affected. The member is retained (not removed) and the guest's `k3s` unit
-> is enabled, so starting the VM restores the third master automatically. Full analysis,
-> hardening advice and the `/tmp` cleanup still owed on the guest are in
+> ✅ **Follow-up incident (same day, resolved):** the `server-252` VM went offline at the
+> **hypervisor level** (~15 min after joining), the cluster was unaffected because quorum is
+> 2 of 3 (`/readyz` stayed `ok`), and **no Longhorn replica had been placed on it**. The VM
+> was powered back on and the retained etcd member rejoined automatically - no re-install, no
+> new token. All three endpoints are `true` again. The guest uses Hyper-V Dynamic Memory on an
+> **8 GB host that also runs Podman** (Podman runs on the host, not in the VM); the guest log
+> showed `Balloon floor reached`, so the fix is to raise the dynamic-memory floor to 3 GB
+> (not static 4 GB). Full facts, hardening and the exact `Set-VMMemory` command are in
 > [`docs/homelab/homelab-control-plane-ha-plan.md`](../homelab/homelab-control-plane-ha-plan.md)
 > ("Follow-up incident").
 

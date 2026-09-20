@@ -212,9 +212,9 @@ These components are listed separately from user-facing applications. No dedicat
 | **kubernetes7** | Ubuntu 24.04 | 2C/4T | 7.7Gi | 98G (46% used) | ✅ Worker |
 | kubernetes8-debian | Debian 13 | 4C/4T | 3.8Gi | 289G (2% used) | ✅ Worker |
 | **server-236** (HP-1) | Ubuntu 24.04 | not re-audited | not re-audited | not re-audited | ✅ Control plane #2 (+ registry) |
-| **server-252** (`k3s-master`) | Ubuntu 20.04 | 2C/2T | 2.0Gi | 124G (5% used) | ✅ Control plane #3 (Hyper-V VM) |
+| **server-252** (`k3s-master`) | Ubuntu 20.04 | 2C/2T | 3.0Gi (dyn) | 124G (5% used) | ✅ Control plane #3 (Hyper-V VM) |
 
-*Control-plane rows added 2026-09-20. `server-252` is a Hyper-V VM running kernel 5.4 with dynamic memory (1.9 GiB at boot, observed growing to 2.4 GiB under K3s); 4 GiB static RAM and an up-to-date kernel are the recommended hardening. HP-1's hardware was not re-audited in this pass - the row above records it as the machine that now hosts `server-236`.*
+*Control-plane rows added 2026-09-20. `server-252` is a Hyper-V guest on an **8 GB host that also runs Podman** (Podman runs on the host, not in the VM). The guest uses Dynamic Memory (currently ~3.0 GiB), and its log showed `Balloon floor reached`, so the recommended hardening is to raise the dynamic-memory floor to 3 GB / max 6 GB (`Set-VMMemory`), **not** static 4 GB, so the small host is not starved. HP-1's hardware was not re-audited in this pass - the row above records it as the machine that now hosts `server-236`.*
 
 ### 🌐 Network Infrastructure
 

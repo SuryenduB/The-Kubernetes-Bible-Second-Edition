@@ -37,43 +37,67 @@ Quorum was proven, not assumed: with `server-252` stopped, `kubectl get --raw=/r
 still returned `ok` from `nuc` (2 of 3 members), and the member rejoined cleanly
 (`EtcdIsVoter=True`, node `Ready`) on restart.
 
-### Follow-up incident: `server-252` went offline (~15 min after joining)
+### Follow-up incident: `server-252` VM went offline, then recovered
 
 The Hyper-V VM holding `server-252` disappeared at the **hypervisor level** shortly after
-the successful join and the failover test: no ICMP reply, and ports 22/6443/2379/8472 all
-closed. The cluster was unaffected because quorum is 2 of 3:
+the successful join and the failover test (~50 min): no ICMP reply, and ports 22/6443/2379/8472
+all closed. The cluster was unaffected because quorum is 2 of 3:
 
 ```text
-nuc          Ready    control-plane,etcd,master   <- alive
-server-236   Ready    control-plane,etcd,master   <- alive
-server-252   NotReady control-plane,etcd,master   <- dead member, retained
+nuc          Ready    control-plane,etcd,master   <- alive throughout
+server-236   Ready    control-plane,etcd,master   <- alive throughout
+server-252   NotReady control-plane,etcd,master   <- VM down, then recovered
 ```
 
 - `kubectl get --raw=/readyz` -> `ok` while `server-252` was down.
-- `etcdctl endpoint health --endpoints=https://192.168.0.252:2379` -> `false`
-  (context deadline exceeded), while `.21`/`.236` stayed `true`.
 - **No Longhorn replica had been placed on `server-252`** (`replicas.longhorn.io` with
   `nodeID=server-252`: 0), so its loss affected no volume.
 - The member was deliberately **not removed** from etcd: it holds no data the cluster needs
   to forget, and removing it while only two members are alive would drop quorum tolerance
-  to zero. Its `node-role.kubernetes.io/master` label is still present, so it will come back
-  as a master on rejoin.
+  to zero.
 
-To restore the third master: start the `k3s-master` VM on its Hyper-V host. The unit is
-enabled (`systemctl is-enabled k3s` -> `enabled`), so K3s starts on boot and the existing
-etcd member rejoins with its own data directory - no re-install, no new token.
+**Resolution (same day):** the `k3s-master` VM was powered back on. Because its `k3s` unit
+is enabled and the etcd member was retained, the third master rejoined automatically with no
+re-install and no new token. Verified recovered:
 
-Open question for the host owner: why the VM stopped. It is a 2 vCPU / 2 GB Ubuntu 20.04
-guest (kernel 5.4) with **Hyper-V dynamic memory** (observed growing 1.9 -> 2.4 GB under
-K3s) and `unattended-upgrades` active - a combination known to hang on older Hyper-V
-integration drivers. Recommended hardening before relying on it: give the VM static RAM
-(4 GB), update the kernel/Hyper-V integration services, and set the VM's automatic stop
-action to *Restart* rather than *Save state*, so a guest panic does not look like a power-off.
+```text
+nuc / server-236 / server-252  all Ready, control-plane,etcd,master, v1.34.6+k3s1
+etcd member list               -> 3 members, all "started"
+etcd endpoint health           -> .21, .236, .252 all "true"
+```
 
-Cleanup owed when the VM returns (files were staged in `/tmp` on the guest for the join and
-the cleanup could not run because the host went offline):
-`rm -f /tmp/install-k3s-252.sh /tmp/launch-252.sh /tmp/k3s-install.log /tmp/sshp-test.txt`
-(the first two contain the server token and the sudo password).
+#### Host & memory facts (measured)
+
+`server-252` is a Hyper-V guest on a host that has **8 GB RAM and also runs Podman**
+(Podman runs on the host, not inside the VM). Inside the guest:
+
+- 2 vCPU, kernel 5.4 (Ubuntu 20.04), DMI "Microsoft Corporation Virtual Machine".
+- **Hyper-V Dynamic Memory is enabled** (`hv_balloon: Using Dynamic Memory protocol 2.0`,
+  `Max. dynamic memory size: 1048576 MB`). The guest currently sees ~3.0 GB, not the host's 8 GB.
+- The log already showed **`hv_balloon: Balloon request will be partially fulfilled. Balloon
+  floor reached.`** — Hyper-V was holding the guest at its dynamic-memory floor and could not
+  give it more when K3s asked. That is a plausible contributor to the earlier stall.
+- No Podman/containerd/docker inside the guest; it is a clean k3s control-plane VM.
+
+#### Corrected hardening for an 8 GB host
+
+> ⚠️ Do **not** set static 4 GB on the VM — that would starve the 8 GB host (which also runs
+> Podman and the desktop). Keep Dynamic Memory but **raise the floor** so the control-plane
+> is never ballooned below a safe level:
+
+```powershell
+# On the Hyper-V host (PowerShell, admin). VM can stay running.
+Set-VMMemory -VMName "k3s-master" `
+    -DynamicMemoryEnabled $true `
+    -MinimumBytes 3GB -StartupBytes 3GB -MaximumBytes 6GB
+```
+
+- `MinimumBytes 3GB` lifts the balloon **floor** above the point where etcd/K3s were starved
+  (this is the targeted fix for the observed "Balloon floor reached").
+- `MaximumBytes 6GB` lets the control plane burst when busy, without permanently reserving it.
+- Also worth doing: set the VM's automatic start action to *always start* and the automatic
+  stop action to *Shut down* (or *Restart*), so a guest fault does not leave the third master
+  saved/paused for ~an hour.
 
 
 ### Deviations worth knowing
