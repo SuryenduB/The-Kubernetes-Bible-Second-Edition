@@ -8,6 +8,13 @@
 # serialized workload reconcile -> PDB-aware rebalance -> verify.
 # Use the -Skip* switches to opt out of individual phases.
 # Symmetrical counterpart to Stop-K3sHomelab-Minimal.ps1 / shutdown_homelab.ps1.
+#
+# Control plane (since 2026-09-20): THREE embedded-etcd servers - nuc (192.168.0.21),
+# server-236 (192.168.0.236) and server-252 (192.168.0.252). All three are protected nodes
+# (neverCordon in WindowsLab/homelab-nodes.json), quorum is 2 of 3, and the verification step
+# reports quorum headroom so "the API answered" is never mistaken for "the control plane is
+# safe". A control-plane member that is NotReady is reported; it is never cordoned, drained
+# or removed - starting the host is enough, because its etcd member is retained.
 
 <#
 .SYNOPSIS
@@ -25,6 +32,12 @@
     CoreDNS does not, Longhorn's own managers then cannot resolve their webhook service, no
     instance-manager is created, every volume stays 'unknown' and every consumer pod sits in
     Pending. Steps 3 and 4 exist because uncordoning alone cannot get you out of that.
+
+    Since 2026-09-20 the control plane is three embedded-etcd servers (nuc, server-236,
+    server-252), so the run also reports control-plane quorum twice - in the inventory step
+    (before any mutation) and in verification. Quorum is 2 of 3: a NotReady member is
+    survivable but leaves zero margin, which is stated explicitly rather than inferred from
+    'kubectl get nodes' looking green.
 
     Individual phases are opt-OUT via -SkipPlatformRepair, -SkipMultipathRepair,
     -SkipStorageRepair, -SkipRestartWorkloads and -SkipRebalance. The older opt-in switches
@@ -881,6 +894,104 @@ function Get-NodeState {
         }
     }
     return $state
+}
+
+function Get-ControlPlaneStatus {
+    <#
+    .SYNOPSIS
+        Embedded-etcd view of the cluster: which nodes carry the control-plane role, how many
+        are Ready, and whether that still satisfies etcd's quorum majority.
+
+    .DESCRIPTION
+        Added for the three-server embedded-etcd topology (2026-09-20: nuc, server-236,
+        server-252). With a single server this check was meaningless; with several it is the
+        difference between "the API is up" and "the API is up but one more failure takes it
+        down". Quorum is floor(members / 2) + 1, so three members tolerate one loss and two
+        members tolerate none.
+
+        Also reports whether clients still address a single member: every kubeconfig in this
+        lab points at https://192.168.0.21:6443, which survives an etcd member loss but not
+        the loss of nuc itself.
+
+    .PARAMETER NodeObjects
+        Node objects as returned by 'kubectl get nodes -o json' (the .items array).
+
+    .PARAMETER ApiServerUrl
+        The current kubeconfig API server URL, used to detect the single-member endpoint.
+
+    .OUTPUTS
+        A status object: MemberCount, ReadyCount, Quorum, HasQuorum, ToleratesLoss, Members,
+        NotReady, Endpoint, SingleEndpoint.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter()][object[]]$NodeObjects,
+
+        [Parameter()][string]$ApiServerUrl = ''
+    )
+
+    $members = [System.Collections.Generic.List[object]]::new()
+    foreach ($node in @($NodeObjects)) {
+        $metadata = Get-Prop $node 'metadata'
+        $labels = Get-Prop $metadata 'labels'
+        $isControlPlane = ((Get-Prop $labels 'node-role.kubernetes.io/control-plane') -eq 'true') -or
+        ((Get-Prop $labels 'node-role.kubernetes.io/master') -eq 'true')
+        if (-not $isControlPlane) { continue }
+
+        $ready = $false
+        foreach ($condition in @(Get-Prop (Get-Prop $node 'status') 'conditions')) {
+            if ((Get-Prop $condition 'type') -eq 'Ready') {
+                $ready = ((Get-Prop $condition 'status') -eq 'True')
+                break
+            }
+        }
+
+        $ip = ''
+        foreach ($address in @(Get-Prop (Get-Prop $node 'status') 'addresses')) {
+            if ((Get-Prop $address 'type') -eq 'InternalIP') {
+                $ip = [string](Get-Prop $address 'address')
+                break
+            }
+        }
+
+        $members.Add([pscustomobject]@{
+                Name   = [string](Get-Prop $metadata 'name')
+                IsEtcd = ((Get-Prop $labels 'node-role.kubernetes.io/etcd') -eq 'true')
+                Ready  = $ready
+                IP     = $ip
+            })
+    }
+
+    # Members labelled 'etcd' are the embedded-etcd voters. Fall back to every control-plane
+    # node when the label is absent (older/agent-only nodes carry neither).
+    $etcdMembers = @($members | Where-Object { $_.IsEtcd })
+    $voters = if ($etcdMembers.Count -gt 0) { $etcdMembers } else { @($members) }
+    $quorum = [int][math]::Floor($voters.Count / 2) + 1
+    $readyCount = @($voters | Where-Object { $_.Ready }).Count
+
+    $endpointHost = ''
+    if ($ApiServerUrl) {
+        try { $endpointHost = ([System.Uri]$ApiServerUrl).Host } catch { $endpointHost = '' }
+    }
+    # A single-member endpoint is one that resolves to exactly one control-plane member;
+    # a VIP or DNS name across the members matches none of them.
+    $endpointMatches = 0
+    if ($endpointHost) {
+        $endpointMatches = @($voters | Where-Object { $_.Name -ieq $endpointHost -or $_.IP -eq $endpointHost }).Count
+    }
+
+    return [pscustomobject]@{
+        MemberCount    = $voters.Count
+        ReadyCount     = $readyCount
+        Quorum         = $quorum
+        HasQuorum      = ($readyCount -ge $quorum)
+        ToleratesLoss  = [int][math]::Max(0, $readyCount - $quorum)
+        Members        = @($voters)
+        NotReady       = @($voters | Where-Object { -not $_.Ready } | ForEach-Object { $_.Name })
+        Endpoint       = $endpointHost
+        SingleEndpoint = ($voters.Count -gt 1 -and $endpointMatches -eq 1)
+    }
 }
 
 function Repair-PendingRwoMounts {
@@ -1842,6 +1953,20 @@ try {
         Write-Warn "NotReady node(s): $(($notReadyNodes | ForEach-Object { $_.Name }) -join ', ')"
     }
 
+    # Control-plane / embedded-etcd quorum is reported BEFORE any mutation: with more than one
+    # server, "the API answers" no longer implies "the control plane can survive a failure".
+    $controlPlane = Get-ControlPlaneStatus -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) -ApiServerUrl $actualServer
+    Write-Info ("Control plane: {0}/{1} embedded-etcd member(s) Ready (quorum {2}; can lose {3})" -f `
+            $controlPlane.ReadyCount, $controlPlane.MemberCount, $controlPlane.Quorum, $controlPlane.ToleratesLoss)
+    if (-not $controlPlane.HasQuorum) {
+        Write-Bad "Control-plane quorum is ALREADY LOST ($($controlPlane.ReadyCount)/$($controlPlane.MemberCount) Ready, quorum $($controlPlane.Quorum)). Recovery steps may fail unpredictably - restore a control-plane member first."
+        Add-Finding "Control-plane quorum lost at start of run: $($controlPlane.NotReady -join ', ') NotReady"
+    }
+    elseif ($controlPlane.NotReady.Count -gt 0) {
+        Write-Warn "Control-plane member(s) NotReady: $($controlPlane.NotReady -join ', ') - quorum is held by the remaining $(($controlPlane.Members | Where-Object { $_.Ready }).Count) member(s), with zero further tolerance."
+        Add-Finding "Control-plane member(s) NotReady at start of run: $($controlPlane.NotReady -join ', ')"
+    }
+
     if ($WaitForNodesMinutes -gt 0 -and $notReadyNodes.Count -gt 0) {
         Write-Info "Waiting up to $WaitForNodesMinutes minute(s) for NotReady nodes to rejoin..."
         $waitUntil = (Get-Date).AddMinutes($WaitForNodesMinutes)
@@ -2397,13 +2522,20 @@ function Get-ManagedResource {
             $storageStatus = Wait-StorageReady -TimeoutSeconds 600 -PollSeconds 15
         }
         if ($storageStatus.Available -and -not $storageStatus.Ok) {
-            Write-Bad ("Proceeding with degraded storage: {0} attached volume(s) not healthy." -f $storageStatus.AttachedDegraded.Count)
+            $degradedCount = if ($storageStatus.AttachedDegraded) { $storageStatus.AttachedDegraded.Count } else { 0 }
+            Write-Bad ("Proceeding with degraded storage: {0} attached volume(s) not healthy." -f $degradedCount)
             Add-Finding "Reconcile started with degraded Longhorn volumes"
         }
 
+        # Track the storage snapshot used by the workload gate. The initial gate may wait up
+        # to 10 minutes for Longhorn to converge; do not repeat that wait for every workload.
+        $storageStatusLastChecked = Get-Date
+        $storageStatusRefreshSeconds = 5
+
         # Phase A - StatefulSets, strictly serialized: restart -> wait -> next.
         $statefulsets = @(Get-ManagedResource -ResourceType 'statefulsets')
-        Write-Info "Phase A: serialized rolling restart of $($statefulsets.Count) StatefulSet(s)"
+        $statefulsetCount = if ($statefulsets) { $statefulsets.Count } else { 0 }
+        Write-Info "Phase A: serialized rolling restart of $($statefulsetCount) StatefulSet(s)"
         $stalledWorkloads = [System.Collections.Generic.List[string]]::new()
 
         foreach ($sts in $statefulsets) {
@@ -2413,15 +2545,17 @@ function Get-ManagedResource {
             $target = "$ns/$name"
 
             # Per-resource re-gate: a mid-run storage degradation must not cascade.
-            if ($storageStatus.Available) {
-                $gate = Get-StorageStatus
-                if (-not $gate.Ok) { $gate = Wait-StorageReady -TimeoutSeconds 300 -PollSeconds 15 }
-                if (-not $gate.Ok) {
-                    Write-Warn "$target - Longhorn still degraded; skipping restart to avoid an RWO deadlock."
-                    Add-Finding "Skipped restart of $target (storage degraded)"
-                    $stalledWorkloads.Add($target)
-                    continue
-                }
+            # Refresh the Longhorn snapshot at most once per interval instead of waiting
+            # minutes for every StatefulSet.
+            if ($storageStatus.Available -and ((Get-Date) -gt $storageStatusLastChecked.AddSeconds($storageStatusRefreshSeconds))) {
+                $storageStatus = Get-StorageStatus
+                $storageStatusLastChecked = Get-Date
+            }
+            if ($storageStatus.Available -and -not $storageStatus.Ok) {
+                Write-Warn "$target - Longhorn still degraded; skipping restart to avoid an RWO deadlock."
+                Add-Finding "Skipped restart of $target (storage degraded)"
+                $stalledWorkloads.Add($target)
+                continue
             }
 
             $ok = Invoke-KubectlMutation -Description "rollout restart statefulset/$name -n $ns" `
@@ -2587,7 +2721,14 @@ function Get-ManagedResource {
 # ── Step 7: Verify (the checks v1 was missing) ───────────────────────
     Write-Step "[9/9] Verification"
 
-    $nodeStateAfter = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
+    # Cache repeated kubectl queries to speed up verification (avoid multiple kubectl get calls)
+    $allNodes = Get-K8sJson -KubectlArgs @('get', 'nodes')
+    $allPods  = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
+    $volumeAttachments = Get-K8sJson -KubectlArgs @('get', 'volumeattachments')
+    $podDisruptionBudgets = Get-K8sJson -KubectlArgs @('get', 'pdb', '-A')
+    $storageAfter = Get-StorageStatus
+
+    $nodeStateAfter = Get-NodeState -NodeObjects $allNodes `
         -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
     $stillCordonedReady = @($nodeStateAfter.Values | Where-Object { $_.Unschedulable -and $_.Ready } | ForEach-Object { $_.Name })
     $stillNotReady = @($nodeStateAfter.Values | Where-Object { -not $_.Ready } | ForEach-Object { $_.Name })
@@ -2604,7 +2745,29 @@ function Get-ManagedResource {
         Add-Finding "NotReady node(s) at end of run: $($stillNotReady -join ', ')"
     }
 
-    foreach ($node in (Get-K8sJson -KubectlArgs @('get', 'nodes'))) {
+    # Control-plane / embedded-etcd quorum (three members since 2026-09-20).
+    $controlPlaneAfter = Get-ControlPlaneStatus -NodeObjects $allNodes -ApiServerUrl $actualServer
+    Write-Info ("Control plane: {0}/{1} embedded-etcd member(s) Ready (quorum {2}; can lose {3})" -f `
+            $controlPlaneAfter.ReadyCount, $controlPlaneAfter.MemberCount, $controlPlaneAfter.Quorum, $controlPlaneAfter.ToleratesLoss)
+    if (-not $controlPlaneAfter.HasQuorum) {
+        Write-Bad "Control-plane quorum LOST: $($controlPlaneAfter.ReadyCount)/$($controlPlaneAfter.MemberCount) member(s) Ready (quorum $($controlPlaneAfter.Quorum)). Do NOT power off or restart anything else - restore a control-plane member first."
+        Add-Finding "Control-plane quorum lost at end of run: $($controlPlaneAfter.NotReady -join ', ') NotReady"
+    }
+    elseif ($controlPlaneAfter.NotReady.Count -gt 0) {
+        Write-Warn "Control-plane member(s) NotReady: $($controlPlaneAfter.NotReady -join ', '). Quorum holds, but there is no margin left until it rejoins (its etcd member is retained, so starting the host is enough)."
+        Add-Finding "Control-plane member(s) NotReady at end of run: $($controlPlaneAfter.NotReady -join ', ')"
+    }
+    else {
+        Write-Ok "All $($controlPlaneAfter.MemberCount) embedded-etcd member(s) are Ready."
+    }
+    # Client-side endpoint: reported, never counted as a failure. Every kubeconfig here points
+    # at one member address, so the API still dies with nuc even though etcd quorum survives.
+    if ($controlPlaneAfter.SingleEndpoint) {
+        Write-Warn "API endpoint '$($controlPlaneAfter.Endpoint)' is a single control-plane member, not a VIP/DNS name - clients still lose the API if that member goes down (see the control-plane HA plan, Phase 3.1)."
+        Add-Finding "API endpoint is a single control-plane member: $($controlPlaneAfter.Endpoint)"
+    }
+
+    foreach ($node in $allNodes) {
         $nodeName = Get-Prop (Get-Prop $node 'metadata') 'name'
         foreach ($condition in @(Get-Prop (Get-Prop $node 'status') 'conditions')) {
             $type = Get-Prop $condition 'type'
@@ -2616,7 +2779,6 @@ function Get-ManagedResource {
         }
     }
 
-    $storageAfter = Get-StorageStatus
     if ($storageAfter.Available) {
         Write-Info ("Longhorn: {0}/{1} healthy, {2} degraded, {3} faulted, {4} detached, {5} node(s) not scheduling" -f `
                 $storageAfter.HealthyCount, $storageAfter.VolumeCount,
@@ -2680,8 +2842,7 @@ function Get-ManagedResource {
         Add-Finding 'Longhorn control plane degraded at end of run'
     }
 
-    $badAttachments = @(Get-K8sJson -KubectlArgs @('get', 'volumeattachments') |
-            Where-Object { (Get-Prop (Get-Prop $_ 'status') 'attached') -ne $true } |
+    $badAttachments = @(($volumeAttachments | Where-Object { (Get-Prop (Get-Prop $_ 'status') 'attached') -ne $true }) |
             ForEach-Object { Get-Prop (Get-Prop $_ 'metadata') 'name' })
     if ($badAttachments.Count -gt 0) {
         Write-Warn "$($badAttachments.Count) volume attachment(s) not attached."
@@ -2689,7 +2850,7 @@ function Get-ManagedResource {
     }
 
     $badPdbs = [System.Collections.Generic.List[string]]::new()
-    foreach ($pdb in (Get-K8sJson -KubectlArgs @('get', 'pdb', '-A'))) {
+    foreach ($pdb in $podDisruptionBudgets) {
         $status = Get-Prop $pdb 'status'
         $healthy = Get-Prop $status 'currentHealthy'
         $desired = Get-Prop $status 'desiredHealthy'
@@ -2706,7 +2867,7 @@ function Get-ManagedResource {
     }
 
     $unhealthyPods = [System.Collections.Generic.List[string]]::new()
-    foreach ($pod in (Get-K8sJson -KubectlArgs @('get', 'pods', '-A'))) {
+    foreach ($pod in $allPods) {
         $md = Get-Prop $pod 'metadata'
         $status = Get-Prop $pod 'status'
         $label = "$(Get-Prop $md 'namespace')/$(Get-Prop $md 'name')"
@@ -2741,6 +2902,10 @@ function Get-ManagedResource {
     $degradedTotal += $platformBad.Count
     if ($dnsEndpoints -eq 0) { $degradedTotal++ }
     if (-not $lhAfter.Ok) { $degradedTotal++ }
+    # Quorum loss is a real degradation (the API cannot be trusted with further changes).
+    # The single-member API endpoint is reported as a finding only - it is an architectural
+    # gap documented in the HA plan, not something this run can fix.
+    if (-not $controlPlaneAfter.HasQuorum) { $degradedTotal++ }
 
     Write-Host "`n========================================" -ForegroundColor Cyan
     if ($degradedTotal -eq 0) {

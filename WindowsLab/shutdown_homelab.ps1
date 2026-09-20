@@ -1,4 +1,16 @@
-# ?? K3s Homelab Systematic Shutdown (v8 - Refined & Verified)
+# K3s Homelab Systematic Shutdown (v8 - Refined & Verified)
+#
+# Control plane (since 2026-09-20): THREE embedded-etcd servers - nuc (192.168.0.21),
+# server-236 (192.168.0.236) and server-252 (192.168.0.252). Powering off members spends
+# etcd quorum (2 of 3), so the API answers for only the first one or two poweroffs. The
+# script therefore:
+#   1. snapshots each control-plane member's Longhorn attachments up front, while the API
+#      is still guaranteed to answer,
+#   2. powers the workers off first and the control plane last, with the primary endpoint
+#      (nuc) last of all, so kubectl keeps working for as long as possible,
+#   3. falls back to that snapshot once quorum is spent, and refuses (without -Force) to
+#      power off a member that had volumes attached at pre-flight.
+# Control-plane members are never drained, and a neverPowerOff member is never touched.
 [CmdletBinding()]
 param(
     [Parameter(HelpMessage="Skip all manual confirmations")]
@@ -135,8 +147,32 @@ function Get-DegradedLonghornVolumes {
     return $degraded
 }
 
+function Test-ApiReachable {
+    <#
+    .SYNOPSIS
+        Fast probe: is the Kubernetes API answering? Used by the control-plane phase, because
+        powering off control-plane members spends etcd quorum, after which kubectl cannot answer.
+    #>
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $null = & kubectl get --raw='/readyz' --request-timeout=10s 2>$null
+        return ($LASTEXITCODE -eq 0)
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
 # 1. DISCOVERY LOGIC
 $targets = @()
+# K3s HA: every control-plane member is its own target and is powered off LAST, so etcd
+# keeps quorum while the workers are drained. The primary (registry's first control-plane
+# record, i.e. nuc) is powered off last of all because kubectl talks to 192.168.0.21:6443.
+$masterTargets = @()
 $masterIp = $null
 $actualMode = ""
 
@@ -154,15 +190,43 @@ if ($Mode -eq "Fallback") {
             return ($addresses | Where-Object { $_.type -eq 'InternalIP' -and $_.address -match '^\d{1,3}(\.\d{1,3}){3}$' } | Select-Object -First 1 -ExpandProperty address)
         }
 
-        $masterNode = $registryAllNodes.items | Where-Object { $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true' }
+        # K3s HA: this cluster has several control-plane members sharing the role labels.
+        # Match them ALL - matching only "the" master would leave the other etcd members in
+        # the worker list, where they would be drained and powered off first, destroying etcd
+        # quorum (and therefore the API) before the shutdown finishes.
+        $masterNodes = @($registryAllNodes.items | Where-Object {
+            $_.metadata.labels.'node-role.kubernetes.io/master' -eq 'true' -or
+            $_.metadata.labels.'node-role.kubernetes.io/control-plane' -eq 'true'
+        })
+        $masterNames = @($masterNodes | ForEach-Object { $_.metadata.name })
+
         # Exclude the control plane and every node flagged neverPowerOff (registry:
         # WindowsLab/homelab-nodes.json). kubernetes7 is DELIBERATELY spared - its power
         # switch is broken, so powering it off means it can never be turned back on.
-        $workerNodes = $registryAllNodes.items | Where-Object {
-            $_.metadata.name -ne $masterNode.metadata.name -and ($neverPowerOff -notcontains $_.metadata.name)
-        }
+        $workerNodes = @($registryAllNodes.items | Where-Object {
+            ($masterNames -notcontains $_.metadata.name) -and ($neverPowerOff -notcontains $_.metadata.name)
+        })
 
-        $masterIp = Get-IPv4 -addresses $masterNode.status.addresses
+        # Control-plane targets, primary endpoint last.
+        $primaryMasterName = $masterFallback.Name
+        $masterTargets = @(
+            $masterNodes | Where-Object { $_.metadata.name -ne $primaryMasterName } | ForEach-Object {
+                $ip = Get-IPv4 -addresses $_.status.addresses
+                if ($ip) { [PSCustomObject]@{ Name = $_.metadata.name; IP = $ip } }
+            }
+            $masterNodes | Where-Object { $_.metadata.name -eq $primaryMasterName } | ForEach-Object {
+                $ip = Get-IPv4 -addresses $_.status.addresses
+                if ($ip) { [PSCustomObject]@{ Name = $_.metadata.name; IP = $ip } }
+            }
+        )
+        if ($masterTargets.Count -eq 0) {
+            Write-Host "[!] No control-plane node discovered via the API; using the registry list." -ForegroundColor Yellow
+            $masterTargets = @($registryNodes | Where-Object { $_.role -eq 'control-plane' } | ForEach-Object {
+                [PSCustomObject]@{ Name = $_.name; IP = $_.ip }
+            })
+        }
+        $masterIp = $masterTargets[-1].IP
+
         foreach ($node in $workerNodes) {
             $ip = Get-IPv4 -addresses $node.status.addresses
             if ($ip) { $targets += [PSCustomObject]@{ Name = $node.metadata.name; IP = $ip } }
@@ -180,6 +244,16 @@ if ($Mode -eq "Fallback") {
 }
 
 if ($actualMode -eq "FALLBACK") {
+    # Registry order decides the primary endpoint (nuc = first control-plane record).
+    $registryControlPlane = @($registryNodes | Where-Object { $_.role -eq 'control-plane' })
+    $masterTargets = @(
+        $registryControlPlane | Where-Object { $_.name -ne $masterFallback.Name } | ForEach-Object {
+            [PSCustomObject]@{ Name = $_.name; IP = $_.ip }
+        }
+        $registryControlPlane | Where-Object { $_.name -eq $masterFallback.Name } | ForEach-Object {
+            [PSCustomObject]@{ Name = $_.name; IP = $_.ip }
+        }
+    )
     $masterIp = $masterFallback.IP
     foreach ($w in $workerFallback) { $targets += [PSCustomObject]@{ Name = $w.Name; IP = $w.IP } }
 }
@@ -193,9 +267,16 @@ foreach ($target in $targets) {
 if ($neverPowerOff -contains $masterFallback.Name) {
     throw "Refusing to power off control-plane node '$($masterFallback.Name)': marked neverPowerOff in homelab-nodes.json."
 }
+# Same hard safety net for every other control-plane member (K3s HA has more than one).
+foreach ($master in $masterTargets) {
+    if ($neverPowerOff -contains $master.Name) {
+        throw "Refusing to power off control-plane node '$($master.Name)': marked neverPowerOff in homelab-nodes.json."
+    }
+}
 
 Write-Host "Active Mode: $actualMode" -ForegroundColor Cyan
-Write-Host "Master: $masterIp"
+Write-Host "Primary master (powered off last): $masterIp"
+Write-Host "Control plane: $(@($masterTargets | ForEach-Object { $_.Name }) -join ', ')"
 Write-Host "Workers: $($targets.Name -join ', ')"
 
 # 2. CREDENTIALS
@@ -260,6 +341,29 @@ if ($actualMode -ne "FALLBACK") {
 }
 else {
     Write-Host "[!] FALLBACK mode: API unreachable, skipping storage pre-flight." -ForegroundColor Yellow
+}
+
+# 2c. CONTROL-PLANE PRE-CHECK
+# Powering off embedded-etcd members spends quorum, so the API answers only for the first
+# poweroff or two: the control-plane phase cannot rely on live kubectl queries. Record each
+# member's live Longhorn attachments NOW, while the API is guaranteed to answer, and judge
+# the later members from that snapshot (see the control-plane phase at the end).
+$masterPreCheck = @{}
+if ($actualMode -ne "FALLBACK") {
+    Write-Host "`n--- Pre-flight: control-plane storage state ---" -ForegroundColor Cyan
+    foreach ($master in $masterTargets) {
+        $attached = @(Get-NodeAttachedVolumes -NodeName $master.Name)
+        $masterPreCheck[$master.Name] = $attached
+        if ($attached -contains 'UNKNOWN-API-FAILURE') {
+            Write-Host "  [!] $($master.Name): could not query attached volumes." -ForegroundColor Yellow
+        }
+        elseif ($attached.Count -gt 0) {
+            Write-Host "  [!] $($master.Name): $($attached.Count) attached volume(s) - $($attached -join ', ')" -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "  [+] $($master.Name): storage clean." -ForegroundColor Green
+        }
+    }
 }
 
 # 3. SHUTDOWN LOOP (per-node resilient: one bad node must not abort the rest)
@@ -338,30 +442,52 @@ foreach ($worker in $targets) {
     if (!$nodeOk) { $failedNodes += $worker.Name }
 }
 
-Write-Host "`n--- Powering off Master (NUC) ---" -ForegroundColor Red
-$masterOk = $true
-try {
-    if (!$SkipDrain) {
-        Write-Host "  - Waiting for Longhorn detach on $masterIp (timeout ${DetachTimeoutSeconds}s)..."
-        $masterName = $masterFallback.Name
-        $clean = Wait-NodeVolumesDetached -NodeName $masterName -TimeoutSeconds $DetachTimeoutSeconds
-        if ($clean) { Write-Host "  [+] Storage clean on $masterName." -ForegroundColor Green }
-        elseif (!$Force) {
-            Write-Host "  [!] Volumes still attached to ${masterName}; skipping master poweroff (re-run with -Force to override)." -ForegroundColor Red
-            $skippedNodes += $masterName
-            $masterOk = $false
+Write-Host "`n--- Powering off Control Plane (last) ---" -ForegroundColor Red
+foreach ($master in $masterTargets) {
+    $masterName = $master.Name
+    $masterOk = $true
+    try {
+        # The Longhorn detach gate needs the API. Once enough etcd members have been
+        # powered off, quorum is spent and kubectl can no longer answer - at that point the
+        # gate cannot run for the remaining members, and refusing to continue would leave
+        # the worker-only shutdown half-finished. Warn loudly and continue instead.
+        $apiUp = Test-ApiReachable
+        if (!$SkipDrain -and $apiUp) {
+            Write-Host "  - Waiting for Longhorn detach on $masterName (timeout ${DetachTimeoutSeconds}s)..."
+            $clean = Wait-NodeVolumesDetached -NodeName $masterName -TimeoutSeconds $DetachTimeoutSeconds
+            if ($clean) { Write-Host "  [+] Storage clean on $masterName." -ForegroundColor Green }
+            elseif (!$Force) {
+                Write-Host "  [!] Volumes still attached to ${masterName}; skipping poweroff (re-run with -Force to override)." -ForegroundColor Red
+                $skippedNodes += $masterName
+                $masterOk = $false
+            }
+            else { Write-Host "  [!] -Force supplied: powering off $masterName with volumes attached." -ForegroundColor Red }
         }
-        else { Write-Host "  [!] -Force supplied: powering off master with volumes attached." -ForegroundColor Red }
+        elseif (!$SkipDrain) {
+            # The API is gone (quorum already spent), so the live gate cannot run for this
+            # member. Fall back to the pre-flight snapshot taken while the API was alive: if
+            # it had attachments, do not silently power it off.
+            $preAttached = @()
+            if ($masterPreCheck.ContainsKey($masterName)) { $preAttached = @($masterPreCheck[$masterName]) }
+            if ($preAttached.Count -gt 0 -and ($preAttached -notcontains 'UNKNOWN-API-FAILURE') -and !$Force) {
+                Write-Host "  [!] ${masterName} had attached volume(s) at pre-flight ($($preAttached -join ', ')) and the API is no longer answering - skipping poweroff (re-run with -Force to override)." -ForegroundColor Red
+                $skippedNodes += $masterName
+                $masterOk = $false
+            }
+            else {
+                Write-Host "  [!] API unreachable (etcd quorum already spent) - storage gate skipped for $masterName." -ForegroundColor Yellow
+            }
+        }
+        if ($masterOk) {
+            $env:SSHPASS = $plainPass
+            Invoke-NodeSsh -IP $master.IP -RemoteCommand "echo $b64Pass | base64 -d | sudo -S poweroff"
+            Write-Host "  [+] Poweroff command sent to $masterName." -ForegroundColor Green
+        }
     }
-    if ($masterOk) {
-        $env:SSHPASS = $plainPass
-        Invoke-NodeSsh -IP $masterIp -RemoteCommand "echo $b64Pass | base64 -d | sudo -S poweroff"
-        Write-Host "  [+] Master poweroff command sent." -ForegroundColor Green
+    catch {
+        Write-Host "  [!] Shutdown of $masterName failed: $($_.Exception.Message)" -ForegroundColor Red
+        $failedNodes += $masterName
     }
-}
-catch {
-    Write-Host "  [!] Master shutdown failed: $($_.Exception.Message)" -ForegroundColor Red
-    $failedNodes += $masterFallback.Name
 }
 
 Write-Host "`n--- Shutdown Summary ---" -ForegroundColor Cyan

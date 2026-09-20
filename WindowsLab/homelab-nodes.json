@@ -5,10 +5,10 @@
     "name": "k3s-homelab",
     "apiServer": "https://192.168.0.21:6443",
     "kubeconfigContext": "default",
-    "expectedNodes": 9,
+    "expectedNodes": 11,
     "storageClass": "longhorn"
   },
-  "survivors": ["nuc", "kubernetes5", "kubernetes7"],
+  "survivors": ["nuc", "kubernetes5", "kubernetes7", "server-236", "server-252"],
   "nodes": [
     {
       "name": "nuc",
@@ -99,10 +99,30 @@
       "neverCordon": false,
       "neverPowerOff": false,
       "notes": "Debian worker. Frequently powered off during minimal mode; expect it NotReady with stale Longhorn instance-managers."
+    },
+    {
+      "name": "server-236",
+      "ip": "192.168.0.236",
+      "role": "control-plane",
+      "os": "Ubuntu 24.04",
+      "sshUser": "suryendub",
+      "neverCordon": true,
+      "neverPowerOff": false,
+      "notes": "2nd K3s server (embedded etcd), joined 2026-09-19. HP-1 host. Also runs the local Docker registry on :5000 (pinned by kube-system/registry-fixer), so it must not be wiped."
+    },
+    {
+      "name": "server-252",
+      "ip": "192.168.0.252",
+      "role": "control-plane",
+      "os": "Ubuntu 20.04",
+      "sshUser": "suryendub",
+      "neverCordon": true,
+      "neverPowerOff": false,
+      "notes": "3rd K3s server (embedded etcd), joined 2026-09-20. Hyper-V VM (hostname k3s-master, 2 vCPU / 2 GB) - completes 3-member etcd quorum. Registering it here means the minimal-mode survivor list MUST keep a control-plane majority (see survivors)."
     }
   ],
   "external": [
     { "name": "nas", "ip": "192.168.0.128", "role": "nas", "os": "QNAP QTS", "notes": "NFS backup target for k3s-backup-to-nas.sh." },
-    { "name": "registry", "ip": "192.168.0.236", "role": "registry", "os": "unknown", "notes": "Local docker registry on port 5000; pinned by kube-system/registry-fixer." }
+    { "name": "registry", "ip": "192.168.0.236", "role": "registry", "os": "unknown", "notes": "Local docker registry on port 5000; pinned by kube-system/registry-fixer. Since 2026-09-19 it is co-hosted on the control-plane node 'server-236' (the planned move to 192.168.0.249 never happened - .249 does not exist on this LAN)." }
   ]
 }
