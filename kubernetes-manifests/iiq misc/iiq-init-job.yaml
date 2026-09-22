@@ -2,8 +2,11 @@
 # IdentityIQ Init Job - Creates MSSQL databases, users, schema
 # Run ONCE before deploying the iiq deployment.
 # ============================================================
-# Image: 192.168.0.236:5000/sailpoint-iiq:8.5
-# This image contains sqlcmd and the IIQ schema SQL scripts.
+# Image: 192.168.0.236:5000/sailpoint-docker:latest (IIQ 8.4 — must match the
+#   running app; SQL files are version-suffixed, e.g. ah-create_hibernate_tables-8.4.sqlserver).
+#   Verified 2026-09-22: bash, unzip, /opt/mssql-tools18/bin/sqlcmd and /opt/iiq/identityiq.war all present.
+#   (The old 192.168.0.236:5000/sailpoint-iiq:8.5 image only ships 8.5-suffixed
+#    SQL — every 8.4 path below fails there with file-not-found.)
 # ============================================================
 # FIXED 2026-09-22 (live-drift reconciliation):
 #  - AH DDL used a nonexistent path (database/create_identityiq_ah_tables.sql) and
@@ -52,7 +55,7 @@ spec:
               echo "All dependencies are ready."
       containers:
         - name: iiq-init
-          image: 192.168.0.236:5000/sailpoint-iiq:8.5
+          image: 192.168.0.236:5000/sailpoint-docker:latest
           command:
             - /bin/bash
             - -c
@@ -111,7 +114,7 @@ spec:
               /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -Q "USE identityiqPlugin; IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'identityiq') CREATE USER identityiq FOR LOGIN identityiq; EXEC sp_addrolemember 'db_owner', 'identityiq'; ALTER USER identityiq WITH DEFAULT_SCHEMA = identityiqPlugin"
               /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -Q "USE identityiqPlugin; IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'identityiqPlugin') CREATE USER identityiqPlugin FOR LOGIN identityiqPlugin; EXEC sp_addrolemember 'db_owner', 'identityiqPlugin'; ALTER USER identityiqPlugin WITH DEFAULT_SCHEMA = identityiqPlugin"
               /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -Q "USE identityiqah; IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'identityiq') CREATE USER identityiq FOR LOGIN identityiq; EXEC sp_addrolemember 'db_owner', 'identityiq'; ALTER USER identityiq WITH DEFAULT_SCHEMA = identityiqah"
-              /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -Q "USE identityiqah; IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'identityiqah') CREATE USER identityiqah FOR LOGIN identityiq; EXEC sp_addrolemember 'db_owner', 'identityiqah'"
+              /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -Q "USE identityiqah; IF NOT EXISTS (SELECT * FROM sys.database_principals WHERE name = 'identityiqah') CREATE USER identityiqah FOR LOGIN identityiq; EXEC sp_addrolemember 'db_owner', 'identityiqah'; ALTER USER identityiqah WITH DEFAULT_SCHEMA = identityiqah"
 
               # 5. Create synonym for spt_database_version
               echo "Creating synonym for spt_database_version..."
@@ -124,8 +127,9 @@ spec:
                 echo "Schema missing, creating..."
                 /opt/mssql-tools18/bin/sqlcmd -S db -U identityiq -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -No -C -i /opt/tomcat/webapps/identityiq/WEB-INF/database/create_identityiq_tables-8.4.sqlserver -d identityiq
                 echo "Main schema created."
-                /opt/mssql-tools18/bin/sqlcmd -S db -U identityiq -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -No -C -i /opt/tomcat/webapps/identityiq/WEB-INF/database/create_identityiq_plugin_tables.sql -d identityiqPlugin 2>/dev/null || echo "Plugin schema creation skipped or failed"
-                /opt/mssql-tools18/bin/sqlcmd -S db -U identityiq -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -No -C -i /opt/tomcat/webapps/identityiq/WEB-INF/database/create_identityiq_ah_tables.sql -d identityiqah 2>/dev/null || echo "Access history schema creation skipped or failed"
+                # Plugin login/user/schema: created in step 4b. AH schema: step 7 (hard-gated).
+                # Neither create_identityiq_plugin_tables.sql nor create_identityiq_ah_tables.sql
+                # exists in the image — both were dead paths whose errors were swallowed.
               else
                 echo "Schema already exists."
               fi

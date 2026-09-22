@@ -101,6 +101,7 @@ curl -sk https://iiq-main.tail35421d.ts.net/identityiq/     # from a tailnet cli
 4. **OOM kill (exit 137)** — 2Gi → 4Gi, `-Xmx3072M`.
 5. **Wrong DB type** — MySQL config replaced with MSSQL (`SQLServerPagingDialect`, `MSSQLDelegate`).
 6. **Schema-owner/synonym legacy issues** — `identityiq` default schema, `spt_database_version` synonym, AH user + `db_owner`.
+7. **Init-job image version mismatch** — the job ran in `192.168.0.236:5000/sailpoint-iiq:8.5`, whose SQL files are all `8.5`-suffixed (`ah-create_hibernate_tables-8.5.sqlserver`), while the running app (and every path in the fixed script) is `8.4`. The job now uses `192.168.0.236:5000/sailpoint-docker:latest` — the same image as the Deployment (verified: bash, unzip, `/opt/mssql-tools18/bin/sqlcmd`, `/opt/iiq/identityiq.war` all present). Keep job and app images in lockstep: the SQL fragments are version-suffixed.
 
 ## Remaining Work
 
