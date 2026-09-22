@@ -1,18 +1,18 @@
 # IdentityIQ (iiqstack) — Deployment & Recovery Guide
 
-## Status (2026-09-22 — after live↔repo drift reconciliation, commit 21523d7)
+## Status (2026-09-22 — after IIQ 8.5 upgrade from local registry)
 
 | Component | Status | Notes |
 |---|---|---|
-| `deployment/iiq` | ✅ 1/1 Ready | `sailpoint-docker:latest`, 4Gi / `-Xmx3072M`; spec matches `iiq misc/iiq-deployment.yaml` |
-| `pod/iiq-*` | ✅ Running | Spring context up — `/identityiq/` returns **HTTP 200**, VersionChecker passed |
+| `deployment/iiq` | ✅ 1/1 Ready | `192.168.0.236:5000/sailpoint-iiq:8.5` (IIQ 8.5, local registry, digest-pinned), 4Gi / `-Xmx3072M`; spec matches `iiq misc/iiq-deployment.yaml` |
+| `pod/iiq-*` | ✅ Running | 8.5 boot on upgraded schema — `/identityiq/` returns **HTTP 200**, VersionChecker passed (system `8.5-19` / schema `8.5-15`) |
 | `service/iiq` | ✅ ClusterIP | :80 → :8080, port name `http`, session affinity 10800s, Tailscale exposed |
 | `iiq-pdb` | ✅ Created | `minAvailable: 1` (added from code during reconciliation) |
-| `db-0` (MSSQL) | ✅ Running | 3 databases; `identityiq` full schema + version row `8.4-107` / `8.4-88`; `identityiqPlugin` login/user ready |
-| `identityiqah` | ⚠️ **14/32 tables** | Version row seeded (`8.4-107` / `8.4-88`) so startup passes, but runtime access-history writes to the 18 missing tables will error → finish with **Option A** |
+| `db-0` (MSSQL) | ✅ Running | 3 databases; `identityiq` upgraded **8.4→8.5** (official `upgrade_identityiq_tables.sqlserver`, 220 tables); version rows **`8.5-19` / `8.5-15`**; `identityiqPlugin` login/user ready |
+| `identityiqah` | ✅ **32/32 tables** | 8.5 fragment completed the 18 missing tables (must run with `-d identityiqah`); version row `8.5-19` / `8.5-15`; legacy `dbo` synonym dropped |
 | `db-mysql-0` | ✅ Running | MySQL 8.0 (not used by IIQ) |
 | `ldap-0` / `mail-0` / `activemq-0` | ✅ Running | OpenLDAP / Mailpit / ActiveMQ Artemis |
-| `iiq-init` job | ✅ Completed | Original pre-fix run; corrected script not yet re-applied (Job spec is immutable while the job exists) |
+| `iiq-init` job | ✅ Completed | Recreated with the fixed 8.5 script (image `sailpoint-iiq:8.5`, version-row seed step) — runs clean end-to-end: "Access History schema OK (32 tables)." |
 | stack YAML vs live | ✅ In sync | `kubectl diff` clean for `iiq-stateful.yaml` and `iiq misc/*.yaml` |
 
 ## Files in This Directory
@@ -21,7 +21,7 @@
 |---|---|---|
 | `../iiq-stateful.yaml` | **Canonical full stack**: namespace, quota, netpols, SA/RBAC, secret, all dependencies (db/ldap/activemq/mail/counter/ssh/phpldapadmin), Deployment+Service `iiq`, PDBs, IngressRoutes, NFS PVCs | ✅ |
 | `iiq-deployment.yaml` | Deployment + Service `iiq` only — spec identical to the canonical file; use for iiq-only updates | ✅ |
-| `iiq-init-job.yaml` | DB bootstrap: databases, logins/users, default schemas, full AH DDL hard-gated at **32 tables** | ⚠️ delete job first (immutable while it exists) |
+| `iiq-init-job.yaml` | DB bootstrap: databases, logins/users, default schemas, full AH DDL hard-gated at **32 tables**, version-row seed (`8.5-19`/`8.5-15`) | ⚠️ delete job first (immutable while it exists) |
 | `iiq-deployment-ha-nas.yaml` | HA/NAS variant (replicas 2, `sailpoint-iiq:8.5`, NAS initContainer) | ❌ reference only |
 | `fix-db-corruption-job.yaml` | Emergency recovery — **drops and recreates the `identityiq` database**; kept suspended | ❌ emergency only |
 | `iiq-mssql-setup.sql` | Manual SQL fallback (Option B, via **stdin**). Behind the init job: no `identityiqPlugin` login, stub AH table, legacy `dbo` synonym that collides with the real AH DDL | manual only |
@@ -93,6 +93,27 @@ curl -sk http://iiq.iiqstack.svc/identityiq/                # in-cluster service
 curl -sk https://iiq-main.tail35421d.ts.net/identityiq/     # from a tailnet client (TLS by Tailscale)
 ```
 
+## Upgrading IIQ 8.4 → 8.5 (2026-09-22)
+
+Local registry `192.168.0.236:5000` hosts `sailpoint-iiq:8.5`; the app was switched from `sailpoint-docker:latest` (8.4) and both IIQ databases were upgraded in place:
+
+1. **Back up all three DBs** — `BACKUP DATABASE … TO DISK='/var/opt/mssql/data/pre85-*.bak'` as `sa`.
+2. **Official schema upgrade** — extract from the 8.5 WAR and run as `sa` **without `-b`** (it continues past missing-object errors):
+   ```bash
+   # inside a 192.168.0.236:5000/sailpoint-iiq:8.5 pod
+   unzip -p /opt/iiq/identityiq.war WEB-INF/database/upgrade_identityiq_tables.sqlserver > /tmp/u.sql
+   /opt/mssql-tools18/bin/sqlcmd -C -N o -U sa -P "$SA" -S db -i /tmp/u.sql
+   ```
+   Sets `schema_version='8.5-15'` in **both** `identityiq.spt_database_version` and `identityiqah.spt_hist_database_version`, and applies AH column/index deltas to the AH tables that exist. Expected errors: statements against AH tables that don't exist yet (next step fixes them) and duplicate index creates (idempotent).
+3. **Finish incomplete AH** (was 14/32): run `fragments/ah-create_hibernate_tables-8.5.sqlserver` **with `-d identityiqah`** — without it every `identityiqah.*` name resolves in `master`, fails with `Msg 1088 (schema does not exist)`, and *nothing is created* while sqlcmd still exits 0. Gate at 32 base tables.
+4. **Bump `system_version` manually** — the upgrade script only touches `schema_version`. The 8.5 app refuses to start with
+   `DatabaseVersionException: IdentityIQ expected system version [8.5-19] does not match current database value [8.4-107]`
+   until both rows are updated: `UPDATE … SET system_version='8.5-19' WHERE name='main'` (in `identityiq` and `identityiqah`).
+5. **Swap the image** — `iiq-stateful.yaml` + `iiq misc/iiq-deployment.yaml` → `192.168.0.236:5000/sailpoint-iiq:8.5` (`imagePullPolicy: IfNotPresent`), then `kubectl -n iiqstack rollout restart deploy/iiq`. Same entrypoint/env as before (`DATABASE_TYPE=mssql`, `MSSQL_*`); the 8.5 image runs Tomcat 9.0.117 on JDK 17. Note: `IfNotPresent` won't re-pull a moved `:8.5` tag — pin the digest or use `Always` if you re-push the tag.
+6. **Verify** — pod Ready, `/identityiq/` → HTTP 200, version rows `8.5-19` / `8.5-15` in both DBs.
+
+> Gotcha: `sqlcmd -i <local path>` inside `kubectl exec` doesn't work — extract the SQL **inside** a pod (or pipe it via stdin).
+
 ## Root Causes Fixed (2026-09-22)
 
 1. **AH DDL pointed at a nonexistent file, errors swallowed** — `database/create_identityiq_ah_tables.sql` doesn't exist; the real file is `WEB-INF/database/fragments/ah-create_hibernate_tables-8.4.sqlserver`. The job hid failures behind `2>/dev/null || echo skipped`, silently leaving `identityiqah` empty → `Invalid object name 'spt_hist_database_version'` → VersionChecker failure → HTTP 404. **Root cause of the outage.**
@@ -101,12 +122,13 @@ curl -sk https://iiq-main.tail35421d.ts.net/identityiq/     # from a tailnet cli
 4. **OOM kill (exit 137)** — 2Gi → 4Gi, `-Xmx3072M`.
 5. **Wrong DB type** — MySQL config replaced with MSSQL (`SQLServerPagingDialect`, `MSSQLDelegate`).
 6. **Schema-owner/synonym legacy issues** — `identityiq` default schema, `spt_database_version` synonym, AH user + `db_owner`.
-7. **Init-job image version mismatch** — the job ran in `192.168.0.236:5000/sailpoint-iiq:8.5`, whose SQL files are all `8.5`-suffixed (`ah-create_hibernate_tables-8.5.sqlserver`), while the running app (and every path in the fixed script) is `8.4`. The job now uses `192.168.0.236:5000/sailpoint-docker:latest` — the same image as the Deployment (verified: bash, unzip, `/opt/mssql-tools18/bin/sqlcmd`, `/opt/iiq/identityiq.war` all present). Keep job and app images in lockstep: the SQL fragments are version-suffixed.
+7. **Init-job image version mismatch** — job and app images must be in lockstep: the SQL files are version-suffixed (`create_identityiq_tables-<ver>.sqlserver`, `ah-create_hibernate_tables-<ver>.sqlserver`), so an `8.5` image running `8.4` paths (or vice versa) fails with file-not-found. Since the 8.5 upgrade both the Deployment and the job use `192.168.0.236:5000/sailpoint-iiq:8.5`, and every path in the script is `8.5`-suffixed (verified: bash, unzip, `/opt/mssql-tools18/bin/sqlcmd`, `/opt/iiq/identityiq.war` all present).
+8. **VersionChecker needs both version rows to match the image** — `system_version` (app build, e.g. `8.5-19`) *and* `schema_version` (DB schema, `8.5-15`). The create scripts INSERT neither row, and the official upgrade script updates only `schema_version` — so the init job now seeds both (step 8), and image upgrades must bump `system_version` by hand (see the Upgrading section).
 
 ## Remaining Work
 
-- `identityiqah` is at **14/32** base tables. Startup passes on the seeded version row, but access-history persistence will fail at runtime — finish with **Option A** (the job's 32-table gate verifies the result).
-- The corrected init script has never run end-to-end (the live Job is immutable) — review its logs once after the first delete+recreate.
+- **None for the 8.5 upgrade** — `identityiqah` is at **32/32**, both version rows are `8.5-19` / `8.5-15`, and the corrected init script has run end-to-end ("Access History schema OK (32 tables)." → "Version rows OK.").
+- Optional cleanup: pre-upgrade backups (`pre85-identityiq*.bak`, `pre85-identityiqPlugin.bak`) in `/var/opt/mssql/data` can be removed once 8.5 is trusted.
 
 ## Secret Reference
 
@@ -136,8 +158,9 @@ The `iiq` service is exposed via Tailscale:
 |---|---|---|
 | Exit 137 / OOM | Memory limit too low | Ensure 4Gi limit, `-Xmx3072M` |
 | `spt_database_version` not found | Default schema wrong | `ALTER USER identityiq WITH DEFAULT_SCHEMA = identityiq` |
-| `spt_hist_database_version` not found | AH schema missing/stub | Re-run init Job (Option A); real file is `fragments/ah-create_hibernate_tables-8.4.sqlserver` |
-| Startup OK but AH writes error at runtime | `identityiqah` only partially populated (14/32) | Complete DDL via Option A (32-table gate) |
+| `spt_hist_database_version` not found | AH schema missing/stub | Re-run init Job (Option A); real file is `fragments/ah-create_hibernate_tables-8.5.sqlserver` (run with `-d identityiqah`) |
+| Startup OK but AH writes error at runtime | `identityiqah` only partially populated | Re-run init Job — the 32-table gate enforces completeness before it reports success |
+| `DatabaseVersionException: expected system version […] does not match` | `system_version` row stale after an image upgrade (upgrade script only bumps `schema_version`) | `UPDATE identityiq.dbo.spt_database_version SET system_version='<image build>' WHERE name='main'` (and the AH row), then restart — see Upgrading section |
 | `Login failed for identityiqah` / `identityiqPlugin` | User/login missing | Init Job creates logins, users, default schemas |
 | 404 on `/identityiq/` | Spring context failed | Check pod logs for DB errors — usually VersionChecker/AH (rows above) |
 | `field is immutable` on apply | Live `Job/iiq-init` conflicts with edited file | `kubectl -n iiqstack delete job iiq-init` first — Job specs are immutable |

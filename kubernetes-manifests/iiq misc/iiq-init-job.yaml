@@ -2,17 +2,17 @@
 # IdentityIQ Init Job - Creates MSSQL databases, users, schema
 # Run ONCE before deploying the iiq deployment.
 # ============================================================
-# Image: 192.168.0.236:5000/sailpoint-docker:latest (IIQ 8.4 — must match the
-#   running app; SQL files are version-suffixed, e.g. ah-create_hibernate_tables-8.4.sqlserver).
+# Image: 192.168.0.236:5000/sailpoint-iiq:8.5 (IIQ 8.5 — must match the
+#   running app; SQL files are version-suffixed, e.g. ah-create_hibernate_tables-8.5.sqlserver).
 #   Verified 2026-09-22: bash, unzip, /opt/mssql-tools18/bin/sqlcmd and /opt/iiq/identityiq.war all present.
-#   (The old 192.168.0.236:5000/sailpoint-iiq:8.5 image only ships 8.5-suffixed
-#    SQL — every 8.4 path below fails there with file-not-found.)
+#   Keep job and app images in lockstep: a mismatch makes every version-suffixed
+#   SQL path fail with file-not-found (see README root cause #7).
 # ============================================================
 # FIXED 2026-09-22 (live-drift reconciliation):
 #  - AH DDL used a nonexistent path (database/create_identityiq_ah_tables.sql) and
 #    errors were swallowed by `2>/dev/null || echo skipped` — this silently left
 #    identityiqah empty and crashed IIQ's VersionChecker (HTTP 404 outage).
-#    Correct source: database/fragments/ah-create_hibernate_tables-8.4.sqlserver
+#    Correct source: database/fragments/ah-create_hibernate_tables-8.5.sqlserver
 #    + a table-count gate that FAILS the job if the AH schema is incomplete.
 #  - Plugin DB needs the identityiqPlugin LOGIN/USER/SCHEMA (no tables);
 #    the old path (create_identityiq_plugin_tables.sql) also did not exist.
@@ -55,7 +55,7 @@ spec:
               echo "All dependencies are ready."
       containers:
         - name: iiq-init
-          image: 192.168.0.236:5000/sailpoint-docker:latest
+          image: 192.168.0.236:5000/sailpoint-iiq:8.5
           command:
             - /bin/bash
             - -c
@@ -125,7 +125,7 @@ spec:
               RESULT=$(/opt/mssql-tools18/bin/sqlcmd -S db -U identityiq -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -No -C -d identityiq -Q "IF OBJECT_ID('spt_database_version', 'U') IS NOT NULL SELECT '1' ELSE SELECT '0'" -h -1 | tr -d '[:space:]')
               if [ "$RESULT" = "0" ]; then
                 echo "Schema missing, creating..."
-                /opt/mssql-tools18/bin/sqlcmd -S db -U identityiq -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -No -C -i /opt/tomcat/webapps/identityiq/WEB-INF/database/create_identityiq_tables-8.4.sqlserver -d identityiq
+                /opt/mssql-tools18/bin/sqlcmd -S db -U identityiq -P "id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx" -No -C -i /opt/tomcat/webapps/identityiq/WEB-INF/database/create_identityiq_tables-8.5.sqlserver -d identityiq
                 echo "Main schema created."
                 # Plugin login/user/schema: created in step 4b. AH schema: step 7 (hard-gated).
                 # Neither create_identityiq_plugin_tables.sql nor create_identityiq_ah_tables.sql
@@ -135,14 +135,14 @@ spec:
               fi
 
               # 7. Access History schema — REQUIRED by VersionChecker (dataSourceAccessHistory).
-              #    Correct path: database/fragments/ah-create_hibernate_tables-8.4.sqlserver
+              #    Correct path: database/fragments/ah-create_hibernate_tables-8.5.sqlserver
               #    (schema-qualified identityiqah.spt_hist_*). Run WITHOUT -b so duplicate-object
               #    errors on re-runs don't abort mid-script, then hard-gate on the table count.
               AH_COUNT=$(/opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiqah -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM identityiqah.INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'" -h -1 | tr -d '[:space:]')
               if [ "${AH_COUNT:-0}" -lt 32 ]; then
                 echo "identityiqah incomplete (${AH_COUNT}/32 tables). Dropping legacy synonym if present, running AH DDL..."
                 /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiqah -Q "IF EXISTS (SELECT 1 FROM sys.synonyms WHERE name = 'spt_hist_database_version' AND schema_id = SCHEMA_ID('dbo')) DROP SYNONYM dbo.spt_hist_database_version"
-                /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiqah -i /opt/tomcat/webapps/identityiq/WEB-INF/database/fragments/ah-create_hibernate_tables-8.4.sqlserver
+                /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiqah -i /opt/tomcat/webapps/identityiq/WEB-INF/database/fragments/ah-create_hibernate_tables-8.5.sqlserver
                 AH_COUNT=$(/opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiqah -Q "SET NOCOUNT ON; SELECT COUNT(*) FROM identityiqah.INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'" -h -1 | tr -d '[:space:]')
               fi
               if [ "${AH_COUNT:-0}" -lt 32 ]; then
@@ -150,6 +150,14 @@ spec:
                 exit 1
               fi
               echo "Access History schema OK (${AH_COUNT} tables)."
+
+              # 8. Seed version rows if missing — VersionChecker requires BOTH
+              #    system_version (app build) and schema_version (DB schema) to match
+              #    the running image; the create scripts do NOT insert these rows.
+              /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiq -Q "IF NOT EXISTS (SELECT 1 FROM identityiq.spt_database_version WHERE name='main') INSERT INTO identityiq.spt_database_version (name, system_version, schema_version) VALUES ('main', '8.5-19', '8.5-15')"
+              /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiqah -Q "IF NOT EXISTS (SELECT 1 FROM identityiqah.spt_hist_database_version WHERE name='main') INSERT INTO identityiqah.spt_hist_database_version (name, system_version, schema_version) VALUES ('main', '8.5-19', '8.5-15')"
+              /opt/mssql-tools18/bin/sqlcmd -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C -d identityiq -Q "SELECT name, system_version, schema_version FROM identityiq.spt_database_version WHERE name='main'"
+              echo "Version rows OK."
 
               echo "Initialization complete!"
           env:

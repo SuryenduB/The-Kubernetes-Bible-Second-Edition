@@ -78,7 +78,7 @@ BEGIN
         CONSTRAINT PK_spt_hist_database_version PRIMARY KEY (name)
     );
     INSERT INTO identityiqah.spt_hist_database_version (name, system_version, schema_version)
-    VALUES ('main', '8.4-107', '8.4-88');
+    VALUES ('main', '8.5-19', '8.5-15');
 END;
 GO
 

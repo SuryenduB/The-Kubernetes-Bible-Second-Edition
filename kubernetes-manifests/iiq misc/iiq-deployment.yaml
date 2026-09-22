@@ -72,7 +72,7 @@ spec:
     spec:
       containers:
         - name: iiq
-          image: 192.168.0.236:5000/sailpoint-docker:latest
+          image: 192.168.0.236:5000/sailpoint-iiq:8.5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
