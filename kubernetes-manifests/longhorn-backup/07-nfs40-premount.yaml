@@ -1,0 +1,155 @@
+# Durable fix for the QNAP NFSv4.1 backupstore breakage (see NFS41-INCIDENT-REPORT.md).
+#
+# Longhorn hardcodes nfsvers=4.1 when it mounts the backupstore, and there is no
+# Setting to override it. QNAP NFSv4.1 is broken server-side (EIO on reads), while
+# NFSv4.0 works. The proven workaround is to pre-mount the backupstore as NFSv4.0:
+# if the mount already exists, Longhorn reuses it instead of mounting 4.1 itself.
+#
+# The pre-mounts live inside each container's mount namespace, so they disappear
+# whenever longhorn-manager / instance-manager restarts. This DaemonSet keeps them
+# alive: every INTERVAL seconds each node scans its processes for Longhorn targets
+# (longhorn-manager, instance-manager, engine replicas/controllers) and, inside each
+# target's mount+network namespace:
+#   1. mounts the backupstore as NFSv4.0 if absent,
+#   2. health-probes by reading a sentinel file (EIO = broken 4.1),
+#   3. recovers a broken mount with lazy umount + remount as 4.0.
+#
+# Scheduling matches the longhorn-manager DaemonSet (no tolerations/nodeSelector),
+# so it runs on exactly the nodes that host Longhorn managers and instance managers.
+# Image: longhorn-manager itself - already cached on every one of those nodes
+# (no extra image to pull) and proven to ship nsenter/mount/mountpoint/umount.
+# NOTE: bump the image tag when upgrading Longhorn.
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nfs40-premount-script
+  namespace: longhorn-system
+  labels:
+    app: nfs40-premount
+data:
+  premount.sh: |
+    #!/bin/sh
+    # Keep a healthy NFSv4.0 pre-mount of the Longhorn backupstore inside every
+    # Longhorn process namespace on this node. See NFS41-INCIDENT-REPORT.md.
+    set -u
+
+    M=/var/lib/longhorn-backupstore-mounts/192_168_0_128/longhorn
+    SRC=192.168.0.128:/longhorn
+    OPTS="vers=4.0,sec=sys,soft,proto=tcp,timeo=300,retrans=2"
+    SENTINEL="$M/.nfs40-probe"
+    INTERVAL="${INTERVAL:-30}"
+
+    log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) nfs40-premount: $*"; }
+
+    # Run a command inside the target's mount+network namespace (-m -n) so the
+    # NFS transport sockets live in the namespace that owns the mount.
+    nx() {
+      _pid=$1; shift
+      timeout "${NX_TIMEOUT:-45}" nsenter -t "$_pid" -m -n -- "$@"
+    }
+
+    # 0 = mount healthy: sentinel readable, or creatable on a fresh mount.
+    # A broken NFSv4.1 mount fails both the read and the write with EIO.
+    probe() {
+      nx "$1" sh -c "S=$SENTINEL; if [ -f \"\$S\" ]; then head -c 2 \"\$S\" >/dev/null 2>&1; else echo ok > \"\$S\" 2>/dev/null && head -c 2 \"\$S\" >/dev/null 2>&1; fi"
+    }
+
+    mount_it() {
+      nx "$1" mkdir -p "$M" &&
+        nx "$1" mount -t nfs4 -o "$OPTS" "$SRC" "$M"
+    }
+
+    ensure() {
+      _pid=$1
+      if ! nx "$_pid" mountpoint -q "$M" 2>/dev/null; then
+        mount_it "$_pid" || { log "WARN mount failed pid=$_pid (will retry)"; return 1; }
+        log "mounted nfs4.0 pid=$_pid"
+      fi
+      probe "$_pid" && return 0
+      log "probe failed pid=$_pid -> recovering (lazy umount + remount nfs4.0)"
+      nx "$_pid" umount -l "$M" 2>/dev/null || true
+      mount_it "$_pid" || { log "ERROR remount failed pid=$_pid"; return 1; }
+      probe "$_pid" || { log "ERROR probe still failing pid=$_pid (NAS problem?)"; return 1; }
+      log "recovered pid=$_pid"
+    }
+
+    SELF_NS=$(readlink /proc/$$/ns/mnt 2>/dev/null || echo unknown)
+
+    scan() {
+      _seen=" "
+      _n=0
+      for _p in /proc/[0-9]*; do
+        _pid=${_p#/proc/}
+        [ "$_pid" = "1" ] && continue
+        _c=$(tr '\0' ' ' 2>/dev/null < "$_p/cmdline") || continue
+        [ -n "$_c" ] || continue
+        # Targets: longhorn-manager daemon (and recurring-job pods), the
+        # instance-manager daemon reached via /tini, and engine replica /
+        # controller / sync-agent processes (cmdlines carry engine-binaries).
+        case "$_c" in
+          *longhorn-manager*|*instance-manager*|*engine-binaries*) ;;
+          *) continue ;;
+        esac
+        _ns=$(readlink "$_p/ns/mnt" 2>/dev/null) || continue
+        [ "$_ns" = "$SELF_NS" ] && continue
+        case "$_seen" in *"$_ns"*) continue ;; esac
+        _seen="$_seen$_ns "
+        _n=$((_n + 1))
+        ensure "$_pid" || true
+      done
+      log "scan done targets=$_n"
+    }
+
+    log "starting interval=${INTERVAL}s mount=$M"
+    while :; do
+      scan
+      sleep "$INTERVAL"
+    done
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nfs40-premount
+  namespace: longhorn-system
+  labels:
+    app: nfs40-premount
+spec:
+  selector:
+    matchLabels:
+      app: nfs40-premount
+  template:
+    metadata:
+      labels:
+        app: nfs40-premount
+    spec:
+      priorityClassName: longhorn-critical
+      # /proc must be the host's process namespace so the scan can see
+      # longhorn-manager / instance-manager / engine process IDs.
+      hostPID: true
+      containers:
+        - name: premount
+          image: docker.io/longhornio/longhorn-manager:v1.12.1
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "/scripts/premount.sh"]
+          env:
+            - name: INTERVAL
+              value: "30"
+          securityContext:
+            # setns() into another mount namespace + mount(2) + NFS mounts.
+            privileged: true
+          resources:
+            requests:
+              cpu: 5m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+          volumeMounts:
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: scripts
+          configMap:
+            name: nfs40-premount-script

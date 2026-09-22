@@ -7,3 +7,4 @@ resources:
   - 04-node-failure-resilience.yaml
   - 05-storage-reserve.yaml
   - 06-storageclass-r1.yaml
+  - 07-nfs40-premount.yaml
