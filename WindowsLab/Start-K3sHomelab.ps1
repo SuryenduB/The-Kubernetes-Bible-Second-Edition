@@ -135,6 +135,16 @@
 .PARAMETER RebalanceThreshold
     Pods-per-node ratio (relative to average) that marks a node as overloaded. Default: 1.5.
 
+.PARAMETER NodeSaturationCpuPercent
+    Verification-only: CPU usage (metrics.k8s.io vs node capacity) at or above this percentage
+    marks a node as saturated. Default: 85. Detection and reporting only - this script never
+    remediates saturation, because the node most prone to it (kubernetes7) is protected from
+    cordon/drain/power-off.
+
+.PARAMETER NodeSaturationMemoryPercent
+    Verification-only: memory usage at or above this percentage marks a node as saturated.
+    Default: 90.
+
 .PARAMETER RolloutTimeout
     Seconds to wait for a single StatefulSet/Deployment rollout. Default: 180.
 
@@ -252,6 +262,14 @@ param(
     [Parameter()]
     [ValidateRange(1.0, 10.0)]
     [double]$RebalanceThreshold = 1.5,
+
+    [Parameter()]
+    [ValidateRange(50, 100)]
+    [int]$NodeSaturationCpuPercent = 85,
+
+    [Parameter()]
+    [ValidateRange(50, 100)]
+    [int]$NodeSaturationMemoryPercent = 90,
 
     [Parameter()]
     [ValidateRange(30, 1800)]
@@ -894,6 +912,144 @@ function Get-NodeState {
         }
     }
     return $state
+}
+
+function ConvertFrom-K8sQuantity {
+    <#
+        Parses a Kubernetes resource quantity into base units: CPU -> cores, memory -> bytes.
+        Handles the suffixes seen on node capacity and metrics.k8s.io (n/u/m for CPU;
+        Ki/Mi/Gi/Ti/Pi/Ei and k/M/G/T/P/E for memory). Returns $null for anything
+        unparseable, so a weird value degrades one report line instead of crashing the
+        verification phase.
+    #>
+    [CmdletBinding()]
+    param([Parameter()][AllowNull()][AllowEmptyString()][string]$Quantity)
+
+    if ([string]::IsNullOrWhiteSpace($Quantity)) { return $null }
+    if ($Quantity.Trim() -match '^([0-9]+(?:\.[0-9]+)?)(n|u|m|Ki|Mi|Gi|Ti|Pi|Ei|k|M|G|T|P|E)?$') {
+        $value = [double]$Matches[1]
+        # Case-sensitive: 'm' (millicores) and 'M' (megabytes) are different suffixes.
+        switch -CaseSensitive ($Matches[2]) {
+            'n' { return $value / 1e9 }
+            'u' { return $value / 1e6 }
+            'm' { return $value / 1e3 }
+            'Ki' { return $value * 1KB }
+            'Mi' { return $value * 1MB }
+            'Gi' { return $value * 1GB }
+            'Ti' { return $value * 1TB }
+            'Pi' { return $value * 1PB }
+            'Ei' { return $value * 1PB * 1KB }
+            'k' { return $value * 1e3 }
+            'M' { return $value * 1e6 }
+            'G' { return $value * 1e9 }
+            'T' { return $value * 1e12 }
+            'P' { return $value * 1e15 }
+            'E' { return $value * 1e18 }
+            default { return $value }
+        }
+    }
+    return $null
+}
+
+function Get-NodeSaturation {
+    <#
+    .SYNOPSIS
+        Per-node CPU/memory saturation snapshot: metrics.k8s.io usage vs node capacity,
+        plus the Longhorn replica count per node.
+
+    .DESCRIPTION
+        Added after the kubernetes7 incident (2026-09-20, see WindowsLab/k8s7-cpu-report.md):
+        a PERMANENT SURVIVOR node that cannot be cordoned, drained or powered off was pinned
+        at ~99% CPU (load average 34 on 4 cores) because Longhorn re-replicated volumes onto
+        it while other storage nodes were down. This check exists to DETECT AND REPORT that
+        state. It never remediates: the only relief valves (cordon/drain/power-off) are all
+        forbidden on protected nodes, and on unprotected nodes the rebalance phase already
+        owns redistribution. Metrics come from metrics-server (part of the cluster core this
+        script recovers); when metrics.k8s.io is unavailable the check reports "unknown"
+        instead of failing.
+
+    .OUTPUTS
+        MetricsAvailable, Nodes (per-node usage/saturation entries), ReplicaCountByNode.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter()][object[]]$NodeObjects,
+        [Parameter()][string[]]$ProtectedNodes = @(),
+        [Parameter()][int]$CpuThresholdPercent = 85,
+        [Parameter()][int]$MemoryThresholdPercent = 90
+    )
+
+    # Longhorn replica placement: counted independently of metrics, because "how many
+    # replicas did this node absorb" is the first question the incident report asks.
+    $replicaCountByNode = @{}
+    foreach ($replica in @(Get-K8sJson -KubectlArgs @('get', 'replicas', '-n', $StorageNamespace))) {
+        $replicaNode = [string](Get-Prop (Get-Prop $replica 'spec') 'nodeID')
+        if ($replicaNode) {
+            if (-not $replicaCountByNode.ContainsKey($replicaNode)) { $replicaCountByNode[$replicaNode] = 0 }
+            $replicaCountByNode[$replicaNode]++
+        }
+    }
+
+    # Live usage from metrics-server. One raw API call; failure degrades to "unknown".
+    $usageByNode = @{}
+    $metricsAvailable = $false
+    $metricsResult = Invoke-Kubectl -KubectlArgs @('get', '--raw', '/apis/metrics.k8s.io/v1beta1/nodes') -AllowFailure
+    if ($metricsResult.Ok) {
+        try {
+            $metrics = (($metricsResult.Output | Out-String) | ConvertFrom-Json)
+            foreach ($item in @($metrics.items)) {
+                $usageByNode[[string](Get-Prop (Get-Prop $item 'metadata') 'name')] = [pscustomobject]@{
+                    CpuCores    = ConvertFrom-K8sQuantity -Quantity ([string](Get-Prop (Get-Prop $item 'usage') 'cpu'))
+                    MemoryBytes = ConvertFrom-K8sQuantity -Quantity ([string](Get-Prop (Get-Prop $item 'usage') 'memory'))
+                }
+            }
+            $metricsAvailable = ($usageByNode.Count -gt 0)
+        }
+        catch {
+            Write-Verbose "metrics.k8s.io parse failed: $($_.Exception.Message)"
+            $metricsAvailable = $false
+        }
+    }
+    $entries = [System.Collections.Generic.List[object]]::new()
+    foreach ($node in @($NodeObjects)) {
+        $name = [string](Get-Prop (Get-Prop $node 'metadata') 'name')
+        if (-not $name) { continue }
+
+        $capacity = Get-Prop (Get-Prop $node 'status') 'capacity'
+        $cpuCapacity = ConvertFrom-K8sQuantity -Quantity ([string](Get-Prop $capacity 'cpu'))
+        $memCapacity = ConvertFrom-K8sQuantity -Quantity ([string](Get-Prop $capacity 'memory'))
+
+        $usage = $usageByNode[$name]
+        $cpuPercent = $null
+        $memPercent = $null
+        if ($usage -and $null -ne $usage.CpuCores -and $cpuCapacity -and $cpuCapacity -gt 0) {
+            $cpuPercent = [math]::Round(($usage.CpuCores / $cpuCapacity) * 100, 1)
+        }
+        if ($usage -and $null -ne $usage.MemoryBytes -and $memCapacity -and $memCapacity -gt 0) {
+            $memPercent = [math]::Round(($usage.MemoryBytes / $memCapacity) * 100, 1)
+        }
+
+        $reasons = [System.Collections.Generic.List[string]]::new()
+        if ($null -ne $cpuPercent -and $cpuPercent -ge $CpuThresholdPercent) { $reasons.Add("CPU $cpuPercent% >= $CpuThresholdPercent%") }
+        if ($null -ne $memPercent -and $memPercent -ge $MemoryThresholdPercent) { $reasons.Add("memory $memPercent% >= $MemoryThresholdPercent%") }
+
+        $entries.Add([pscustomobject]@{
+                Name          = $name
+                IsProtected   = ($ProtectedNodes -contains $name)
+                CpuPercent    = $cpuPercent
+                MemoryPercent = $memPercent
+                ReplicaCount  = $(if ($replicaCountByNode.ContainsKey($name)) { $replicaCountByNode[$name] } else { 0 })
+                Saturated     = ($reasons.Count -gt 0)
+                Reasons       = @($reasons)
+            })
+    }
+
+    return [pscustomobject]@{
+        MetricsAvailable   = $metricsAvailable
+        Nodes              = @($entries)
+        ReplicaCountByNode = $replicaCountByNode
+    }
 }
 
 function Get-ControlPlaneStatus {
@@ -2776,6 +2932,41 @@ function Get-ManagedResource {
                 Write-Warn "$nodeName reports $type=True"
                 Add-Finding "Node $nodeName has $type=True"
             }
+        }
+    }
+
+    # Saturation snapshot: metrics-server usage vs capacity, plus Longhorn replica placement.
+    # Detection and reporting ONLY - the relief valves for a saturated node are cordon/drain,
+    # and the node most prone to saturation (kubernetes7) is protected from both, so nothing
+    # here is counted in $degradedTotal or acted on (same contract as the single-endpoint note).
+    $saturation = Get-NodeSaturation -NodeObjects $allNodes -ProtectedNodes $protectedNodes `
+        -CpuThresholdPercent $NodeSaturationCpuPercent -MemoryThresholdPercent $NodeSaturationMemoryPercent
+    if (-not $saturation.MetricsAvailable) {
+        Write-Info 'Node saturation: metrics.k8s.io unavailable (metrics-server not recovered?) - only the pressure conditions above were checked.'
+        Add-Finding 'Node saturation check skipped: metrics.k8s.io unavailable'
+    }
+    else {
+        Write-Info 'Node saturation (metrics-server usage vs capacity):'
+        foreach ($entry in @($saturation.Nodes | Sort-Object { if ($null -eq $_.CpuPercent) { -1 } else { $_.CpuPercent } } -Descending)) {
+            $cpuText = if ($null -ne $entry.CpuPercent) { "$($entry.CpuPercent)%" } else { 'unknown' }
+            $memText = if ($null -ne $entry.MemoryPercent) { "$($entry.MemoryPercent)%" } else { 'unknown' }
+            $marker = if ($entry.Saturated) { " <-- SATURATED ($($entry.Reasons -join '; '))" } else { '' }
+            Write-Info ("  {0} : cpu {1}, mem {2}, longhorn replicas {3}{4}" -f $entry.Name, $cpuText, $memText, $entry.ReplicaCount, $marker)
+        }
+        $saturatedNodes = @($saturation.Nodes | Where-Object { $_.Saturated })
+        foreach ($entry in $saturatedNodes) {
+            if ($entry.IsProtected) {
+                Write-Bad ("{0} is SATURATED ({1}; {2} Longhorn replica(s)) but is a protected node - it cannot be cordoned, drained or powered off. Relieve it indirectly: bring other storage nodes back so Longhorn rebalances replicas off it, and scale down non-critical workloads pinned to it (see WindowsLab/k8s7-cpu-report.md)." -f `
+                        $entry.Name, ($entry.Reasons -join '; '), $entry.ReplicaCount)
+                Add-Finding "Protected node $($entry.Name) saturated: $($entry.Reasons -join '; ') ($($entry.ReplicaCount) Longhorn replica(s))"
+            }
+            else {
+                Write-Warn ("{0} is saturated ({1}; {2} Longhorn replica(s))." -f $entry.Name, ($entry.Reasons -join '; '), $entry.ReplicaCount)
+                Add-Finding "Node $($entry.Name) saturated: $($entry.Reasons -join '; ')"
+            }
+        }
+        if ($saturatedNodes.Count -eq 0) {
+            Write-Ok "No node is above the saturation thresholds (CPU $($NodeSaturationCpuPercent)%, memory $($NodeSaturationMemoryPercent)%)."
         }
     }
 

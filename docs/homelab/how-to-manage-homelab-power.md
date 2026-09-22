@@ -109,6 +109,44 @@ Follow the logs in real-time to track node cordoning, pod eviction, and power-of
 tail -f shutdown.log
 ```
 
+### 3. Flag reference (shutdown_homelab.ps1 v9)
+
+| Flag | Effect |
+|---|---|
+| `-Force` | **Definitive shutdown.** Skips the confirmation prompt and no longer aborts on degraded Longhorn volumes, volumes still attached, a failed drain or an unreachable API (an explicit `-Mode Dynamic` now falls back to the registry list instead of exiting). Every poweroff is retried through an escalating ladder - `sudo poweroff` → `sudo shutdown -h now` → `sudo systemctl poweroff -i` - with a bounded SSH connect timeout, and success is judged by **reachability** (TCP 22 closes), so the `255` exit code of a *successful* poweroff is no longer reported as a failure. |
+| `-ForceKernelPowerOff` | With `-Force`: adds a final kernel-level stage - `sysrq` sync + remount-ro + poweroff - for hosts that ignore every graceful stage (a hung systemd shutdown is the usual cause). It bypasses orderly service shutdown, so it is opt-in and only ever reached after the graceful stages fail. |
+| `-DryRun` | Prints the whole plan (read-only kubectl queries, no SSH, no prompts, no changes) - the safe way to rehearse. |
+| `-SkipDrain` | Power the nodes off without draining workloads first. |
+| `-ShutdownLocalMac` | Also power off the machine running the script (opt-in; kills your terminal and kubectl access mid-run). |
+| `-Mode <Auto\|Dynamic\|Fallback>` | Node discovery: detect via the API, force the API, or use the registry list. |
+| `-DrainTimeoutSeconds` / `-DetachTimeoutSeconds` | Per-node drain budget and Longhorn detach budget (defaults: 300 s each). |
+| `-PowerOffAttempts` | Poweroff attempts per node (default 3). The kernel stage, when enabled, is always the last attempt. |
+| `-VerifyPowerOffSeconds` | How long to wait for a node to stop answering SSH after each attempt (default 45 s). |
+| `-SshConnectTimeoutSeconds` | SSH connect timeout (default 15 s), so a hung host cannot stall the whole run. |
+
+**Exit codes:** `0` = every target node was verified down (or the run was a dry run); `1` = at
+least one node was skipped or is still answering after every stage.
+
+> ⚠️ The one thing `-Force` never overrides: a node flagged `neverPowerOff` in
+> `WindowsLab/homelab-nodes.json` (`kubernetes7`, whose physical power switch is broken) is still
+> refused, because that power-off is physically unrecoverable.
+
+Rehearse first (changes nothing):
+
+```bash
+pwsh -File WindowsLab/shutdown_homelab.ps1 -DryRun -Force -ForceKernelPowerOff
+```
+
+Definitive background shutdown, including the kernel stage for stubborn hosts:
+
+```bash
+pwsh -File WindowsLab/shutdown_homelab.ps1 -Force -ForceKernelPowerOff > shutdown.log 2>&1 < /dev/null &
+```
+
+An unattended `-Force` run must be able to resolve the sudo password without prompting: if neither
+`WindowsLab/cred.xml` nor the `k3s-homelab-sudo` SecretStore entry is available, the script stops
+before touching any node instead of sending an unauthenticated poweroff.
+
 ---
 
 ## Technical Details & Troubleshooting

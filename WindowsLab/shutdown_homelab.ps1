@@ -1,4 +1,4 @@
-# K3s Homelab Systematic Shutdown (v8 - Refined & Verified)
+# K3s Homelab Systematic Shutdown (v9 - Definitive & Verified)
 #
 # Control plane (since 2026-09-20): THREE embedded-etcd servers - nuc (192.168.0.21),
 # server-236 (192.168.0.236) and server-252 (192.168.0.252). Powering off members spends
@@ -11,10 +11,29 @@
 #   3. falls back to that snapshot once quorum is spent, and refuses (without -Force) to
 #      power off a member that had volumes attached at pre-flight.
 # Control-plane members are never drained, and a neverPowerOff member is never touched.
+#
+# -Force is the "make it stop" switch. It skips every *refusable* gate and rides out every
+# recoverable failure:
+#   - no confirmation prompt, no abort on degraded storage / volumes still attached,
+#   - an unreachable API no longer aborts an explicit -Mode Dynamic run (registry fallback),
+#   - a failed kubectl drain no longer withholds that node's poweroff,
+#   - every poweroff is retried with a bounded SSH connect timeout and an escalating ladder
+#     (poweroff -> shutdown -h now -> systemctl poweroff -i, plus a kernel sysrq stage when
+#     -ForceKernelPowerOff is also given, which bypasses systemd's orderly shutdown),
+#   - success is judged by reachability, not by the ssh exit code: a *successful* poweroff
+#     drops the connection and returns 255, which v8 reported as a failure.
+# -Force still refuses the one thing that cannot be undone: a node flagged neverPowerOff in
+# homelab-nodes.json (kubernetes7's power switch is broken, so a poweroff is unrecoverable).
 [CmdletBinding()]
 param(
-    [Parameter(HelpMessage="Skip all manual confirmations")]
+    [Parameter(HelpMessage="Ignore every refusable warning (confirmation, degraded storage, volumes still attached, unreachable API), retry each poweroff through its full escalation ladder and keep going until every target node is confirmed down. Never overrides the neverPowerOff rule.")]
     [switch]$Force,
+
+    [Parameter(HelpMessage="With -Force: after every SSH poweroff stage has failed on a node, force a kernel-level sysrq poweroff (sync + remount-ro + power off). Bypasses systemd's orderly shutdown - last resort only.")]
+    [switch]$ForceKernelPowerOff,
+
+    [Parameter(HelpMessage="Show the full plan without changing anything (read-only kubectl queries, no SSH, no prompts)")]
+    [switch]$DryRun,
 
     [Parameter(HelpMessage="Skip the kubectl drain process and power off immediately")]
     [switch]$SkipDrain,
@@ -32,10 +51,37 @@ param(
 
     [Parameter(HelpMessage="Seconds to wait for Longhorn volumes to detach from a node before powering it off")]
     [ValidateRange(30, 1800)]
-    [int]$DetachTimeoutSeconds = 300
+    [int]$DetachTimeoutSeconds = 300,
+
+    [Parameter(HelpMessage="Poweroff attempts per node; each attempt escalates one stage (poweroff -> shutdown -h now -> systemctl poweroff -i, then sysrq with -ForceKernelPowerOff)")]
+    [ValidateRange(1, 6)]
+    [int]$PowerOffAttempts = 3,
+
+    [Parameter(HelpMessage="Seconds to wait for a node to stop answering SSH after each poweroff attempt")]
+    [ValidateRange(15, 600)]
+    [int]$VerifyPowerOffSeconds = 45,
+
+    [Parameter(HelpMessage="SSH connect timeout in seconds: a hung host must not stall the whole shutdown")]
+    [ValidateRange(3, 120)]
+    [int]$SshConnectTimeoutSeconds = 15
 )
 
 $ErrorActionPreference = 'Stop' # Critical for Catch block to trigger on external errors
+
+# Native command failures (kubectl, ssh) are judged by explicit $LASTEXITCODE checks instead of
+# exceptions, so a non-zero exit can never abort the run half-way through a power-down. Set the
+# variable only where it exists (7.3+) to stay compatible with the declared 7.0 baseline.
+if ($PSVersionTable.PSVersion -ge [version]'7.3') { $PSNativeCommandUseErrorActionPreference = $false }
+
+# Script-scope state shared with the helper functions below (they are plain functions, so they
+# cannot see the caller's parameters). DryRun makes every state-changing helper a no-op that
+# prints its intent - which is also what makes this script testable without touching the lab.
+$script:DryRun = [bool]$DryRun
+$script:SudoPasswordSecretName = 'k3s-homelab-sudo'
+
+if ($DryRun -and $ForceKernelPowerOff) {
+    Write-Host "[DRYRUN] Dry run: the kernel poweroff stage will only be described, not issued." -ForegroundColor DarkGray
+}
 
 # --- CONFIGURATION (fallback derived from the shared node registry) ---
 # WindowsLab/homelab-nodes.json is the single source of truth for node identity and for
@@ -59,18 +105,43 @@ $workerFallback = @(
         ForEach-Object { @{ Name = $_.name; IP = $_.ip } }
 )
 
-Write-Host "--- K3s Cluster Shutdown Sequence (v8) ---" -ForegroundColor Cyan
+Write-Host "--- K3s Cluster Shutdown Sequence (v9) ---" -ForegroundColor Cyan
 
 # --- Storage-safe helpers: a node must not lose power while Longhorn still has
 #     live attachments on it. Unclean detachment is what wedges engine frontends
 #     ('Can't open blockdev' on next boot) and forces instance-manager surgery. ---
-function Invoke-NodeSsh {
+function Get-NodeSshArgument {
+    <#
+    .SYNOPSIS
+        Shared ssh argument list: non-interactive, throwaway known_hosts and a *bounded* connect
+        timeout (v8 had none, so an unresponsive host could stall the shutdown for the kernel's
+        ~75s TCP timeout on every node).
+    #>
     param(
         [Parameter(Mandatory)][string]$IP,
-        [Parameter(Mandatory)][string]$RemoteCommand
+        [int]$ConnectTimeoutSeconds = 15
     )
-    $sshArgs = @('-n', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
-        "suryendub@$IP", $RemoteCommand)
+    return @('-n', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
+        '-o', "ConnectTimeout=$ConnectTimeoutSeconds", '-o', 'ConnectionAttempts=1',
+        "suryendub@$IP")
+}
+
+function Invoke-NodeSshAttempt {
+    <#
+    .SYNOPSIS
+        Runs a remote command and *returns* the ssh exit code instead of throwing.
+        The retry ladder in Stop-HomelabNode needs that code, because a poweroff normally
+        returns 255 (the host drops the connection as it goes down) - that is success, not
+        failure.
+    #>
+    [CmdletBinding()]
+    [OutputType([int])]
+    param(
+        [Parameter(Mandatory)][string]$IP,
+        [Parameter(Mandatory)][string]$RemoteCommand,
+        [int]$ConnectTimeoutSeconds = 15
+    )
+    $sshArgs = @(Get-NodeSshArgument -IP $IP -ConnectTimeoutSeconds $ConnectTimeoutSeconds) + @($RemoteCommand)
     if (Get-Command sshpass -ErrorAction SilentlyContinue) {
         & sshpass -e ssh @sshArgs
     }
@@ -80,7 +151,55 @@ function Invoke-NodeSsh {
     else {
         & ssh @sshArgs
     }
-    if ($LASTEXITCODE -ne 0) { throw "ssh to $IP failed with exit code $LASTEXITCODE." }
+    return $LASTEXITCODE
+}
+
+function Invoke-KubectlCommand {
+    <#
+    .SYNOPSIS
+        Runs a mutating kubectl command, throwing when it fails; -DryRun only prints it.
+        The exit code is checked explicitly because PowerShell does not turn a native non-zero
+        exit into a terminating error by itself.
+    #>
+    param(
+        [Parameter(Mandatory)][string[]]$Arguments
+    )
+    if ($script:DryRun) {
+        Write-Host "  [DRYRUN] kubectl $($Arguments -join ' ')" -ForegroundColor DarkGray
+        return
+    }
+    & kubectl @Arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "kubectl $($Arguments -join ' ') failed with exit code $LASTEXITCODE."
+    }
+}
+
+function Test-NodeTcpPort {
+    <#
+    .SYNOPSIS
+        $true when the node accepts a TCP connection on the given port (port 22 = still up).
+        Same TcpClient pre-check pattern as Stop-K3sHomelab-Minimal.ps1, without spawning a tool.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$IP,
+        [int]$Port = 22,
+        [int]$TimeoutMs = 2000
+    )
+    $client = [System.Net.Sockets.TcpClient]::new()
+    try {
+        $async = $client.BeginConnect($IP, $Port, $null, $null)
+        if (-not $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) { return $false }
+        $client.EndConnect($async)
+        return $client.Connected
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $client.Dispose()
+    }
 }
 
 function Get-NodeAttachedVolumes {
@@ -167,6 +286,148 @@ function Test-ApiReachable {
     }
 }
 
+function Get-K8sNodeReadiness {
+    <#
+    .SYNOPSIS
+        The node's Ready condition ('True'/'False'/'Unknown'), or $null when the API cannot
+        answer (expected once etcd quorum is spent). Secondary evidence only - never a gate.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param([Parameter(Mandatory)][string]$NodeName)
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $state = & kubectl get node $NodeName -o json --request-timeout=10s 2>$null | ConvertFrom-Json
+        if (-not $state) { return $null }
+        $ready = @($state.status.conditions | Where-Object { $_.type -eq 'Ready' })
+        if ($ready.Count -eq 0) { return 'Unknown' }
+        return [string]$ready[0].status
+    }
+    catch {
+        return $null
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Wait-NodeDown {
+    <#
+    .SYNOPSIS
+        Polls until the node stops answering on its SSH port (or the timeout expires).
+        Powering off is asynchronous, so the ssh exit code alone proves nothing.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$IP,
+        [Parameter(Mandatory)][string]$NodeName,
+        [int]$TimeoutSeconds = 45
+    )
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (-not (Test-NodeTcpPort -IP $IP -Port 22)) { return $true }
+        $ready = Get-K8sNodeReadiness -NodeName $NodeName
+        $evidence = if ($null -eq $ready) { 'API not answering' } else { "Ready=$ready" }
+        Write-Host "  ... $NodeName still answering on TCP 22 ($evidence)" -ForegroundColor Gray
+        Start-Sleep -Seconds 5
+    }
+    return (-not (Test-NodeTcpPort -IP $IP -Port 22))
+}
+
+function Stop-HomelabNode {
+    <#
+    .SYNOPSIS
+        Powers one node off through an escalating ladder and verifies that it really went down.
+        Returns an outcome object instead of throwing, so one stubborn host can never abort the
+        rest of the shutdown. Down=$null means "not attempted" (-DryRun).
+    .DESCRIPTION
+        The ladder is built one entry per attempt: the graceful stages first (the last graceful
+        stage repeats when more attempts are requested than there are stages), then - only with
+        -AllowKernelPowerOff - the kernel stage as the FINAL entry:
+          1. sudo poweroff
+          2. sudo shutdown -h now
+          3. sudo systemctl poweroff -i
+          4. sysrq sync + remount-ro + poweroff (opt-in via -ForceKernelPowerOff)
+        Stage 4 exists because a hung systemd shutdown is exactly the case where a node "still
+        reports Ready after poweroff"; it bypasses orderly service shutdown, so it is only ever
+        reached after the graceful stages have failed.
+        Success is judged by reachability (TCP 22 closes), never by the ssh exit code.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+        Justification = 'Internal helper: state changes are gated by the script-level -Force/-DryRun/-SkipDrain switches, and -DryRun prints instead of acting.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '',
+        Justification = 'The value is already the base64 encoding of the sudo password, which is what the remote "base64 -d | sudo -S" pipeline consumes; the SecureString itself never leaves the orchestrator.')]
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$NodeName,
+        [Parameter(Mandatory)][string]$IP,
+        # Not mandatory: -DryRun sends nothing, so it passes an empty string.
+        [Parameter()][string]$EncodedPassword = '',
+        [int]$MaxAttempts = 3,
+        [int]$ConnectTimeoutSeconds = 15,
+        [int]$VerifyTimeoutSeconds = 45,
+        [switch]$AllowKernelPowerOff
+    )
+
+    if (-not $script:DryRun -and [string]::IsNullOrEmpty($EncodedPassword)) {
+        throw "No sudo password was resolved for $NodeName; refusing to send an unauthenticated poweroff."
+    }
+
+    $gracefulStages = [ordered]@{
+        'sudo poweroff'              = "echo $EncodedPassword | base64 -d | sudo -S poweroff"
+        'sudo shutdown -h now'       = "echo $EncodedPassword | base64 -d | sudo -S shutdown -h now"
+        'sudo systemctl poweroff -i' = "echo $EncodedPassword | base64 -d | sudo -S systemctl poweroff -i"
+    }
+    $gracefulNames = @($gracefulStages.Keys)
+
+    # One ladder entry per attempt: the graceful stages first (the last stage repeats when more
+    # attempts are requested than there are stages), then - only with -AllowKernelPowerOff - the
+    # kernel stage as the FINAL entry. Building the ladder up front matters: mapping attempts 1:1
+    # onto a four-entry stage list would mean the default -PowerOffAttempts 3 never reaches the
+    # kernel stage at all.
+    $ladder = @(
+        foreach ($i in 0..($MaxAttempts - 1)) {
+            $label = $gracefulNames[[Math]::Min($i, $gracefulNames.Count - 1)]
+            [pscustomobject]@{ Label = $label; Command = $gracefulStages[$label] }
+        }
+    )
+    if ($AllowKernelPowerOff) {
+        $ladder += [pscustomobject]@{
+            Label   = 'sysrq sync + remount-ro + poweroff'
+            Command = "echo $EncodedPassword | base64 -d | sudo -S sh -c 'echo 1 > /proc/sys/kernel/sysrq; sync; echo s > /proc/sysrq-trigger; sleep 1; echo u > /proc/sysrq-trigger; sleep 1; echo o > /proc/sysrq-trigger'"
+        }
+    }
+
+    if ($script:DryRun) {
+        Write-Host "  [DRYRUN] would power off $NodeName ($IP) through: $((@($ladder.Label)) -join ' -> ')" -ForegroundColor DarkGray
+        return [pscustomobject]@{ Node = $NodeName; IP = $IP; Down = $null; Stage = 'dryrun'; Attempts = 0 }
+    }
+
+    for ($attempt = 1; $attempt -le $ladder.Count; $attempt++) {
+        $stage = $ladder[$attempt - 1]
+        Write-Host "  - Poweroff attempt $attempt/$($ladder.Count) on $NodeName ($($stage.Label))..."
+        try {
+            $exitCode = Invoke-NodeSshAttempt -IP $IP -RemoteCommand $stage.Command -ConnectTimeoutSeconds $ConnectTimeoutSeconds
+            Write-Host "    ssh exit code $exitCode (255 normally means the host dropped the connection as it powered off)." -ForegroundColor DarkGray
+        }
+        catch {
+            # ssh/sshpass itself could not be launched: report it and still verify, because the
+            # host may already have gone down before the client gave up.
+            Write-Host "  [!] ssh transport problem for ${NodeName}: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+
+        if (Wait-NodeDown -IP $IP -NodeName $NodeName -TimeoutSeconds $VerifyTimeoutSeconds) {
+            return [pscustomobject]@{ Node = $NodeName; IP = $IP; Down = $true; Stage = $stage.Label; Attempts = $attempt }
+        }
+        Write-Host "  [!] $NodeName still answering after '$($stage.Label)'." -ForegroundColor Yellow
+    }
+
+    return [pscustomobject]@{ Node = $NodeName; IP = $IP; Down = $false; Stage = 'exhausted'; Attempts = $ladder.Count }
+}
+
 # 1. DISCOVERY LOGIC
 $targets = @()
 # K3s HA: every control-plane member is its own target and is powered off LAST, so etcd
@@ -234,11 +495,19 @@ if ($Mode -eq "Fallback") {
         $actualMode = "DYNAMIC"
     }
     catch {
-        if ($Mode -eq "Dynamic") {
+        if ($Mode -eq "Dynamic" -and !$Force) {
             Write-Error "Force Dynamic mode requested but API is unreachable."
             exit 1
         }
-        Write-Host "[!] API Unreachable. Switching to FALLBACK mode." -ForegroundColor Yellow
+        if ($Mode -eq "Dynamic") {
+            # -Force is exactly the case where the API may already be gone (an earlier, interrupted
+            # power-down, spent etcd quorum, k3s down): aborting here would leave the cluster
+            # half-powered, so fall back to the registry list and keep going.
+            Write-Host "[!] -Force: API unreachable, falling back to the registry node list." -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "[!] API Unreachable. Switching to FALLBACK mode." -ForegroundColor Yellow
+        }
         $actualMode = "FALLBACK"
     }
 }
@@ -280,39 +549,83 @@ Write-Host "Control plane: $(@($masterTargets | ForEach-Object { $_.Name }) -joi
 Write-Host "Workers: $($targets.Name -join ', ')"
 
 # 2. CREDENTIALS
-$credPath = Join-Path $PSScriptRoot "cred.xml"
-if (Test-Path $credPath) {
-    Write-Host "Attempting to read password from credential file..." -ForegroundColor Cyan
-    try {
-        $password = Import-Clixml -Path $credPath
-    } catch {
-        if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
-            try {
-                $password = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
-                Write-Host "Loaded password from SecretStore vault." -ForegroundColor Green
-            } catch {
-                $password = Read-Host "Enter sudo password" -AsSecureString
-            }
-        } else {
-            $password = Read-Host "Enter sudo password" -AsSecureString
+# -Force is meant to be run unattended (`... < /dev/null`), where a Read-Host prompt returns
+# nothing: v8 then powered every node off with an *empty* sudo password and reported success.
+# Resolve the password or fail loudly - never continue with an empty one.
+function Get-SudoSecureString {
+    <#
+    .SYNOPSIS
+        Loads the sudo password from cred.xml or the SecretStore vault, prompting only when the
+        run is allowed to be interactive.
+    #>
+    [CmdletBinding()]
+    [OutputType([securestring])]
+    param([switch]$AllowPrompt)
+
+    $credPath = Join-Path $PSScriptRoot 'cred.xml'
+    if (Test-Path -Path $credPath) {
+        Write-Host "Attempting to read password from credential file..." -ForegroundColor Cyan
+        try {
+            # Guard the type: clixml can round-trip SecureString or PSCredential (same pattern as
+            # Stop-K3sHomelab-Minimal.ps1). A plaintext export is deliberately refused instead of
+            # converted - that is the habit the power-management docs steer away from.
+            $loaded = Import-Clixml -Path $credPath
+            if ($loaded -is [securestring]) { return $loaded }
+            if ($loaded -is [pscredential]) { return $loaded.Password }
+            Write-Host "  [!] cred.xml holds an unexpected type ($($loaded.GetType().Name)); ignoring it." -ForegroundColor Yellow
+        }
+        catch {
+            Write-Host "  [!] cred.xml unusable: $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
-} else {
+
     if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
         try {
-            $password = Get-Secret -Name "k3s-homelab-sudo" -ErrorAction Stop
+            $secret = Get-Secret -Name $script:SudoPasswordSecretName -ErrorAction Stop
             Write-Host "Loaded password from SecretStore vault." -ForegroundColor Green
-        } catch {
-            $password = Read-Host "Enter sudo password" -AsSecureString
+            return $secret
         }
-    } else {
-        $password = Read-Host "Enter sudo password" -AsSecureString
+        catch {
+            Write-Host "  [!] No '$($script:SudoPasswordSecretName)' secret in the vault." -ForegroundColor Yellow
+        }
     }
-}
-$plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
-$b64Pass = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($plainPass))
 
-if (!$Force) {
+    if (-not $AllowPrompt) {
+        throw "No sudo password available (cred.xml missing and '$($script:SudoPasswordSecretName)' not in the vault) and this run must not prompt (unattended -Force/-DryRun). See docs/homelab/how-to-manage-homelab-power.md."
+    }
+    return (Read-Host "Enter sudo password" -AsSecureString)
+}
+
+if ($DryRun) {
+    Write-Host "[DRYRUN] Skipping credential resolution and the confirmation prompt." -ForegroundColor DarkGray
+    $plainPass = ''
+    $b64Pass = ''
+}
+else {
+    if (-not (Get-Command ssh -ErrorAction SilentlyContinue) -and -not (Test-Path -Path '/usr/bin/ssh')) {
+        throw "No ssh client available; the nodes cannot be powered off from this host."
+    }
+    $password = Get-SudoSecureString -AllowPrompt:(-not $Force)
+    $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($password)
+    try {
+        $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+    }
+    finally {
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
+    if ([string]::IsNullOrEmpty($plainPass)) {
+        throw "The resolved sudo password is empty; refusing to start a shutdown that cannot authenticate."
+    }
+    $b64Pass = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($plainPass))
+}
+
+if ($DryRun) {
+    Write-Host "[DRYRUN] No confirmation required (nothing will be changed)." -ForegroundColor DarkGray
+}
+elseif ($Force) {
+    Write-Host "[!] -Force: skipping the confirmation prompt (definitive shutdown mode)." -ForegroundColor Red
+}
+else {
     $confirm = Read-Host "!!! WARNING: Powering off entire cluster. Proceed? (yes/no)"
     if ($confirm -ne 'yes') { exit 0 }
 }
@@ -376,20 +689,35 @@ foreach ($worker in $targets) {
     try {
         if ($actualMode -eq "DYNAMIC" -and !$SkipDrain) {
             Write-Host "  - Draining (timeout ${DrainTimeoutSeconds}s)..."
-            kubectl cordon $worker.Name | Out-Null
-            # --disable-eviction: a full power-off is total disruption by definition, so
-            # PDBs (e.g. maxUnavailable: 0 singletons, Longhorn instance-managers) cannot
-            # be honoured and protect nothing here - they only stall the shutdown until
-            # the timeout and force a dirty power-off. Grace periods still apply, and the
-            # detach-wait below remains the storage safety gate.
-            kubectl drain $worker.Name --ignore-daemonsets --delete-emptydir-data --force --disable-eviction `
-                --grace-period=120 --timeout="$($DrainTimeoutSeconds)s"
+            try {
+                # --disable-eviction: a full power-off is total disruption by definition, so
+                # PDBs (e.g. maxUnavailable: 0 singletons, Longhorn instance-managers) cannot
+                # be honoured and protect nothing here - they only stall the shutdown until
+                # the timeout and force a dirty power-off. Grace periods still apply, and the
+                # detach-wait below remains the storage safety gate.
+                Invoke-KubectlCommand -Arguments @('cordon', $worker.Name)
+                Invoke-KubectlCommand -Arguments @('drain', $worker.Name, '--ignore-daemonsets',
+                    '--delete-emptydir-data', '--force', '--disable-eviction',
+                    '--grace-period=120', "--timeout=$($DrainTimeoutSeconds)s")
+            }
+            catch {
+                # The drain was only buying the workloads time to migrate; failing it must not
+                # withhold the poweroff that follows. Without -Force the old behaviour is kept
+                # (skip the node, report it) so an accidental run stays conservative.
+                Write-Host "  [!] Drain failed for $($worker.Name): $($_.Exception.Message)" -ForegroundColor Yellow
+                if (!$Force) {
+                    Write-Host "  [!] Skipping poweroff for this node (re-run with -Force to power it off anyway)." -ForegroundColor Red
+                    $skippedNodes += $worker.Name
+                    continue
+                }
+                Write-Host "  [!] -Force: powering off despite the failed drain." -ForegroundColor Red
+            }
         }
         elseif ($SkipDrain) {
             Write-Host "  [!] -SkipDrain: pods and volumes are NOT being evacuated first." -ForegroundColor Yellow
         }
 
-        if (!$SkipDrain) {
+        if (!$SkipDrain -and -not $script:DryRun) {
             Write-Host "  - Waiting for Longhorn detach (timeout ${DetachTimeoutSeconds}s)..."
             $clean = Wait-NodeVolumesDetached -NodeName $worker.Name -TimeoutSeconds $DetachTimeoutSeconds
             if (!$clean) {
@@ -406,31 +734,26 @@ foreach ($worker in $targets) {
                 Write-Host "  [+] Storage clean on $($worker.Name)." -ForegroundColor Green
             }
         }
+        elseif (!$SkipDrain) {
+            Write-Host "  [DRYRUN] would wait for the Longhorn volumes to detach before powering off." -ForegroundColor DarkGray
+        }
 
         Write-Host "  - Powering off..."
         $env:SSHPASS = $plainPass
-        try {
-            Invoke-NodeSsh -IP $worker.IP -RemoteCommand "echo $b64Pass | base64 -d | sudo -S poweroff"
-        }
-        catch {
-            Write-Host "  [!] Poweroff command failed for $($worker.Name): $($_.Exception.Message)" -ForegroundColor Yellow
-            Write-Host "  [!] Node may already be off; verifying via API..." -ForegroundColor Yellow
-            Start-Sleep -Seconds 10
-        }
+        $outcome = Stop-HomelabNode -NodeName $worker.Name -IP $worker.IP -EncodedPassword $b64Pass `
+            -MaxAttempts $PowerOffAttempts -ConnectTimeoutSeconds $SshConnectTimeoutSeconds `
+            -VerifyTimeoutSeconds $VerifyPowerOffSeconds -AllowKernelPowerOff:$ForceKernelPowerOff
 
-        $down = $false
-        for ($i = 0; $i -lt 6; $i++) {
-            Start-Sleep -Seconds 10
-            try {
-                $state = kubectl get node $worker.Name -o json --request-timeout=10s | ConvertFrom-Json
-                $ready = @($state.status.conditions | Where-Object { $_.type -eq 'Ready' })
-                if ($ready.Count -eq 0 -or $ready[0].status -ne 'True') { $down = $true; break }
-            }
-            catch { $down = $true; break }
+        if ($outcome.Down -eq $true) {
+            Write-Host "  [+] $($worker.Name) is down (stage: $($outcome.Stage), attempt: $($outcome.Attempts))." -ForegroundColor Green
         }
-        if ($down) { Write-Host "  [+] $($worker.Name) is down." -ForegroundColor Green }
+        elseif ($null -eq $outcome.Down) {
+            Write-Host "  [DRYRUN] $($worker.Name) left untouched." -ForegroundColor DarkGray
+        }
         else {
-            Write-Host "  [!] $($worker.Name) still reports Ready after poweroff." -ForegroundColor Red
+            Write-Host "  [!] $($worker.Name) is still answering after every poweroff stage ($($outcome.Attempts) attempt(s))." -ForegroundColor Red
+            if ($ForceKernelPowerOff) { Write-Host "  [!] The kernel sysrq stage was already tried; it may need a physical power button." -ForegroundColor Red }
+            else { Write-Host "  [!] Re-run with -Force -ForceKernelPowerOff to add the kernel-level stage." -ForegroundColor Red }
             $nodeOk = $false
         }
     }
@@ -452,7 +775,10 @@ foreach ($master in $masterTargets) {
         # gate cannot run for the remaining members, and refusing to continue would leave
         # the worker-only shutdown half-finished. Warn loudly and continue instead.
         $apiUp = Test-ApiReachable
-        if (!$SkipDrain -and $apiUp) {
+        if ($script:DryRun -and !$SkipDrain) {
+            Write-Host "  [DRYRUN] would verify the Longhorn detach state on $masterName before powering it off." -ForegroundColor DarkGray
+        }
+        elseif (!$SkipDrain -and $apiUp) {
             Write-Host "  - Waiting for Longhorn detach on $masterName (timeout ${DetachTimeoutSeconds}s)..."
             $clean = Wait-NodeVolumesDetached -NodeName $masterName -TimeoutSeconds $DetachTimeoutSeconds
             if ($clean) { Write-Host "  [+] Storage clean on $masterName." -ForegroundColor Green }
@@ -480,8 +806,21 @@ foreach ($master in $masterTargets) {
         }
         if ($masterOk) {
             $env:SSHPASS = $plainPass
-            Invoke-NodeSsh -IP $master.IP -RemoteCommand "echo $b64Pass | base64 -d | sudo -S poweroff"
-            Write-Host "  [+] Poweroff command sent to $masterName." -ForegroundColor Green
+            $outcome = Stop-HomelabNode -NodeName $masterName -IP $master.IP -EncodedPassword $b64Pass `
+                -MaxAttempts $PowerOffAttempts -ConnectTimeoutSeconds $SshConnectTimeoutSeconds `
+                -VerifyTimeoutSeconds $VerifyPowerOffSeconds -AllowKernelPowerOff:$ForceKernelPowerOff
+            if ($outcome.Down -eq $true) {
+                Write-Host "  [+] $masterName is down (stage: $($outcome.Stage), attempt: $($outcome.Attempts))." -ForegroundColor Green
+            }
+            elseif ($null -eq $outcome.Down) {
+                Write-Host "  [DRYRUN] $masterName left untouched (it is powered off last of all)." -ForegroundColor DarkGray
+            }
+            else {
+                # Judged by reachability, so the 255 exit code of a *successful* poweroff (the host
+                # closes the connection as it goes down) can no longer be mistaken for a failure.
+                Write-Host "  [!] $masterName is still answering after every poweroff stage ($($outcome.Attempts) attempts)." -ForegroundColor Red
+                $failedNodes += $masterName
+            }
         }
     }
     catch {
@@ -491,19 +830,27 @@ foreach ($master in $masterTargets) {
 }
 
 Write-Host "`n--- Shutdown Summary ---" -ForegroundColor Cyan
+if ($script:DryRun) {
+    Write-Host "[DRYRUN] Nothing was changed: no node was cordoned, drained or powered off." -ForegroundColor DarkGray
+}
 if ($skippedNodes.Count -gt 0) {
-    Write-Host "Skipped (storage not clean, no -Force): $($skippedNodes -join ', ')" -ForegroundColor Yellow
+    Write-Host "Skipped (storage/drain not clean, no -Force): $($skippedNodes -join ', ')" -ForegroundColor Yellow
 }
 if ($failedNodes.Count -gt 0) {
-    Write-Host "Failed: $($failedNodes -join ', ')" -ForegroundColor Red
+    Write-Host "Still answering after every poweroff stage: $($failedNodes -join ', ')" -ForegroundColor Red
+    Write-Host "  These hosts ignored sudo poweroff, shutdown -h now and systemctl poweroff -i. Retry with -Force -ForceKernelPowerOff, or use the physical power button." -ForegroundColor Yellow
 }
 if ($skippedNodes.Count -eq 0 -and $failedNodes.Count -eq 0) {
-    Write-Host "[+] All target nodes processed cleanly." -ForegroundColor Green
+    if ($script:DryRun) { Write-Host "[+] Dry run complete: review the plan above, then re-run without -DryRun." -ForegroundColor Green }
+    else { Write-Host "[+] All target nodes processed cleanly (each one verified unreachable on TCP 22)." -ForegroundColor Green }
 }
 
 # Guarded: powering off the machine running this script kills the terminal, kubectl
 # access and any chance to observe or recover the cluster mid-test. Opt-in only.
-if ($ShutdownLocalMac) {
+if ($ShutdownLocalMac -and $script:DryRun) {
+    Write-Host "`n--- [DRYRUN] would power off the local Mac (-ShutdownLocalMac supplied) ---" -ForegroundColor DarkGray
+}
+elseif ($ShutdownLocalMac) {
     Write-Host "`n--- Powering off Local Mac (-ShutdownLocalMac supplied) ---" -ForegroundColor Red
     "test" | sudo -S shutdown -h now
 }
@@ -511,6 +858,7 @@ else {
     Write-Host "`n--- Local Mac left powered on (use -ShutdownLocalMac to include it) ---" -ForegroundColor Yellow
 }
 
+if ($script:DryRun) { exit 0 }
 if ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0) { exit 1 }
 exit 0
 

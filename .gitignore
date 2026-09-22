@@ -34,4 +34,7 @@ WindowsLab/logs/
 k3s-audits/
 WindowsLab/k3s-audits/
 
+# Local GDrive/NAS ebook sync state and downloads (never commit)
+.gdrive-sync/
+
 
