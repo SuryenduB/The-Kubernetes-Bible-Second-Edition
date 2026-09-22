@@ -25,6 +25,8 @@ Generated: 2026-06-30. Compares live K3s cluster (kubeconfig `default`, server `
 The repo accumulated overlapping generations of manifests. Only the most recent per app reflects live state:
 
 ### iiqstack (canonical = `iiq-stateful.yaml`)
+
+> **Update 2026-09-22 (commit 21523d7):** the description below is superseded by the live↔repo reconciliation. Live iiq = `sailpoint-docker:latest`, **replicas 1** — the repo's HA/NAS variant moved to `kubernetes-manifests/iiq misc/iiq-deployment-ha-nas.yaml` (reference only, not applied). `Job/iiq-init` was removed from `iiq-stateful.yaml` (canonical copy: `iiq misc/iiq-init-job.yaml`). Live-only objects now persisted: Job `fix-db-corruption` (`iiq misc/fix-db-corruption-job.yaml`, suspended) and PVC `iiq-nas-pvc-nfs`. Post-apply `kubectl diff` is clean.
 `iiq-stateful.yaml` matches live (iiq `sailpoint-iiq:8.5` w/ `wait-and-prep-nas`, replicas:2; statefulsets for ldap/activemq/db/db-mysql/mail; counter/ssh/phpldapadmin as deploy; iiq-init Job). **Stale duplicates:**
 - `base/` directory (Deployment-style, images like `sailpoint-docker:latest`, `traefik:3.2.0`, `mssql:2019-latest`) — superseded
 - `iiq-deployment.yaml` (top-level) — superseded

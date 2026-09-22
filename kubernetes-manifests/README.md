@@ -11,6 +11,7 @@ kubernetes-manifests/
 ├── iiq-stateful.yaml               # iiqstack ns (IIQ, LDAP, ActiveMQ, MSSQL, MySQL, Mailpit, etc.)
 ├── iiq-networkpolicy.yaml          # iiqstack network policies (default-deny + allow-internal)
 ├── iiq-serviceaccount.yaml         # iiqstack ServiceAccount
+├── iiq misc/                       # iiqstack extras: init job, iiq Deployment/Service, HA ref, recovery README
 ├── base/
 │   └── ollama-deployment.yaml      # ai ns (Ollama, Open WebUI, PVCs, ingress)
 ├── linguacafe/                     # linguacafe ns (webapp, MariaDB, Redis, netpols)
@@ -67,7 +68,7 @@ kubernetes-manifests/
 | 2 | `ai-language-learning` | AI Language Tutor (custom backend + Postgres) | `ai-language-learning.yaml` |
 | 3 | `openlingo` | OpenLingo (Next.js language platform + Postgres) | `media/openlingo.yaml` |
 | 4 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
-| 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` |
+| 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
 | 6 | `media` | AudioBookshelf, Calibre-Web, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick, pgweb | `media/` |
 | 7 | `homepage` | gethomepage dashboard | `homepage/homepage.yaml` |
 | 8 | `monitoring` | Beszel, Uptime Kuma, Kuvasz, Lantern, PooML, OmniSight, Dozzle, Logchef, Trove, LAN Sheriff, LanGuard, Homelab Monitor, Gotify, Apprise | `monitoring/` |
