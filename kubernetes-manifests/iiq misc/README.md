@@ -29,7 +29,11 @@
 
 ## Recreate from Scratch
 
-Prerequisites (cluster level): k3s, Traefik CRDs (`IngressRoute`), Tailscale operator + `../tailscale-proxyclass.yaml`, and registry `192.168.0.236:5000` reachable from the nodes.
+Prerequisites (cluster level — nothing in this folder installs them, verified by audit 2026-09-22):
+
+- **k3s** cluster (see `docs/homelab/K3s_Homelab_Template.md`) with Traefik CRDs (`IngressRoute` — ships with k3s); Tailscale operator + `../tailscale-proxyclass.yaml` only if you want the tailnet URL.
+- **Registry** `192.168.0.236:5000` running on host `server-236` with `sailpoint-iiq:8.5` pushed, **and** `../registry-fixer.yaml` applied first (writes the mirror into `/etc/rancher/k3s/registries.yaml` on every node; restart k3s on a node if pulls from the HTTP registry fail). The registry lives on the host, not in the cluster — it survives a cluster wipe only if `server-236` is not re-imaged.
+- **StorageClasses `longhorn` and `nfs-nas` must exist BEFORE applying** — every `iiqstack` PVC binds to `longhorn` (db/ldap/activemq/mail/mysql data, `iiq-nas-pvc`) except `iiq-nas-pvc-nfs` → `nfs-nas` (NFS subdir provisioner + NAS reachable). Longhorn and the NFS provisioner are platform installs (out of scope of this folder). Without them every PVC stays Pending and nothing starts.
 
 ```bash
 # 1) Full stack first — ns, secret, netpols, SA/RBAC, dependencies, Deployment+Service iiq
