@@ -13,7 +13,7 @@ explicit recurring job - existing and future. No per-PVC wiring.
 | `04-node-failure-resilience.yaml` | Strict replica anti-affinity, node-down pod deletion, best-effort auto-balance |
 | `05-storage-reserve.yaml` | Per-disk reserve 20% (existing disks keep their baked-in absolute values; applies to newly added disks) |
 | `06-storageclass-r1.yaml` | `longhorn-r1` single-replica StorageClass for lightweight, rebuildable data |
-| `07-nfs40-premount.yaml` | Self-healing DaemonSet that keeps a healthy **NFSv4.0 pre-mount** of the backupstore inside every longhorn-manager / instance-manager / engine namespace (QNAP NFSv4.1 is broken server-side and Longhorn hardcodes `nfsvers=4.1`) - see `NFS41-INCIDENT-REPORT.md` |
+| `07-nfs40-premount.yaml` | Self-healing DaemonSet that keeps a healthy **NFSv4.0 pre-mount** of the backupstore inside every longhorn-manager / instance-manager / engine namespace (the very old QNAP does not support NFSv4.1 and Longhorn hardcodes `nfsvers=4.1`) - see `NFS41-INCIDENT-REPORT.md` |
 
 All manifests validated against the live cluster's admission webhook (Longhorn v1.8.1,
 apiVersion `longhorn.io/v1beta2`, RecurringJob `spec.name` required).
@@ -48,11 +48,12 @@ Restore `monitoring/beszel-hub-data` (1Gi, small + low-risk) into a scratch name
 via Longhorn UI: Backup -> Restore PVC, then verify data mounts.
 
 ## Operational notes
-- **QNAP NFSv4.1 is broken server-side** (EIO on reads) and Longhorn hardcodes
+- **The very old QNAP does not support NFSv4.1** (4.1 mounts establish but reads die
+  with EIO; no firmware/repair/config path exists) and Longhorn hardcodes
   `nfsvers=4.1`, so backups only work through the NFSv4.0 pre-mount kept alive by the
   `nfs40-premount` DaemonSet (`07-`). Full root cause, verification, and the live-state
-  audit are in `NFS41-INCIDENT-REPORT.md`. The permanent fix is still on the NAS side
-  (repair/re firmware QNAP NFSv4.1) - the DaemonSet is a client-side workaround.
+  audit are in `NFS41-INCIDENT-REPORT.md`. There is **no NAS-side fix** - the
+  DaemonSet *is* the permanent solution; the only true cure is replacing the NAS.
 - **Never edit `backup-target` via the Longhorn UI** - this repo is the source of truth.
   Changing the target later *orphans* all previously taken backups (by design).
 - Backups are **crash-consistent**, not app-quiesced. DB transaction logs inside the

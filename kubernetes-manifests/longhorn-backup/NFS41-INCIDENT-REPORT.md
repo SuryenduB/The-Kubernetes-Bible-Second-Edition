@@ -13,7 +13,7 @@ RecurringJob `backup-daily`) hadn't produced a successful backup since 2026-09-2
 
 ## Root cause (two layers)
 
-### 1. QNAP NFSv4.1 was broken server-side
+### 1. The NAS does not support NFSv4.1 (observed as "broken server-side")
 
 After deep probing (NFS matrix on the cluster):
 
@@ -25,6 +25,12 @@ NAS `nfs` restart (last resort) did **not** fix 4.1. Stale empty
 `/var/lib/nfs/v4recovery/*` dirs + persistent `err -17 (EEXIST)` on recovery-record
 writes pointed at server-side 4.1 state corruption. QTS still advertised +4.1 as
 supported.
+
+**Post-incident conclusion (2026-09-22):** this is not repairable state corruption —
+owner investigation confirmed the **very old NAS does not actually support
+NFSv4.1**. QTS advertises +4.1 and a 4.1 mount can even be established, but reads
+die with EIO, and there is **no firmware, repair, or server-side NFS-version pin**
+on this model. See the post-incident update at the end of this report.
 
 ### 2. Longhorn hardcodes NFSv4.1
 
@@ -124,9 +130,36 @@ kubectl -n longhorn-system exec "${IM#pod/}" -- mountpoint /var/lib/longhorn-bac
 
 ### Remaining limitation (accepted)
 
-- The DaemonSet is a **client-side workaround**. The permanent fix is on the NAS side
-  (repair/re-firmware QNAP NFSv4.1 state). If the DaemonSet itself is deleted while
+- **There is no NAS-side fix.** The very old NAS does not support NFSv4.1 — no
+  firmware, repair, or config path (see the post-incident update below) — so the
+  DaemonSet is not a stopgap: it **is** the permanent fix for this cluster. The only
+  true cure is replacing the NAS with one that properly supports NFSv4.1 (or exposes
+  a server-side NFS-version pin to 4.0). If the DaemonSet itself is deleted while
   pod namespaces churn, backups break again — same as pre-fix behavior.
 - Sentinel file `<export>/.nfs40-probe` is created at the backupstore root; it is
   harmless and can be deleted (it is recreated on the next scan).
+
+## Post-incident update (2026-09-22): the NAS does not support NFSv4.1
+
+The original working assumption — that the QNAP's NFSv4.1 breakage was repairable
+server-side — was wrong. A painstaking investigation confirmed the very old NAS
+**does not support NFSv4.1**:
+
+- QTS still *advertises* `+4.1`, and a `vers=4.1` mount can even be established,
+  but every subsequent read fails with `EIO` (consistent with the incident matrix
+  above).
+- No firmware update, service repair, or configuration option on this model makes
+  4.1 usable — and there is no server-side way to pin the NFS version to 4.0.
+
+Consequences:
+
+- The "repair the NAS" permanent-fix option is off the table. Do not spend more
+  time on `v4recovery` cleanup, nfsd restarts, or QTS re-firmware for 4.1 — they
+  cannot help.
+- `07-nfs40-premount.yaml` (`nfs40-premount` DaemonSet) is the **permanent**
+  solution for this cluster's lifetime, not a workaround awaiting a NAS fix.
+- The only true cure is **replacing the NAS** with one whose NFS server properly
+  supports 4.1 (or that exposes a server-side NFS-version pin to 4.0).
+- Operational rules stand: never edit `backup-target` via the Longhorn UI, and
+  bump the DaemonSet image tag on Longhorn upgrades.
 

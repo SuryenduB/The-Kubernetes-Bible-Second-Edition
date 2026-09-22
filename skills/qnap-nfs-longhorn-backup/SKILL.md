@@ -36,7 +36,8 @@ for v in 4.2 4.1 4 3; do
     && echo "vers=$v OK" || echo "vers=$v FAIL: $(cat /tmp/err)"
 done
 ```
-- `vers=4.2` → `Protocol not supported` on QTS is normal (v4.1 is what Longhorn gets).
+- `vers=4.2` → `Protocol not supported` on QTS is normal.
+- **As of 2026-09-22 the very old NAS does NOT support NFSv4.1**: `vers=4.1` mounts establish but every read dies with `EIO`, and there is no firmware/repair/config fix (see `kubernetes-manifests/longhorn-backup/NFS41-INCIDENT-REPORT.md`). Longhorn still *hardcodes* 4.1 — the `nfs40-premount` DaemonSet pre-mounts 4.0 first and Longhorn reuses it. The DaemonSet is the permanent fix; the only true cure is replacing the NAS.
 - `Connection refused` for a version that worked minutes ago = nfsd flapping (see triage).
 
 ### 4. Trigger + time a real backup via the RecurringJob engine (NOT hand-made Backup CRs)

@@ -1,8 +1,9 @@
 # Durable fix for the QNAP NFSv4.1 backupstore breakage (see NFS41-INCIDENT-REPORT.md).
 #
 # Longhorn hardcodes nfsvers=4.1 when it mounts the backupstore, and there is no
-# Setting to override it. QNAP NFSv4.1 is broken server-side (EIO on reads), while
-# NFSv4.0 works. The proven workaround is to pre-mount the backupstore as NFSv4.0:
+# Setting to override it. The very old QNAP does not support NFSv4.1 (4.1 reads die
+# with EIO; no server-side fix exists), while NFSv4.0 works. The proven workaround
+# is to pre-mount the backupstore as NFSv4.0:
 # if the mount already exists, Longhorn reuses it instead of mounting 4.1 itself.
 #
 # The pre-mounts live inside each container's mount namespace, so they disappear
