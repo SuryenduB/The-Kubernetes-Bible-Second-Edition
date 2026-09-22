@@ -1,0 +1,151 @@
+# ============================================================
+# IdentityIQ Deployment — HA/NAS VARIANT (REFERENCE ONLY — NOT APPLIED)
+# Removed from iiq-stateful.yaml on 2026-09-22 during live-drift reconciliation:
+# the cluster runs the simple single-replica variant in 'iiq-deployment.yaml'.
+# To activate this variant instead:
+#   1. kubectl scale deploy/iiq --replicas=0
+#   2. Apply this file, scale down/up, ensure PVCs iiq-nas-pvc bound
+#   3. The image entrypoint differs: config is injected via the initContainer
+#      (catalina.sh run, no env-based config), so image MUST be sailpoint-iiq:8.5+
+# ============================================================
+---
+# --- 8. IdentityIQ App Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iiq
+  namespace: iiqstack
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxSurge: 1, maxUnavailable: 0 }
+  selector:
+    matchLabels:
+      app: iiq
+  template:
+    metadata:
+      labels:
+        app: iiq
+    spec:
+      enableServiceLinks: false
+      serviceAccountName: iiq-sa
+      securityContext:
+        fsGroup: 1000
+      initContainers:
+        - name: wait-and-prep-nas
+          image: 192.168.0.236:5000/sailpoint-iiq:8.5
+          securityContext:
+            runAsUser: 0
+            privileged: true
+          command:
+            - /bin/bash
+            - -c
+            - |
+              # 1. Wait for Job - removed API check as it's unreliable
+              echo "Skipping Job wait check - iiq-init should be complete"
+
+              # 2. Configuration Hashing (State Detection)
+              # We hash all critical connection strings to detect if the config changed
+              CONFIG_STATE="db:1433:identityiq:identityiqPlugin:identityiqah"
+              CONFIG_HASH=$(echo "$CONFIG_STATE" | md5sum | cut -d' ' -f1)
+              SENTINEL=".unpacked_${CONFIG_HASH}"
+
+              cd /opt/tomcat/webapps
+              WAR_FILE=/opt/iiq/identityiq.war
+
+              # 3. Smart Unpack/Patch Decision
+              NEEDS_WORK=0
+              if [ ! -f "$SENTINEL" ]; then
+                echo "No valid config sentinel found ($SENTINEL). Starting preparation..."
+                NEEDS_WORK=1
+              elif [ "$WAR_FILE" -nt "$SENTINEL" ]; then
+                echo "Newer WAR file detected. Triggering upgrade..."
+                NEEDS_WORK=1
+              fi
+
+              if [ "$NEEDS_WORK" -eq 1 ]; then
+                # Remove lock mechanism to prevent deadlock
+                # Clean old sentinels to prevent disk clutter
+                rm -f .unpacked_*
+                
+                # Only unzip if the directory is missing or we detect a WAR change
+                if [ ! -d identityiq ] || [ "$WAR_FILE" -nt "identityiq" ]; then
+                  echo "Unpacking IdentityIQ WAR..."
+                  rm -rf identityiq
+                  mkdir -p identityiq
+                  unzip -qo $WAR_FILE -d identityiq
+                fi
+                  
+                  # 4. Inject Configuration (Atomic Multi-Key Patch)
+                  PROPS=/opt/tomcat/webapps/identityiq/WEB-INF/classes/iiq.properties
+                  echo "Applying Configuration Patch (Hash: $CONFIG_HASH)..."
+                  
+                  sed -ri "s/^(dataSource\.url=).*/\1jdbc:sqlserver:\/\/db:1433;databaseName=identityiq;encrypt=true;trustServerCertificate=true/" ${PROPS}
+                  sed -ri "s/^(dataSource\.driverClassName=).*/\1com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}
+                  sed -ri "s/^(dataSource\.username=).*/\1identityiq/" ${PROPS}
+                  sed -ri "s/^(dataSource\.password=).*/\1id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}
+                  sed -ri "s/^(sessionFactory\.hibernateProperties\.hibernate\.dialect=).*/\1sailpoint.persistence.SQLServerPagingDialect/" ${PROPS}
+                  
+                  sed -ri "s/^(pluginsDataSource\.url=).*/\1jdbc:sqlserver:\/\/db:1433;databaseName=identityiqPlugin;encrypt=true;trustServerCertificate=true/" ${PROPS}
+                  sed -ri "s/^(pluginsDataSource\.driverClassName=).*/\1com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}
+                  sed -ri "s/^(pluginsDataSource\.password=).*/\1id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}
+                  
+                  sed -ri "s/^(dataSourceAccessHistory\.url=).*/\1jdbc:sqlserver:\/\/db:1433;databaseName=identityiqah;encrypt=true;trustServerCertificate=true/" ${PROPS}
+                  sed -ri "s/^(dataSourceAccessHistory\.driverClassName=).*/\1com.microsoft.sqlserver.jdbc.SQLServerDriver/" ${PROPS}
+                  sed -ri "s/^(dataSourceAccessHistory\.password=).*/\1id3ntityIQ!-TQ8BaiOxKAL4v-4lCIxVx/" ${PROPS}
+                  sed -ri "s/^(sessionFactoryAccessHistory\.hibernateProperties\.hibernate\.dialect=).*/\1sailpoint.persistence.SQLServerUnicodeDialect/" ${PROPS}
+
+                  echo "scheduler.quartzProperties.org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.MSSQLDelegate" >> ${PROPS}
+                  echo "scheduler.quartzProperties.org.quartz.jobStore.selectWithLockSQL=SELECT * FROM {0}LOCKS UPDLOCK WHERE LOCK_NAME = ?" >> ${PROPS}
+                  
+                  # 5. Driver Workaround
+                  echo "Injecting driver into system lib..."
+                  cp -f /opt/iiq/lib/mssql-jdbc*.jar /opt/tomcat/lib/
+                  cp -f /opt/iiq/lib/*.jar /opt/tomcat/webapps/identityiq/WEB-INF/lib/
+
+                  touch "$SENTINEL"
+                  echo "Configuration Patching Complete."
+              fi
+
+              # 5. Final Permissions
+              chown -R 1000:1000 /opt/tomcat/webapps
+              echo "Storage Preparation Complete."
+          volumeMounts:
+            - name: iiq-nas-data
+              mountPath: /opt/tomcat/webapps
+      containers:
+        - name: iiq
+          image: 192.168.0.236:5000/sailpoint-iiq:8.5
+          securityContext:
+            runAsUser: 1000
+          command: ["/opt/tomcat/bin/catalina.sh", "run"]
+          ports:
+            - containerPort: 8080
+          resources:
+            requests: { cpu: 500m, memory: 2Gi }
+            limits: { cpu: "2", memory: 4Gi }
+          startupProbe:
+            httpGet: { path: /identityiq, port: 8080 }
+            failureThreshold: 60
+            periodSeconds: 15
+          readinessProbe:
+            httpGet: { path: /identityiq, port: 8080 }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /identityiq, port: 8080 }
+            initialDelaySeconds: 600
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          volumeMounts:
+            - name: iiq-nas-data
+              mountPath: /opt/tomcat/webapps
+      volumes:
+        - name: iiq-nas-data
+          persistentVolumeClaim:
+            claimName: iiq-nas-pvc
