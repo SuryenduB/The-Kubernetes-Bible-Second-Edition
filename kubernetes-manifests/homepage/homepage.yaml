@@ -5,7 +5,9 @@ metadata:
   name: homepage
 ---
 # Homepage dashboard config (services / settings / widgets). Edits here are
-# mounted with subPath; update the pod-template checksum below after config edits.
+# mounted with subPath; after config edits, set checksum/config below to the
+# sha256 of the three data values concatenated (services+settings+widgets,
+# exactly as YAML stores them in the ConfigMap) to trigger a pod rollout.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -72,6 +74,11 @@ data:
           href: http://calibre-web.tail35421d.ts.net:8083
           description: Ebook Management
           siteMonitor: http://calibre-web.media.svc:8083
+      - Chaptarr:
+          icon: mdi-book-multiple
+          href: http://chaptarr.tail35421d.ts.net
+          description: Audiobook & eBook Manager
+          siteMonitor: http://chaptarr.media.svc
       - LinguaCafe:
           icon: linguacafe.png
           href: http://linguacafe.tail35421d.ts.net
@@ -257,7 +264,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "b3093dbcf8feb164b2e5ff8accf4e12242cea9a8d937336c317c62e96cc37b61"
+        checksum/config: "803e035bd6a329789cb7bf7634f94e909cf8fbeef4a83d5eb41c667eb01f57f1"
       labels:
         app: homepage
     spec:
