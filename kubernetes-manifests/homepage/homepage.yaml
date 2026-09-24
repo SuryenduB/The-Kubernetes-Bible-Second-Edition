@@ -119,6 +119,11 @@ data:
           href: http://flick.tail35421d.ts.net
           description: File sharing with short codes
           siteMonitor: http://flick.media.svc/api/v1/stats
+      - Reactive Resume:
+          icon: mdi-file-document-edit-outline
+          href: http://reactive-resume.tail35421d.ts.net
+          description: Free and Open Source Resume Builder
+          siteMonitor: http://reactive-resume.media.svc/api/health
     - Dashboards:
       - Homarr:
           icon: homarr.png
@@ -264,7 +269,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "803e035bd6a329789cb7bf7634f94e909cf8fbeef4a83d5eb41c667eb01f57f1"
+        checksum/config: "5b9cd6f975dd5be263e79aa58bd04ab5a78dd1a1f8c3993a7167fd4a30f3ad25"
       labels:
         app: homepage
     spec:
