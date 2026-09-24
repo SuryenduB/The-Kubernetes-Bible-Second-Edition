@@ -67,12 +67,18 @@ spec:
             httpGet:
               path: /api/v1/health/
               port: api
+              httpHeaders:
+                - name: Host
+                  value: languard.tail35421d.ts.net
             initialDelaySeconds: 45
             periodSeconds: 10
           livenessProbe:
             httpGet:
               path: /api/v1/health/
               port: api
+              httpHeaders:
+                - name: Host
+                  value: languard.tail35421d.ts.net
             initialDelaySeconds: 90
             periodSeconds: 20
         - name: scheduler
