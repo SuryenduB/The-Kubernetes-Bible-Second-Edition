@@ -32,6 +32,12 @@ spec:
   backoffLimit: 3
   completions: 1
   parallelism: 1
+  # Intentionally NO liveness/readiness probe. This is a batch Job that runs
+  # DDL and exits; probes only apply to long-running processes and a probe
+  # here could kill the job midway through a schema migration. Kubernetes
+  # retries failures via backoffLimit above. No resource limits either -
+  # this container unzips the IdentityIQ WAR and runs large DDL scripts, and
+  # a memory cap risks OOM-killing a half-applied migration.
   template:
     metadata:
       labels:

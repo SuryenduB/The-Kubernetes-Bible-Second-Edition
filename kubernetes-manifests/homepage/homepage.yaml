@@ -282,6 +282,54 @@ spec:
           value: "100.82.63.72,homepage-homepage,homepage-homepage.tail35421d.ts.net,homepage.homepage.svc.cluster.local,homepage.homepage.svc"
         ports:
         - containerPort: 3000
+        # Homepage exposes no /health or /api/health endpoint (verified: both
+        # return 404), so the probe targets "/" - the Next.js root.
+        #
+        # The explicit Host header is REQUIRED. Homepage validates the Host
+        # header against HOMEPAGE_ALLOWED_HOSTS and returns HTTP 400 for
+        # anything else; kubelet would otherwise send the pod IP and the pod
+        # would never go Ready.
+        #
+        # Note this must be `httpHeaders`, NOT the `host` field: `host` tells
+        # kubelet which address to *connect to* (it would try to resolve
+        # homepage.homepage.svc from the node and fail with "no such host").
+        # A Host entry in httpHeaders only rewrites the header, keeping the
+        # connection on the pod IP.
+        startupProbe:
+          httpGet:
+            path: /
+            port: 3000
+            httpHeaders:
+              - name: Host
+                value: homepage.homepage.svc
+          failureThreshold: 30
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+            httpHeaders:
+              - name: Host
+                value: homepage.homepage.svc
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+            httpHeaders:
+              - name: Host
+                value: homepage.homepage.svc
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
         volumeMounts:
         - name: config
           mountPath: /app/config/settings.yaml

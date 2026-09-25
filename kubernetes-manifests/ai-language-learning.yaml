@@ -121,6 +121,31 @@ spec:
             name: ai-lang-secrets
         ports:
         - containerPort: 5432
+        # pg_isready is the canonical Postgres probe. The init container
+        # waits on the same check before applying schema.sql.
+        startupProbe:
+          exec:
+            command: ["pg_isready", "-U", "aiuser", "-d", "aidb"]
+          failureThreshold: 30
+          periodSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["pg_isready", "-U", "aiuser", "-d", "aidb"]
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          exec:
+            command: ["pg_isready", "-U", "aiuser", "-d", "aidb"]
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
         volumeMounts:
         - name: pgdata
           mountPath: /var/lib/postgresql/data
@@ -176,6 +201,37 @@ spec:
             name: ai-lang-secrets
         ports:
         - containerPort: 3000
+        # The Express app (server.js) serves static /index and /index.html and
+        # mounts the API under /api/*; it defines no /health route, so the
+        # probe targets /index. The backend calls the OpenAI-compatible API on
+        # every request, so liveness is deliberately lenient - a slow
+        # upstream must not restart-loop the pod.
+        startupProbe:
+          httpGet:
+            path: /index
+            port: 3000
+          failureThreshold: 60
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /index
+            port: 3000
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /index
+            port: 3000
+          periodSeconds: 30
+          timeoutSeconds: 5
+          failureThreshold: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
       volumes:
       - name: schema-sql
         configMap:

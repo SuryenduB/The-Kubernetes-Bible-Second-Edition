@@ -30,6 +30,20 @@ spec:
           EOF
           echo "Registry config updated on $(hostname)"
           sleep 3600
+        # Intentionally NO liveness/readiness probe. This container writes
+        # registries.yaml once and then sleeps in a loop - it serves no
+        # traffic and has no health endpoint to probe. A probe here would
+        # only add failure modes (e.g. a busybox httpGet on a nonexistent
+        # port restarting the pod every few minutes). DaemonSet membership
+        # plus `sleep 3600` already guarantees the config is rewritten
+        # hourly on every node.
+        resources:
+          requests:
+            cpu: 5m
+            memory: 8Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
         volumeMounts:
         - name: etc-k3s
           mountPath: /host/etc/rancher/k3s

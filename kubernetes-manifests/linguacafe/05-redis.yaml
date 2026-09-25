@@ -19,6 +19,26 @@ spec:
         ports:
         - containerPort: 6379
         command: ["redis-server", "--requirepass", "linguacafe"]
+        # PING is the canonical Redis liveness/readiness check. The password
+        # must be supplied because the server runs with --requirepass;
+        # without it Redis replies "NOAUTH" and exits non-zero, which would
+        # make the probe fail and restart-loop a healthy instance.
+        startupProbe:
+          exec:
+            command: ["redis-cli", "-a", "linguacafe", "--no-auth-warning", "ping"]
+          failureThreshold: 15
+          periodSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["redis-cli", "-a", "linguacafe", "--no-auth-warning", "ping"]
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          exec:
+            command: ["redis-cli", "-a", "linguacafe", "--no-auth-warning", "ping"]
+          periodSeconds: 20
+          timeoutSeconds: 3
+          failureThreshold: 5
         resources:
           requests:
             cpu: 50m
