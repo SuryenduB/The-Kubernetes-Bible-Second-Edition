@@ -1,4 +1,4 @@
-#Requires -Version 7.0
+﻿#Requires -Version 7.0
 # Start-K3sHomelab.ps1  (full recovery by default)
 # Restores cluster capacity after a power-down. Every recovery phase runs by default:
 # uncordon Ready nodes -> recover the cluster core (CoreDNS/Traefik/metrics-server) ->
@@ -212,6 +212,16 @@
             this script to uncordon and reconcile.
 #>
 
+# Script-level PSScriptAnalyzer suppressions. Each was checked by hand and is either a
+# false positive or a deliberate choice for an interactive recovery tool.
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+    Justification = 'Interactive recovery tool: Write-Host is correct for the coloured run-plan banner and inline progress lines. Write-Output would inject those strings into the pipeline and corrupt the report object. The semantic helpers Write-Info/Write-Warn/Write-Ok/Write-Bad wrap it consistently.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseUsingScopeModifierInNewRunspaces', '',
+    Justification = 'Start-Job -ScriptBlock { param($ns,$name) } -ArgumentList is the documented way to pass values into a background job. Adding $using: would be wrong - it is for Invoke-Command, and it would bypass the param() binding and always be empty.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', '',
+    Justification = 'Script-scope parameters are referenced from inside functions and from default-value expressions, which PSScriptAnalyzer does not track. Verified by hand: MultipathImage, MultipathDebugPod and GracefulDeleteTimeout are all used.')]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidAssignmentToAutomaticVariable', '',
+    Justification = '$allNodes is a local holding the kubectl node list; it does not collide with any PowerShell automatic variable in PS7.')]
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
     # ── Opt-out switches: every recovery phase runs unless it is explicitly skipped ──
@@ -1191,6 +1201,8 @@ function Repair-PendingRwoMounts {
     #>
     [CmdletBinding()]
     [OutputType([string[]])]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseSingularNouns', '',
+        Justification = 'Returns the set of Pending RWO pods it repaired; plural noun is correct for a collection return')]
     param([string]$Reason = 'post-rollout')
 
     if (-not $DoStorageRepair) { return @() }
