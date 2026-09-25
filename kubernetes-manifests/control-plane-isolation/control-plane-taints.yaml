@@ -1,0 +1,36 @@
+# Control-plane isolation (declarative source of truth).
+#
+# Goal: keep application workloads and Longhorn replicas off the etcd
+# control-plane members server-236 and server-252, matching the existing
+# taint on nuc (node-role.kubernetes.io/master=:NoSchedule).
+#
+# Two tiers (both required):
+#   1. Kubernetes Node taints (this file) stop NEW app pods scheduling.
+#      DaemonSets with broad tolerations (registry-fixer, beszel-agent,
+#      longhorn-csi-plugin, svclb-traefik which tolerates control-plane)
+#      intentionally remain - compare with nuc, which runs the same set.
+#   2. longhorn-scheduling.yaml (nodes.longhorn.io) stops NEW Longhorn
+#      replica scheduling. K8s taints alone do NOT affect Longhorn.
+#
+# Apply: kubectl apply -k kubernetes-manifests/control-plane-isolation
+# Then (taints are owned by the k3s manager, so apply may conflict):
+#   kubectl taint nodes server-236 node-role.kubernetes.io/master=:NoSchedule --overwrite
+#   kubectl taint nodes server-252 node-role.kubernetes.io/master=:NoSchedule --overwrite
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: server-236
+spec:
+  taints:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule
+---
+apiVersion: v1
+kind: Node
+metadata:
+  name: server-252
+spec:
+  taints:
+    - key: node-role.kubernetes.io/master
+      effect: NoSchedule

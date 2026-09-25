@@ -1,0 +1,53 @@
+# Longhorn replica isolation for control-plane members.
+#
+# Kubernetes taints do NOT stop Longhorn replica scheduling - only these
+# nodes.longhorn.io CRs do. Setting allowScheduling=false stops NEW
+# replicas; existing replicas stay until rebuilt/evicted by Longhorn
+# auto-balance (replica-auto-balance=best-effort is already enabled).
+#
+# IMPORTANT: disk name keys (default-disk-<hash>) are per-node immutable
+# IDs. They were read from the live cluster on 2026-09-25:
+#   kubectl get nodes.longhorn.io -n longhorn-system -o json | jq '.items[] | {node: .metadata.name, disks: (.spec.disks | keys)}'
+# If a node is ever reinstalled, its disk hash changes and this file must
+# be updated to the new key (apply will fail closed on mismatch otherwise).
+#
+# Do NOT set evictionRequested=true here: server-252 is currently NotReady
+# and several volumes are already degraded - forced eviction now could
+# drop the last healthy copy. allowScheduling=false is the safe first step;
+# evict later only with confirmed alternate capacity + backups.
+#
+# Apply: kubectl apply -k kubernetes-manifests/control-plane-isolation
+---
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: server-236
+  namespace: longhorn-system
+spec:
+  name: server-236
+  allowScheduling: false
+  evictionRequested: false
+  disks:
+    default-disk-187e48d0a42cd1ce:
+      path: /var/lib/longhorn/
+      allowScheduling: false
+      evictionRequested: false
+      storageReserved: 10281818521
+      tags: []
+---
+apiVersion: longhorn.io/v1beta2
+kind: Node
+metadata:
+  name: server-252
+  namespace: longhorn-system
+spec:
+  name: server-252
+  allowScheduling: false
+  evictionRequested: false
+  disks:
+    default-disk-10e64250fc5e6051:
+      path: /var/lib/longhorn/
+      allowScheduling: false
+      evictionRequested: false
+      storageReserved: 26618961100
+      tags: []
