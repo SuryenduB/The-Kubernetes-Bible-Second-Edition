@@ -245,6 +245,12 @@ param(
     [Parameter()]
     [switch]$SkipRestartWorkloads,
 
+    # Phase B (Deployments) is skipped while Longhorn is degraded, mirroring the existing
+    # Phase A rule for RWO StatefulSets. Many Deployments mount the same RWO volumes, so
+    # restarting them against degraded storage is the same deadlock hazard. Use this only
+    # when the target Deployments are known to be safe.
+    [Parameter()]
+    [switch]$ForceRestartWithDegradedStorage,
     [Parameter()]
     [switch]$SkipRebalance,
 
@@ -853,7 +859,8 @@ function Wait-StorageReady {
     [CmdletBinding()]
     param(
         [Parameter()][int]$TimeoutSeconds = 600,
-        [Parameter()][int]$PollSeconds = 15
+        [Parameter()][int]$PollSeconds = 15,
+        [Parameter()][int]$StallIterations = 8
     )
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
@@ -865,12 +872,38 @@ function Wait-StorageReady {
                 $status.HealthyCount, $status.VolumeCount, $status.AttachedDegraded.Count, $status.UnschedulableNodes.Count))
         return $status
     }
+    # Convergence is not linear. In the 2026-09-25 run this loop spun for 36 iterations
+    # (~9 min) while healthy volume count oscillated 2 -> 3 -> 4 -> 2 -> 3, never trending up,
+    # and the recovery that actually mattered (a stuck longhorn-manager pod on kubernetes7
+    # being reaped) only completed AFTER the wait was abandoned. Track the best count seen and
+    # bail as soon as several consecutive polls fail to beat it, so the run can move on to the
+    # phases that might actually help instead of burning its whole budget here.
+    $bestHealthy = if ($status.HealthyCount) { $status.HealthyCount } else { 0 }
+    $stalled = 0
+
     while (-not $status.Ok -and $sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
         Test-Budget 'waiting for Longhorn to converge'
         Write-Info ("storage: {0}/{1} volumes healthy, {2} degraded, {3} longhorn node(s) unschedulable - waiting {4}s" -f `
                 $status.HealthyCount, $status.VolumeCount, $status.AttachedDegraded.Count, $status.UnschedulableNodes.Count, $PollSeconds)
         Start-Sleep -Seconds $PollSeconds
         $status = Get-StorageStatus
+
+        if ($status.HealthyCount -gt $bestHealthy) {
+            if ($stalled -gt 0) {
+                Write-Info ("storage: improving again ({0} healthy, was stalled at {1}) - continuing to wait." -f $status.HealthyCount, $bestHealthy)
+            }
+            $bestHealthy = $status.HealthyCount
+            $stalled = 0
+        }
+        else {
+            $stalled++
+            if ($stalled -ge $StallIterations) {
+                Write-Warn ("storage: no improvement over {0} consecutive polls (best {1}/{2} healthy) - stopping the wait early and continuing." -f `
+                        $stalled, $bestHealthy, $status.VolumeCount)
+                Add-Finding ("Longhorn storage stalled at {0}/{1} healthy after {2} polls without improvement" -f $bestHealthy, $status.VolumeCount, $stalled)
+                break
+            }
+        }
     }
     $sw.Stop()
     return $status
@@ -1717,9 +1750,25 @@ function Repair-LonghornControlPlane {
         return $status
     }
 
-    $null = Repair-PlatformNamespace -Namespace $StorageNamespace -Reason 'Longhorn control-plane recovery' `
-        -NameExclude @('engine-image-*', 'instance-manager-*', 'share-manager-*') `
-        -RestartExclude @('engine-image-*', 'instance-manager-*')
+    # Collapse guard, evaluated BEFORE any controller restart. On 2026-09-25 the Longhorn node
+    # count fell 7/9 -> 5/9 -> 2/9 -> 1/9 while the run kept cycling csi-provisioner /
+    # csi-snapshotter / longhorn-driver-deployer / longhorn-ui and both DaemonSets. Restarting
+    # the components that ARE the control plane while it is collapsing accelerates the
+    # collapse. Below the floor, do not mutate - observe and report instead.
+    $collapseFloor = [math]::Max(1, [math]::Ceiling($status.NodeCount * 0.5))
+    $alreadyCollapsed = ($status.NodeCount -gt 0 -and $status.NodeReady -lt $collapseFloor)
+
+    if ($alreadyCollapsed) {
+        Write-Bad ("Longhorn control plane is COLLAPSING ({0}/{1} nodes Ready, floor {2}) - skipping controller restarts." -f `
+                $status.NodeReady, $status.NodeCount, $collapseFloor)
+        Write-Warn 'A collapsing control plane needs a human to find the blocking pod (check for pods stuck Terminating) - blind restarts make this worse.'
+        Add-Finding ("Longhorn control plane collapsed at start of repair ({0}/{1} nodes Ready)" -f $status.NodeReady, $status.NodeCount)
+    }
+    else {
+        $null = Repair-PlatformNamespace -Namespace $StorageNamespace -Reason 'Longhorn control-plane recovery' `
+            -NameExclude @('engine-image-*', 'instance-manager-*', 'share-manager-*') `
+            -RestartExclude @('engine-image-*', 'instance-manager-*')
+    }
 
     if ($script:DryRun) {
         Write-Info 'dry-run: not waiting for Longhorn controllers / instance-managers.'
@@ -1727,10 +1776,21 @@ function Repair-LonghornControlPlane {
     }
 
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    $collapsed = $alreadyCollapsed
+
     while ($sw.Elapsed.TotalSeconds -lt $LonghornWaitSeconds) {
         Test-Budget 'waiting for the Longhorn control plane'
         $status = Get-LonghornControlPlaneStatus
         if ($status.Ok) { break }
+
+        if (-not $collapsed -and $status.NodeCount -gt 0 -and $status.NodeReady -lt $collapseFloor) {
+            $collapsed = $true
+            Write-Bad ("Longhorn control plane is COLLAPSING ({0}/{1} nodes Ready, floor {2}) - no further controller restarts will be attempted." -f `
+                    $status.NodeReady, $status.NodeCount, $collapseFloor)
+            Write-Warn 'A collapsing control plane needs a human to find the blocking pod (check for pods stuck Terminating) - blind restarts make this worse.'
+            Add-Finding ("Longhorn control plane collapsed to {0}/{1} ready nodes during the wait" -f $status.NodeReady, $status.NodeCount)
+            break
+        }
 
         # Say which node(s) are lagging, not just a bare ratio - "7/14 instance-managers" hides
         # the fact that the missing ones are all on one node.
@@ -1835,12 +1895,24 @@ function Repair-Multipathd {
 
     $repaired = [System.Collections.Generic.List[string]]::new()
     foreach ($nodeName in $targets) {
-        if ($null -ne $NodeState -and $NodeState.Contains($nodeName) -and -not $NodeState[$nodeName].Ready) {
+        $state = if ($null -ne $NodeState -and $NodeState.Contains($nodeName)) { $NodeState[$nodeName] } else { $null }
+        if ($null -ne $state -and -not $state.Ready) {
             Write-Warn "multipath repair skipped on '$nodeName': node is not Ready."
             continue
         }
-        if ($null -ne $NodeState -and $NodeState.Contains($nodeName) -and $nodeState[$nodeName].IsProtected) {
-            Write-Warn "multipath repair skipped on protected node '$nodeName'."
+        if ($null -ne $state -and $state.IsProtected) {
+            # A protected node that Longhorn has ALSO flagged is a suspect, not a non-event.
+            # In the 2026-09-25 run kubernetes7 was the only NotReady node and the only
+            # multipathd-flagged node at the same time, yet the skip was reported as a shrug.
+            # Never auto-repair a protected node, but make the coincidence actionable.
+            $alsoUnhealthy = ($null -ne $state) -and (-not $state.Ready)
+            if ($alsoUnhealthy) {
+                Write-Warn ("multipath repair skipped on protected node '{0}' - this node is ALSO not Ready and may be the cause of the Longhorn degradation. Repair it manually." -f $nodeName)
+                Add-Finding ("multipathd flagged on protected AND unhealthy node $nodeName - manual repair likely required")
+            }
+            else {
+                Write-Warn "multipath repair skipped on protected node '$nodeName'."
+            }
             continue
         }
 
@@ -1980,6 +2052,7 @@ $phasePlan = @(
     "repair Longhorn + recycle CSI   : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
     "engine-frontend recovery        : $(if ($DoHostMountRepair) { 'ON' } else { 'SKIPPED (-SkipHostMountRepair)' })"
     "serialized workload reconcile   : $(if ($DoRestartWorkloads) { 'ON' } else { 'SKIPPED' })"
+    "restart Deployments on degraded storage : $(if ($ForceRestartWithDegradedStorage) { 'YES (-ForceRestartWithDegradedStorage)' } else { 'no (skipped while Longhorn is degraded)' })"
     "PDB-aware rebalance             : $(if ($DoRebalance) { 'ON' } else { 'SKIPPED (-SkipRebalance)' })"
 )
 Write-Host "  Run plan:" -ForegroundColor DarkGray
@@ -2678,9 +2751,24 @@ function Get-ManagedResource {
             $storageStatus = Wait-StorageReady -TimeoutSeconds 600 -PollSeconds 15
         }
         if ($storageStatus.Available -and -not $storageStatus.Ok) {
+            # Report every contributing factor, not just degraded volumes. Control-plane
+            # nodes are now permanently allowScheduling=false by design, so a message that
+            # only counted unhealthy volumes printed the contradictory
+            # "Proceeding with degraded storage: 0 attached volume(s) not healthy."
+            $reasons = [System.Collections.Generic.List[string]]::new()
             $degradedCount = if ($storageStatus.AttachedDegraded) { $storageStatus.AttachedDegraded.Count } else { 0 }
-            Write-Bad ("Proceeding with degraded storage: {0} attached volume(s) not healthy." -f $degradedCount)
-            Add-Finding "Reconcile started with degraded Longhorn volumes"
+            $faultedCount = if ($storageStatus.Faulted) { $storageStatus.Faulted.Count } else { 0 }
+            $unschedCount = if ($storageStatus.UnschedulableNodes) { $storageStatus.UnschedulableNodes.Count } else { 0 }
+            if ($degradedCount -gt 0) { $reasons.Add("$degradedCount attached volume(s) not healthy") }
+            if ($faultedCount -gt 0) { $reasons.Add("$faultedCount faulted volume(s)") }
+            if ($unschedCount -gt 0) {
+                $reasons.Add("$unschedCount Longhorn node(s) not schedulable ($($storageStatus.UnschedulableNodes -join ', '))")
+            }
+            Write-Bad ("Proceeding with degraded storage: {0}." -f ($reasons -join '; '))
+            if ($unschedCount -gt 0 -and $degradedCount -eq 0 -and $faultedCount -eq 0) {
+                Write-Info '  (no unhealthy volumes - the only blocker is Longhorn node scheduling, which may be intentional for protected nodes.)'
+            }
+            Add-Finding ("Reconcile started with degraded Longhorn volumes: {0}" -f ($reasons -join '; '))
         }
 
         # Track the storage snapshot used by the workload gate. The initial gate may wait up
@@ -2760,6 +2848,27 @@ function Get-ManagedResource {
         $deployments = @(Get-ManagedResource -ResourceType 'deployments')
         Write-Info "Phase B: serialized rolling restart of $($deployments.Count) Deployment(s)"
 
+        # Same safety rule as Phase A, applied to Phase B. On 2026-09-25 all 12 StatefulSets
+        # were correctly skipped because restarting RWO database consumers against degraded
+        # Longhorn risks a deadlock - and then 49 Deployments were restarted against exactly
+        # the same degraded storage. Many of those Deployments mount the same RWO volumes, so
+        # this is the same hazard by another route. Offer an opt-in for operators who know
+        # their apps are safe, but do not do it silently.
+        $phaseBStorage = $null
+        if ($script:DryRun) { $phaseBStorage = $storageStatus }
+        else { $phaseBStorage = Get-StorageStatus }
+
+        if ($phaseBStorage.Available -and -not $phaseBStorage.Ok -and -not $ForceRestartWithDegradedStorage) {
+            $degradedNow = if ($phaseBStorage.AttachedDegraded) { $phaseBStorage.AttachedDegraded.Count } else { 0 }
+            $faultedNow = if ($phaseBStorage.Faulted) { $phaseBStorage.Faulted.Count } else { 0 }
+            $unschedNow = if ($phaseBStorage.UnschedulableNodes) { $phaseBStorage.UnschedulableNodes.Count } else { 0 }
+            Write-Warn ("storage is not fully healthy ({0}/{1} volumes healthy; {2} degraded, {3} faulted, {4} node(s) unschedulable) - skipping the Deployment restart phase." -f `
+                    $phaseBStorage.HealthyCount, $phaseBStorage.VolumeCount, $degradedNow, $faultedNow, $unschedNow)
+            Write-Info 'Re-run once Longhorn is healthy, or pass -ForceRestartWithDegradedStorage if these Deployments are known to be safe.'
+            Add-Finding ("Deployment restart phase skipped: Longhorn not fully healthy ({0}/{1} healthy)" -f $phaseBStorage.HealthyCount, $phaseBStorage.VolumeCount)
+        }
+        else {
+
         foreach ($deploy in $deployments) {
             if (-not (Test-BudgetSoft)) { break }
             $ns = Get-Prop (Get-Prop $deploy 'metadata') 'namespace'
@@ -2792,6 +2901,7 @@ function Get-ManagedResource {
         else {
             Write-Ok "Every restarted workload reported ready."
         }
+        }  # end of: else { Phase B ran }
     }
 
 # ── Step 6: Rebalance (OPT-IN, PDB-aware) ────────────────────────────
