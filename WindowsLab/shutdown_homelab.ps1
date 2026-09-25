@@ -1,4 +1,4 @@
-# K3s Homelab Systematic Shutdown (v9 - Definitive & Verified)
+# K3s Homelab Systematic Shutdown (v9.2 - Definitive & Verified)
 #
 # Control plane (since 2026-09-20): THREE embedded-etcd servers - nuc (192.168.0.21),
 # server-236 (192.168.0.236) and server-252 (192.168.0.252). Powering off members spends
@@ -11,6 +11,14 @@
 #   3. falls back to that snapshot once quorum is spent, and refuses (without -Force) to
 #      power off a member that had volumes attached at pre-flight.
 # Control-plane members are never drained, and a neverPowerOff member is never touched.
+#
+# Credentials (v9.2): every poweroff is an SSH login + sudo, so the login identity is resolved
+# PER NODE from WindowsLab/homelab-nodes.json ("sshUser") and probed before anything is
+# powered off. Usernames are case-sensitive on server-236/server-252, which accept only
+# 'SuryenduB' while the Ubuntu workers use 'suryendub' - the resolver tries the registry
+# spelling plus its lowercase/capitalised forms and keeps the one that authenticates. The
+# sudo password comes from the SecretStore vault ('k3s-homelab-sudo') or cred.xml, and is
+# piped to 'sudo -S' base64-encoded so it never appears in the transcript.
 #
 # -Force is the "make it stop" switch. It skips every *refusable* gate and rides out every
 # recoverable failure:
@@ -66,7 +74,10 @@ param(
     [int]$SshConnectTimeoutSeconds = 15,
 
     [Parameter(HelpMessage="Write a timestamped transcript + JSON outcome report to WindowsLab/logs/ (default: on). Disable with -NoLog.")]
-    [switch]$NoLog
+    [switch]$NoLog,
+
+    [Parameter(HelpMessage="Only prove that every target node has a working SSH login + sudo password (per-node identity from homelab-nodes.json), then exit. Powers nothing off and skips the degraded-storage gate; exit code 1 if any node has no usable credential.")]
+    [switch]$VerifyCredentials
 )
 
 $ErrorActionPreference = 'Stop' # Critical for Catch block to trigger on external errors
@@ -81,6 +92,10 @@ if ($PSVersionTable.PSVersion -ge [version]'7.3') { $PSNativeCommandUseErrorActi
 # prints its intent - which is also what makes this script testable without touching the lab.
 $script:DryRun = [bool]$DryRun
 $script:SudoPasswordSecretName = 'k3s-homelab-sudo'
+# Per-node SSH identity, resolved once per run by Resolve-NodeSshUser. Node names are the keys.
+# server-236/server-252 are case-sensitive (only 'SuryenduB' authenticates), so the identity can
+# no longer be a hardcoded 'suryendub@' - see homelab-nodes.json "sshUser".
+$script:SshUserCache = @{}
 
 if ($DryRun -and $ForceKernelPowerOff) {
     Write-Host "[DRYRUN] Dry run: the kernel poweroff stage will only be described, not issued." -ForegroundColor DarkGray
@@ -108,7 +123,7 @@ $workerFallback = @(
         ForEach-Object { @{ Name = $_.name; IP = $_.ip } }
 )
 
-Write-Host "--- K3s Cluster Shutdown Sequence (v9) ---" -ForegroundColor Cyan
+Write-Host "--- K3s Cluster Shutdown Sequence (v9.2) ---" -ForegroundColor Cyan
 
 # --- RUN LOGGING (v9.1): every run writes a transcript + JSON report to
 #     WindowsLab/logs/ unless -NoLog is given. This is what was missing when
@@ -141,17 +156,198 @@ function Get-NodeSshArgument {
         Shared ssh argument list: non-interactive, throwaway known_hosts and a *bounded* connect
         timeout (v8 had none, so an unresponsive host could stall the shutdown for the kernel's
         ~75s TCP timeout on every node).
+    .DESCRIPTION
+        The login identity is a parameter, never a hardcoded literal: server-236 and server-252
+        only accept the case-sensitive 'SuryenduB', while every other node uses 'suryendub'.
+        NumberOfPasswordPrompts=1 keeps a wrong identity from stalling through three retries.
     #>
     param(
         [Parameter(Mandatory)][string]$IP,
+        [Parameter()][string]$SshUser = 'suryendub',
         [int]$ConnectTimeoutSeconds = 15
     )
     return @('-n', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
         '-o', "ConnectTimeout=$ConnectTimeoutSeconds", '-o', 'ConnectionAttempts=1',
-        "suryendub@$IP")
+        '-o', 'NumberOfPasswordPrompts=1', '-o', 'PreferredAuthentications=publickey,password',
+        "$SshUser@$IP")
 }
 
+function Get-NodeSshUserCandidate {
+    <#
+    .SYNOPSIS
+        Candidate login identities for one node, best guess first: the registry 'sshUser', then its
+        all-lowercase and capitalised spellings.
+    .DESCRIPTION
+        homelab-nodes.json is the source of truth, but a username whose case is wrong is
+        indistinguishable from a wrong password at the SSH layer - so instead of trusting one
+        spelling we try the three shapes that matter and let authentication decide. Defaults to
+        'suryendub' when a node has no sshUser in the registry.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [Parameter(Mandatory)][string]$NodeName
+    )
+
+    $registryUser = ''
+    try {
+        $record = Get-HomelabNode -Name $NodeName
+        if ($record -and $record.PSObject.Properties['sshUser'] -and -not [string]::IsNullOrWhiteSpace($record.sshUser)) {
+            $registryUser = [string]$record.sshUser
+        }
+    }
+    catch {
+        # A node absent from the registry is not fatal here: the default identity still works.
+        Write-Verbose "Node '$NodeName' has no registry record or sshUser; falling back to 'suryendub'."
+    }
+    if ([string]::IsNullOrWhiteSpace($registryUser)) { $registryUser = 'suryendub' }
+
+    $candidates = @()
+    $shapes = @(
+        $registryUser,
+        $registryUser.ToLowerInvariant(),
+        ($registryUser.Substring(0, 1).ToUpperInvariant() + $registryUser.Substring(1).ToLowerInvariant())
+    )
+    foreach ($shape in $shapes) {
+        if (-not [string]::IsNullOrWhiteSpace($shape) -and ($candidates -notcontains $shape)) { $candidates += $shape }
+    }
+    return $candidates
+}
+
+function Test-NodeSshCredential {
+    <#
+    .SYNOPSIS
+        $true when $SshUser can log in to $IP with the SSH password already in $env:SSHPASS.
+        Read-only: it runs 'echo' remotely and changes nothing on the node.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$IP,
+        [Parameter(Mandatory)][string]$SshUser,
+        [int]$ConnectTimeoutSeconds = 10
+    )
+
+    $marker = 'HOMELAB-CRED-OK'
+    $sshArgs = @(Get-NodeSshArgument -IP $IP -SshUser $SshUser -ConnectTimeoutSeconds $ConnectTimeoutSeconds) + @("echo $marker")
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = if (Test-Path -Path '/usr/local/bin/sshpass') {
+            & /usr/local/bin/sshpass -e ssh @sshArgs 2>&1
+        }
+        elseif (Get-Command sshpass -ErrorAction SilentlyContinue) {
+            & sshpass -e ssh @sshArgs 2>&1
+        }
+        else {
+            # No sshpass: only key-based authentication can succeed here.
+            & ssh @sshArgs 2>&1
+        }
+        return ((@($output) -join ' ').Contains($marker))
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Test-NodeSudoCredential {
+    <#
+    .SYNOPSIS
+        $true when the sudo password in $env:SSHPASS is accepted by $SshUser@$IP.
+    .DESCRIPTION
+        Login is only half of a poweroff: the ladder pipes this same password into 'sudo -S'. The
+        probe therefore runs 'sudo -k true' - '-k' discards any cached sudo ticket, so a stale
+        timestamp can never make a wrong password look valid - with '-p ""' so the prompt prints
+        nothing and the password only travels over the base64-encoded stdin pipeline.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$IP,
+        [Parameter(Mandatory)][string]$SshUser,
+        [int]$ConnectTimeoutSeconds = 10
+    )
+
+    if ([string]::IsNullOrEmpty($env:SSHPASS)) { return $false }
+    $marker = 'HOMELAB-SUDO-OK'
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:SSHPASS))
+    $remote = "echo $encoded | base64 -d | sudo -S -p '' -k true 2>/dev/null && echo $marker"
+    $sshArgs = @(Get-NodeSshArgument -IP $IP -SshUser $SshUser -ConnectTimeoutSeconds $ConnectTimeoutSeconds) + @($remote)
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $output = if (Test-Path -Path '/usr/local/bin/sshpass') {
+            & /usr/local/bin/sshpass -e ssh @sshArgs 2>&1
+        }
+        elseif (Get-Command sshpass -ErrorAction SilentlyContinue) {
+            & sshpass -e ssh @sshArgs 2>&1
+        }
+        else {
+            & ssh @sshArgs 2>&1
+        }
+        return ((@($output) -join ' ').Contains($marker))
+    }
+    catch {
+        return $false
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+}
+
+function Resolve-NodeSshUser {
+
+
+    <#
+    .SYNOPSIS
+        The login identity that actually authenticates to a node, cached for the run.
+    .DESCRIPTION
+        Probes the candidates from Get-NodeSshUserCandidate in order and returns the first that logs
+        in. Probing is skipped (the registry identity is returned as-is) when there is no password to
+        probe with: -DryRun, or an environment where $env:SSHPASS was never set. A node nobody can
+        authenticate to keeps its registry identity, so the poweroff ladder reports the real failure
+        instead of silently switching accounts.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][string]$NodeName,
+        [Parameter(Mandatory)][string]$IP,
+        [switch]$NoProbe
+    )
+
+    if ($script:SshUserCache.ContainsKey($NodeName)) { return $script:SshUserCache[$NodeName] }
+
+    $candidates = @(Get-NodeSshUserCandidate -NodeName $NodeName)
+    $resolved = $candidates[0]
+
+    $canProbe = (-not $NoProbe) -and (-not $script:DryRun) -and (-not [string]::IsNullOrEmpty($env:SSHPASS))
+    if ($canProbe) {
+        $matched = $null
+        foreach ($candidate in $candidates) {
+            if (Test-NodeSshCredential -IP $IP -SshUser $candidate) { $matched = $candidate; break }
+        }
+        if ($matched) {
+            $resolved = $matched
+            if ($matched -ne $candidates[0]) {
+                Write-Host "  [i] $NodeName authenticates as '$matched' (registry lists '$($candidates[0])' - fix sshUser in homelab-nodes.json)." -ForegroundColor DarkGray
+            }
+        }
+        else {
+            Write-Host "  [!] No registered SSH identity could authenticate to $NodeName ($IP); tried: $($candidates -join ', ')." -ForegroundColor Yellow
+        }
+    }
+
+    $script:SshUserCache[$NodeName] = $resolved
+    return $resolved
+}
+
+
 function Invoke-NodeSshAttempt {
+
     <#
     .SYNOPSIS
         Runs a remote command and *returns* the ssh exit code instead of throwing.
@@ -164,9 +360,10 @@ function Invoke-NodeSshAttempt {
     param(
         [Parameter(Mandatory)][string]$IP,
         [Parameter(Mandatory)][string]$RemoteCommand,
+        [Parameter()][string]$SshUser = 'suryendub',
         [int]$ConnectTimeoutSeconds = 15
     )
-    $sshArgs = @(Get-NodeSshArgument -IP $IP -ConnectTimeoutSeconds $ConnectTimeoutSeconds) + @($RemoteCommand)
+    $sshArgs = @(Get-NodeSshArgument -IP $IP -SshUser $SshUser -ConnectTimeoutSeconds $ConnectTimeoutSeconds) + @($RemoteCommand)
     if (Get-Command sshpass -ErrorAction SilentlyContinue) {
         & sshpass -e ssh @sshArgs
     }
@@ -384,6 +581,8 @@ function Stop-HomelabNode {
         Justification = 'Internal helper: state changes are gated by the script-level -Force/-DryRun/-SkipDrain switches, and -DryRun prints instead of acting.')]
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '',
         Justification = 'The value is already the base64 encoding of the sudo password, which is what the remote "base64 -d | sudo -S" pipeline consumes; the SecureString itself never leaves the orchestrator.')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingUsernameAndPasswordParams', '',
+        Justification = 'Not an authentication pair: -SshUser is the per-node login account (from homelab-nodes.json, case-sensitive on server-236/252) while -EncodedPassword is the base64 sudo password piped to the remote sudo -S. Both are sent over separate channels, and neither is a PSCredential.')]
     [CmdletBinding()]
     [OutputType([pscustomobject])]
     param(
@@ -391,6 +590,8 @@ function Stop-HomelabNode {
         [Parameter(Mandatory)][string]$IP,
         # Not mandatory: -DryRun sends nothing, so it passes an empty string.
         [Parameter()][string]$EncodedPassword = '',
+        # Login identity for THIS node. Resolved from the registry (and probed) when left empty.
+        [Parameter()][string]$SshUser = '',
         [int]$MaxAttempts = 3,
         [int]$ConnectTimeoutSeconds = 15,
         [int]$VerifyTimeoutSeconds = 45,
@@ -400,6 +601,14 @@ function Stop-HomelabNode {
     if (-not $script:DryRun -and [string]::IsNullOrEmpty($EncodedPassword)) {
         throw "No sudo password was resolved for $NodeName; refusing to send an unauthenticated poweroff."
     }
+
+    # Per-node identity: 'suryendub' on the Ubuntu workers, case-sensitive 'SuryenduB' on
+    # server-236/server-252. Resolve-NodeSshUser probes the registry candidates and caches the
+    # winner, so a wrong-case username can no longer masquerade as a wrong password.
+    if ([string]::IsNullOrWhiteSpace($SshUser)) {
+        $SshUser = Resolve-NodeSshUser -NodeName $NodeName -IP $IP
+    }
+    Write-Host "  - SSH identity: $SshUser@$IP" -ForegroundColor DarkGray
 
     $gracefulStages = [ordered]@{
         'sudo poweroff'              = "echo $EncodedPassword | base64 -d | sudo -S poweroff"
@@ -427,15 +636,15 @@ function Stop-HomelabNode {
     }
 
     if ($script:DryRun) {
-        Write-Host "  [DRYRUN] would power off $NodeName ($IP) through: $((@($ladder.Label)) -join ' -> ')" -ForegroundColor DarkGray
-        return [pscustomobject]@{ Node = $NodeName; IP = $IP; Down = $null; Stage = 'dryrun'; Attempts = 0 }
+        Write-Host "  [DRYRUN] would power off $NodeName ($IP) as '$SshUser' through: $((@($ladder.Label)) -join ' -> ')" -ForegroundColor DarkGray
+        return [pscustomobject]@{ Node = $NodeName; IP = $IP; SshUser = $SshUser; Down = $null; Stage = 'dryrun'; Attempts = 0 }
     }
 
     for ($attempt = 1; $attempt -le $ladder.Count; $attempt++) {
         $stage = $ladder[$attempt - 1]
         Write-Host "  - Poweroff attempt $attempt/$($ladder.Count) on $NodeName ($($stage.Label))..."
         try {
-            $exitCode = Invoke-NodeSshAttempt -IP $IP -RemoteCommand $stage.Command -ConnectTimeoutSeconds $ConnectTimeoutSeconds
+            $exitCode = Invoke-NodeSshAttempt -IP $IP -SshUser $SshUser -RemoteCommand $stage.Command -ConnectTimeoutSeconds $ConnectTimeoutSeconds
             Write-Host "    ssh exit code $exitCode (255 normally means the host dropped the connection as it powered off)." -ForegroundColor DarkGray
         }
         catch {
@@ -445,12 +654,12 @@ function Stop-HomelabNode {
         }
 
         if (Wait-NodeDown -IP $IP -NodeName $NodeName -TimeoutSeconds $VerifyTimeoutSeconds) {
-            return [pscustomobject]@{ Node = $NodeName; IP = $IP; Down = $true; Stage = $stage.Label; Attempts = $attempt }
+            return [pscustomobject]@{ Node = $NodeName; IP = $IP; SshUser = $SshUser; Down = $true; Stage = $stage.Label; Attempts = $attempt }
         }
         Write-Host "  [!] $NodeName still answering after '$($stage.Label)'." -ForegroundColor Yellow
     }
 
-    return [pscustomobject]@{ Node = $NodeName; IP = $IP; Down = $false; Stage = 'exhausted'; Attempts = $ladder.Count }
+    return [pscustomobject]@{ Node = $NodeName; IP = $IP; SshUser = $SshUser; Down = $false; Stage = 'exhausted'; Attempts = $ladder.Count }
 }
 
 # 1. DISCOVERY LOGIC
@@ -647,6 +856,9 @@ else {
 if ($DryRun) {
     Write-Host "[DRYRUN] No confirmation required (nothing will be changed)." -ForegroundColor DarkGray
 }
+elseif ($VerifyCredentials) {
+    Write-Host "[VERIFY] Credential check only: nothing will be cordoned, drained or powered off." -ForegroundColor Cyan
+}
 elseif ($Force) {
     Write-Host "[!] -Force: skipping the confirmation prompt (definitive shutdown mode)." -ForegroundColor Red
 }
@@ -672,6 +884,9 @@ if ($actualMode -ne "FALLBACK") {
         # is to SEE this output without -Force). Only a real run aborts here.
         if ($script:DryRun) {
             Write-Host "[DRYRUN] Degraded storage noted - a real run would abort here without -Force." -ForegroundColor DarkGray
+        }
+        elseif ($VerifyCredentials) {
+            Write-Host "[VERIFY] Degraded storage noted - not a shutdown run, so the gate is not applied." -ForegroundColor DarkGray
         }
         elseif (!$Force) {
             Write-Error "Aborting: resolve degraded volumes first, or re-run with -Force to accept the risk."
@@ -710,6 +925,111 @@ if ($actualMode -ne "FALLBACK") {
             Write-Host "  [+] $($master.Name): storage clean." -ForegroundColor Green
         }
     }
+}
+
+# 2d. PRE-FLIGHT: SSH CREDENTIALS
+# A poweroff is an SSH login plus sudo; a wrong username or password is the failure mode that
+# leaves the cluster half-powered (and, before v9.2, silently: the run only failed at the last
+# stage). Prove the identity for every target up front - registry sshUser first, then the
+# lowercase/capitalised spellings, because server-236 and server-252 are case-sensitive and only
+# accept 'SuryenduB'. -DryRun lists the identities without probing (no password is resolved).
+$credentialReport = @()
+$credentialFailures = @()
+$credentialTargets = @(
+    @($targets | ForEach-Object { [pscustomobject]@{ Name = $_.Name; IP = $_.IP } }) +
+    @($masterTargets | ForEach-Object { [pscustomobject]@{ Name = $_.Name; IP = $_.IP } })
+)
+
+Write-Host "`n--- Pre-flight: SSH credentials ---" -ForegroundColor Cyan
+if ($script:DryRun) {
+    Write-Host "[DRYRUN] No password resolved, so nothing is probed; identities that would be used:" -ForegroundColor DarkGray
+    foreach ($target in $credentialTargets) {
+        $user = Resolve-NodeSshUser -NodeName $target.Name -IP $target.IP
+        Write-Host "  [DRYRUN] $($target.Name) ($($target.IP)): $user" -ForegroundColor DarkGray
+        $credentialReport += [pscustomobject]@{ node = $target.Name; ip = $target.IP; user = $user; status = 'unverified-dryrun' }
+    }
+}
+else {
+    # sshpass reads the same variable the poweroff ladder uses.
+    $env:SSHPASS = $plainPass
+    foreach ($target in $credentialTargets) {
+        $credName = $target.Name
+        $credIp = $target.IP
+        if (-not (Test-NodeTcpPort -IP $credIp -Port 22)) {
+            Write-Host "  [-] $credName ($credIp): already unreachable on TCP 22 - no credential needed." -ForegroundColor DarkGray
+            $credentialReport += [pscustomobject]@{ node = $credName; ip = $credIp; user = $null; status = 'already-down' }
+            continue
+        }
+        $candidates = @(Get-NodeSshUserCandidate -NodeName $credName)
+        $matched = $null
+        foreach ($candidate in $candidates) {
+            if (Test-NodeSshCredential -IP $credIp -SshUser $candidate) { $matched = $candidate; break }
+        }
+        if ($matched) {
+            $sudoOk = Test-NodeSudoCredential -IP $credIp -SshUser $matched
+            if ($sudoOk) {
+                $script:SshUserCache[$credName] = $matched
+                Write-Host "  [+] $credName ($credIp): authenticated as '$matched' and sudo accepted." -ForegroundColor Green
+                $credentialReport += [pscustomobject]@{ node = $credName; ip = $credIp; user = $matched; status = 'ok' }
+            }
+            else {
+                Write-Host "  [!] $credName ($credIp): '$matched' logs in but sudo REJECTED the stored password." -ForegroundColor Red
+                $credentialFailures += $credName
+                $credentialReport += [pscustomobject]@{ node = $credName; ip = $credIp; user = $matched; status = 'sudo-failed' }
+            }
+        }
+        else {
+            Write-Host "  [!] $credName ($credIp): NO usable identity (tried: $($candidates -join ', '))." -ForegroundColor Red
+            $credentialFailures += $credName
+            $credentialReport += [pscustomobject]@{ node = $credName; ip = $credIp; user = $null; status = 'no-credential' }
+        }
+    }
+    if ($credentialFailures.Count -gt 0) {
+        Write-Host "[!] No working credential for: $($credentialFailures -join ', ')" -ForegroundColor Red
+        Write-Host "    Fix 'sshUser' in WindowsLab/homelab-nodes.json (usernames are case-sensitive on hostname/OS level)," -ForegroundColor Yellow
+        Write-Host "    or store the current sudo password:  Set-Secret -Name $($script:SudoPasswordSecretName) -Secret (Read-Host -AsSecureString)" -ForegroundColor Yellow
+        Write-Host "    Continuing: each affected node will report its own failure in the summary below." -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "[+] Every reachable target node authenticated." -ForegroundColor Green
+    }
+}
+
+# -VerifyCredentials stops here: the point of the switch is to prove the credentials for every
+# node (and to fail loudly when one cannot be authenticated) without touching the cluster.
+if ($VerifyCredentials) {
+    Write-Host "`n--- Credential Verification Summary ---" -ForegroundColor Cyan
+    foreach ($entry in $credentialReport) {
+        $identity = if ($entry.user) { "$($entry.user)@$($entry.ip)" } else { "(none)" }
+        Write-Host ("  {0,-20} {1,-16} {2,-18} {3}" -f $entry.node, $entry.ip, $identity, $entry.status)
+    }
+    if ($credentialFailures.Count -gt 0) {
+        Write-Host "[!] Nodes without a usable credential: $($credentialFailures -join ', ')" -ForegroundColor Red
+        $script:ExitCode = 1
+    }
+    else {
+        Write-Host "[+] Credentials verified for every target node listed above." -ForegroundColor Green
+        $script:ExitCode = 0
+    }
+    if ($script:ReportPath) {
+        $verifyReport = [ordered]@{
+            startedAt          = $script:RunStartedAt.ToString('o')
+            finishedAt         = (Get-Date).ToString('o')
+            mode               = 'VERIFY-CREDENTIALS'
+            dryRun             = $false
+            forced             = [bool]$Force
+            credentials        = @($credentialReport)
+            credentialFailures = @($credentialFailures)
+            log                = $script:LogPath
+        }
+        try { $verifyReport | ConvertTo-Json -Depth 4 | Set-Content -Path $script:ReportPath -Encoding UTF8 } catch {
+            Write-Host "[!] Could not write report: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+        Write-Host "Report: $($script:ReportPath)" -ForegroundColor DarkGray
+        Write-Host "Log: $($script:LogPath)" -ForegroundColor DarkGray
+    }
+    try { Stop-Transcript | Out-Null } catch { Write-Verbose "Transcript was not active: $($_.Exception.Message)" }
+    exit $script:ExitCode
 }
 
 # 3. SHUTDOWN LOOP (per-node resilient: one bad node must not abort the rest)
@@ -903,6 +1223,8 @@ if ($script:ReportPath) {
         mode       = $actualMode
         dryRun     = [bool]$script:DryRun
         forced     = [bool]$Force
+        credentials = @($credentialReport)
+        credentialFailures = @($credentialFailures)
         down       = @($downNodes)
         skipped    = @($skippedNodes)
         failed     = @($failedNodes)
@@ -914,7 +1236,7 @@ if ($script:ReportPath) {
     Write-Host "Report: $($script:ReportPath)" -ForegroundColor DarkGray
     Write-Host "Log: $($script:LogPath)" -ForegroundColor DarkGray
 }
-try { Stop-Transcript | Out-Null } catch { }
+try { Stop-Transcript | Out-Null } catch { Write-Verbose "Transcript was not active: $($_.Exception.Message)" }
 
 if ($script:DryRun) { exit 0 }
 exit $script:ExitCode

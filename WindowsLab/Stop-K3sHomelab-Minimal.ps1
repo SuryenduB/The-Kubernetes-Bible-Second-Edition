@@ -68,7 +68,18 @@ foreach ($node in $nodesToShutdown) {
     }
 }
 
-$sshUser = 'suryendub'
+# Login identity is PER NODE (registry 'sshUser'): server-236/server-252 are case-sensitive and
+# only accept 'SuryenduB', while the Ubuntu workers use 'suryendub'. Keep the historical default
+# for any node that does not declare one.
+$defaultSshUser = 'suryendub'
+
+function Get-NodeSshUser {
+    param([Parameter(Mandatory)]$Node)
+    if ($Node.PSObject.Properties['sshUser'] -and -not [string]::IsNullOrWhiteSpace($Node.sshUser)) {
+        return [string]$Node.sshUser
+    }
+    return $defaultSshUser
+}
 
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  K3s Homelab - Minimal Mode Shutdown" -ForegroundColor Cyan
@@ -139,7 +150,7 @@ if (-not $plainPass) {
 # home with the wrong password and masks a missing credential.
 if (-not $plainPass) {
     Write-Host "No stored credential found - prompting (see how-to-manage-homelab-power.md to store one)." -ForegroundColor Yellow
-    $prompt = Read-Host "Enter the sudo password for '$sshUser'" -AsSecureString
+    $prompt = Read-Host "Enter the sudo password for the node accounts" -AsSecureString
     $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($prompt)
     try {
         $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
@@ -182,8 +193,9 @@ $poweroffCmd = "echo $b64Pass | base64 -d | sudo -S poweroff"
 foreach ($node in $nodesToShutdown) {
     $name = $node.Name
     $ip = $node.IP
+    $nodeSshUser = Get-NodeSshUser -Node $node
 
-    Write-Host "  Connecting to $name ($ip)..." -NoNewline
+    Write-Host "  Connecting to $name ($ip) as '$nodeSshUser'..." -NoNewline
     # Fast pre-check if node is responding
     $tcpTest = $false
     try {
@@ -206,7 +218,7 @@ foreach ($node in $nodesToShutdown) {
     }
 
     Write-Host " [SENDING POWEROFF]" -ForegroundColor Red
-    $null = ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$sshUser@$ip" "$poweroffCmd" 2>$null
+    $null = ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$nodeSshUser@$ip" "$poweroffCmd" 2>$null
     Start-Sleep -Milliseconds 500
 }
 

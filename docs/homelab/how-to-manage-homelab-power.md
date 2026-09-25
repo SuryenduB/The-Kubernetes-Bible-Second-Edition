@@ -46,6 +46,43 @@ Store your homelab sudo password (`558068`) under the secret key `k3s-homelab-su
 Set-Secret -Name "k3s-homelab-sudo" -Secret "558068"
 ```
 
+### 3. Per-Node Login Identities (case-sensitive)
+
+The sudo password is only half of a poweroff: the scripts also need the right **login account per
+node**. That identity comes from `WindowsLab/homelab-nodes.json` (`sshUser`), because it is *not*
+the same everywhere and Linux usernames are case-sensitive:
+
+| Nodes | `sshUser` | Notes |
+|---|---|---|
+| `nuc`, `kubernetes1`–`kubernetes8-debian` | `suryendub` | Ubuntu workers + the primary control plane |
+| `server-236` (192.168.0.236) | `SuryenduB` | **Capital S matters** - `suryendub` is rejected |
+| `server-252` (192.168.0.252) | `SuryenduB` | Same Hyper-V/Windows-style account (`SuryenduB`) |
+
+`shutdown_homelab.ps1` (v9.2) resolves the identity per node and *proves* it before powering
+anything off: it tries the registry spelling plus its lowercase and capitalised forms, keeps the
+one that authenticates, and then verifies that the stored sudo password is accepted. A node whose
+credential fails is named in the pre-flight output, in the summary, in the JSON report
+(`credentialFailures`) and in the exit code.
+
+Check every node's credential on demand (powers nothing off, exit `1` if any node cannot be
+authenticated):
+
+```bash
+pwsh -File WindowsLab/shutdown_homelab.ps1 -VerifyCredentials -Force
+```
+
+```text
+--- Pre-flight: SSH credentials ---
+  [+] kubernetes1 (192.168.0.19): authenticated as 'suryendub' and sudo accepted.
+  ...
+  [+] server-236 (192.168.0.236): authenticated as 'SuryenduB' and sudo accepted.
+  [-] server-252 (192.168.0.252): already unreachable on TCP 22 - no credential needed.
+```
+
+If a host is re-imaged with a different account name, update its `sshUser` in
+`homelab-nodes.json` - never hardcode it in a script. `Stop-K3sHomelab-Minimal.ps1` resolves the
+same registry field for its poweroff step.
+
 ---
 
 ## Step 2: How to Start the Cluster
@@ -109,13 +146,14 @@ Follow the logs in real-time to track node cordoning, pod eviction, and power-of
 tail -f shutdown.log
 ```
 
-### 3. Flag reference (shutdown_homelab.ps1 v9)
+### 3. Flag reference (shutdown_homelab.ps1 v9.2)
 
 | Flag | Effect |
 |---|---|
 | `-Force` | **Definitive shutdown.** Skips the confirmation prompt and no longer aborts on degraded Longhorn volumes, volumes still attached, a failed drain or an unreachable API (an explicit `-Mode Dynamic` now falls back to the registry list instead of exiting). Every poweroff is retried through an escalating ladder - `sudo poweroff` → `sudo shutdown -h now` → `sudo systemctl poweroff -i` - with a bounded SSH connect timeout, and success is judged by **reachability** (TCP 22 closes), so the `255` exit code of a *successful* poweroff is no longer reported as a failure. |
 | `-ForceKernelPowerOff` | With `-Force`: adds a final kernel-level stage - `sysrq` sync + remount-ro + poweroff - for hosts that ignore every graceful stage (a hung systemd shutdown is the usual cause). It bypasses orderly service shutdown, so it is opt-in and only ever reached after the graceful stages fail. |
-| `-DryRun` | Prints the whole plan (read-only kubectl queries, no SSH, no prompts, no changes) - the safe way to rehearse. |
+| `-DryRun` | Prints the whole plan (read-only kubectl queries, no SSH, no prompts, no changes) - the safe way to rehearse. Lists the login identity that *would* be used per node but does not probe it (no password is resolved). |
+| `-VerifyCredentials` | Credential check only: resolves the per-node login identity from the registry, proves the SSH login and that the stored sudo password is accepted (`sudo -k`, so a cached ticket cannot fake a pass), writes the transcript + JSON report, then exits. Powers nothing off, skips the degraded-storage gate, and exits `1` when any node has no usable credential. |
 | `-SkipDrain` | Power the nodes off without draining workloads first. |
 | `-ShutdownLocalMac` | Also power off the machine running the script (opt-in; kills your terminal and kubectl access mid-run). |
 | `-Mode <Auto\|Dynamic\|Fallback>` | Node discovery: detect via the API, force the API, or use the registry list. |
@@ -161,3 +199,15 @@ $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni(
 
 ### Non-Interactive SSH Failures
 If you see connection errors or password prompts in `shutdown.log`, verify that `sshpass` is accessible in your shell's `PATH`. The scripts automatically fall back to standard `ssh` if `sshpass` is missing, which will require an interactive terminal.
+
+`Permission denied (publickey,password)` on one node only is almost always the **username case**,
+not the password: `server-236` and `server-252` reject `suryendub` and only accept `SuryenduB`
+(same password, `558068`). Set the correct `sshUser` in `WindowsLab/homelab-nodes.json` and confirm
+with:
+
+```bash
+pwsh -File WindowsLab/shutdown_homelab.ps1 -VerifyCredentials -Force
+```
+
+A node that logs in but whose sudo is rejected is reported as `sudo-failed` - that is a *stale or
+wrong* `k3s-homelab-sudo` secret, not a username problem; re-store it with `Set-Secret`.

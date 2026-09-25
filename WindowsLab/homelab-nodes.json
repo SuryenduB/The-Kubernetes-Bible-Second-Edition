@@ -105,7 +105,7 @@
       "ip": "192.168.0.236",
       "role": "control-plane",
       "os": "Ubuntu 24.04",
-      "sshUser": "suryendub",
+      "sshUser": "SuryenduB",
       "neverCordon": true,
       "neverPowerOff": false,
       "notes": "2nd K3s server (embedded etcd), joined 2026-09-19. HP-1 host. Also runs the local Docker registry on :5000 (pinned by kube-system/registry-fixer), so it must not be wiped."
@@ -115,7 +115,7 @@
       "ip": "192.168.0.252",
       "role": "control-plane",
       "os": "Ubuntu 20.04",
-      "sshUser": "suryendub",
+      "sshUser": "SuryenduB",
       "neverCordon": true,
       "neverPowerOff": false,
       "notes": "3rd K3s server (embedded etcd), joined 2026-09-20. Hyper-V VM (hostname k3s-master, 2 vCPU / 2 GB) - completes 3-member etcd quorum. Registering it here means the minimal-mode survivor list MUST keep a control-plane majority (see survivors)."
