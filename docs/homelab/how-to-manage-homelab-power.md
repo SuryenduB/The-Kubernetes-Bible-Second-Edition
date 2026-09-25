@@ -163,7 +163,45 @@ tail -f shutdown.log
 | `-SshConnectTimeoutSeconds` | SSH connect timeout (default 15 s), so a hung host cannot stall the whole run. |
 
 **Exit codes:** `0` = every target node was verified down (or the run was a dry run); `1` = at
-least one node was skipped or is still answering after every stage.
+least one node was skipped or is still answering after every stage, a credential failed, or any
+recoverable error was recorded.
+
+### 4. Error isolation (v9.3): one error never ends the run
+
+A shutdown that stops at the first error is the worst possible outcome - part of the fleet down,
+the control plane up, nothing explaining why. So the run is now split into independently failing
+stages, and the whole of it lives in a `try/catch/finally`:
+
+| Where an error happens | What the script does |
+|---|---|
+| One node's drain fails | Records it; with `-Force` still powers that node off, otherwise skips that node and continues with the rest. |
+| One node's poweroff fails | That node is listed under `failed`; every other node is still processed. |
+| Longhorn/API query fails | Reported as `UNKNOWN-API-FAILURE` (never as "healthy" or "clean" - see below). |
+| API discovery fails | Recorded in `errors`, falls back to the **complete** registry list (workers + control plane, primary last) and keeps going. |
+| Any unexpected exception, in any phase | Caught, recorded, and the remaining work is skipped rather than half-done. |
+| A node flagged `neverPowerOff` reaches a target list | **Fatal by design** (that power-off cannot be undone): nothing is powered off, the reason is recorded, and `finally` still writes the report. |
+| Degraded attached volumes without `-Force` | **Refuses to start** - a pre-flight gate, so nothing has been touched yet and there is no half-powered state to recover from. |
+
+Whatever happens, the `finally` block still writes the transcript, the JSON report and the exit
+code, so a failed run can always be explained afterwards:
+
+```json
+{
+  "mode": "FALLBACK",
+  "credentials": [ { "node": "server-236", "user": "SuryenduB", "status": "ok" } ],
+  "credentialFailures": [],
+  "errors": [
+    { "context": "phase:discovery", "message": "API discovery failed (Auto mode): ... Using the registry node list instead." }
+  ],
+  "down": ["kubernetes1", "..."], "skipped": [], "failed": []
+}
+```
+
+> Note the two silent-failure bugs this work fixed: `kubectl` prints its errors on stderr and exits
+> non-zero, and piping that into `ConvertFrom-Json` yields `$null` **without throwing** - so an
+> unreachable API used to look like an empty cluster, and worse, "no degraded volumes / no
+> attachments" (which would have waved the storage gate through with live Longhorn attachments).
+> Both helpers now check `$LASTEXITCODE` explicitly.
 
 > ⚠️ The one thing `-Force` never overrides: a node flagged `neverPowerOff` in
 > `WindowsLab/homelab-nodes.json` (`kubernetes7`, whose physical power switch is broken) is still

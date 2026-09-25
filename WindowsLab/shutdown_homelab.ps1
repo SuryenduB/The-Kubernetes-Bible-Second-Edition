@@ -97,6 +97,27 @@ $script:SudoPasswordSecretName = 'k3s-homelab-sudo'
 # no longer be a hardcoded 'suryendub@' - see homelab-nodes.json "sshUser".
 $script:SshUserCache = @{}
 
+# v9.3 - NO SINGLE ERROR ENDS THE RUN.
+# A shutdown that stops at the first error is the worst outcome available: part of the fleet is
+# down, the control plane is up, and nothing explains what happened. Every *recoverable* failure
+# (a node's drain, a credential, an API query, a phase blowing up) is therefore recorded here and
+# the run continues with the remaining nodes and phases. Failures surface three times - in the
+# transcript, in the JSON report ("errors") and in the exit code - so "kept going" never means
+# "pretended it worked". Only the neverPowerOff safety net is still a hard stop, because that
+# power-off is physically unrecoverable.
+$script:RunErrors = @()
+
+# Shared with the report: initialised up front so a phase that fails early can never make the
+# report itself fail on an undefined variable.
+$credentialReport = @()
+$credentialFailures = @()
+$masterPreCheck = @{}
+# Set by the -VerifyCredentials path (it writes its own report, so the shutdown finalizer must not
+# overwrite it). ExitCode is only ever *raised* to 1, never reset, so a gate that exits non-zero
+# keeps its code through the finalizer.
+$script:ReportAlreadyWritten = $false
+$script:ExitCode = 0
+
 if ($DryRun -and $ForceKernelPowerOff) {
     Write-Host "[DRYRUN] Dry run: the kernel poweroff stage will only be described, not issued." -ForegroundColor DarkGray
 }
@@ -428,10 +449,16 @@ function Get-NodeAttachedVolumes {
     <#
     .SYNOPSIS
         PV names with a live Longhorn attachment on the given node (empty = safe to power off).
+    .DESCRIPTION
+        The exit code is checked explicitly: on an unreachable API kubectl returns non-zero and
+        ConvertFrom-Json turns the empty pipeline into $null WITHOUT throwing. Treating that as
+        "nothing attached" would let the storage gate wave a node through while it still holds live
+        Longhorn attachments - the exact unclean-detach scenario this gate exists to prevent.
     #>
     param([Parameter(Mandatory)][string]$NodeName)
     try {
         $attachments = kubectl get volumeattachment -o json --request-timeout=15s | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or -not $attachments) { return @('UNKNOWN-API-FAILURE') }
     }
     catch { return @('UNKNOWN-API-FAILURE') }
     $attached = @()
@@ -474,10 +501,15 @@ function Get-DegradedLonghornVolumes {
     <#
     .SYNOPSIS
         Attached Longhorn volumes whose robustness is not healthy (shutting down now risks data).
+    .DESCRIPTION
+        Exit code checked explicitly (v9.3): a failed kubectl query must report UNKNOWN, never
+        "no degraded volumes" - otherwise an unreachable API reads as "all healthy" and the
+        pre-flight gate would approve a power-down it could not actually verify.
     #>
     $degraded = @()
     try {
         $volumes = kubectl get volumes.longhorn.io -n longhorn-system -o json --request-timeout=15s | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or -not $volumes) { return @('UNKNOWN-API-FAILURE') }
     }
     catch { return @('UNKNOWN-API-FAILURE') }
     foreach ($volume in @($volumes.items)) {
@@ -662,6 +694,32 @@ function Stop-HomelabNode {
     return [pscustomobject]@{ Node = $NodeName; IP = $IP; SshUser = $SshUser; Down = $false; Stage = 'exhausted'; Attempts = $ladder.Count }
 }
 
+function Add-RunError {
+    <#
+    .SYNOPSIS
+        Records a recoverable failure (context + message) for the report and keeps the run alive.
+    .DESCRIPTION
+        Print-and-continue is the whole point (see the v9.3 note at the top): a shutdown is a
+        one-way operation across a fleet, so stopping half-way leaves the cluster in a state that
+        is harder to recover than any single failed step. Callers pass a short context such as
+        'drain:kubernetes3' or 'phase:pre-flight-credentials' so the JSON report can be read
+        without the transcript.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Context,
+        [Parameter(Mandatory)][string]$Message
+    )
+
+    $script:RunErrors += [pscustomobject]@{
+        context = $Context
+        message = $Message
+        at      = (Get-Date).ToString('o')
+    }
+    Write-Host "  [!] Error recorded [$Context]: $Message" -ForegroundColor Yellow
+    Write-Host "      Continuing: the remaining nodes and phases are still processed." -ForegroundColor DarkGray
+}
+
 # 1. DISCOVERY LOGIC
 $targets = @()
 # K3s HA: every control-plane member is its own target and is powered off LAST, so etcd
@@ -678,7 +736,13 @@ if ($Mode -eq "Fallback") {
         Write-Host "Attempting dynamic node discovery..." -ForegroundColor Gray
         # Correct flag is --request-timeout
         # 'allNodes' collides with the PowerShell automatic variable; keep it prefixed.
+        # Exit code is checked explicitly: kubectl prints its errors on stderr and returns non-zero,
+        # and piping that into ConvertFrom-Json yields $null without throwing - which would make an
+        # unreachable API look like an EMPTY cluster instead of a failure (v9.3).
         $registryAllNodes = kubectl get nodes -o json --request-timeout=10s | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or -not $registryAllNodes) {
+            throw "kubectl get nodes failed (exit code $LASTEXITCODE): the API is not answering."
+        }
 
         function Get-IPv4 {
             param($addresses)
@@ -716,9 +780,18 @@ if ($Mode -eq "Fallback") {
         )
         if ($masterTargets.Count -eq 0) {
             Write-Host "[!] No control-plane node discovered via the API; using the registry list." -ForegroundColor Yellow
-            $masterTargets = @($registryNodes | Where-Object { $_.role -eq 'control-plane' } | ForEach-Object {
-                [PSCustomObject]@{ Name = $_.name; IP = $_.ip }
-            })
+            Add-RunError -Context 'phase:discovery' -Message 'The API listed no control-plane node; falling back to the registry order for the control plane.'
+            $registryControlPlaneFallback = @($registryNodes | Where-Object { $_.role -eq 'control-plane' })
+            # Primary (nuc, the API endpoint) MUST stay last: powering it off first would take kubectl
+            # away from the remaining nodes and leave the run unable to verify them.
+            $masterTargets = @(
+                $registryControlPlaneFallback | Where-Object { $_.name -ne $masterFallback.Name } | ForEach-Object {
+                    [PSCustomObject]@{ Name = $_.name; IP = $_.ip }
+                }
+                $registryControlPlaneFallback | Where-Object { $_.name -eq $masterFallback.Name } | ForEach-Object {
+                    [PSCustomObject]@{ Name = $_.name; IP = $_.ip }
+                }
+            )
         }
         $masterIp = $masterTargets[-1].IP
 
@@ -729,21 +802,29 @@ if ($Mode -eq "Fallback") {
         $actualMode = "DYNAMIC"
     }
     catch {
-        if ($Mode -eq "Dynamic" -and !$Force) {
-            Write-Error "Force Dynamic mode requested but API is unreachable."
-            exit 1
-        }
-        if ($Mode -eq "Dynamic") {
-            # -Force is exactly the case where the API may already be gone (an earlier, interrupted
-            # power-down, spent etcd quorum, k3s down): aborting here would leave the cluster
-            # half-powered, so fall back to the registry list and keep going.
-            Write-Host "[!] -Force: API unreachable, falling back to the registry node list." -ForegroundColor Yellow
-        }
-        else {
-            Write-Host "[!] API Unreachable. Switching to FALLBACK mode." -ForegroundColor Yellow
-        }
+        # v9.3: never exit here. An unreachable API is a discovery degradation, not a reason to
+        # abandon a shutdown the user asked for - the registry is a complete picture of the fleet,
+        # so record it and fall through to the registry-based target list below.
+        Add-RunError -Context 'phase:discovery' -Message "API discovery failed ($Mode mode): $($_.Exception.Message) Using the registry node list instead."
         $actualMode = "FALLBACK"
     }
+}
+
+# A failed discovery must never leave the target lists empty: without them the loops below would
+# silently shut nothing down and still report success. Empty lists here mean "fall back to the
+# registry", which is the same complete fleet picture minus per-node IP cross-checking.
+if ($targets.Count -eq 0 -and $masterTargets.Count -eq 0) {
+    Write-Host "[!] Discovery produced no targets; rebuilding both target lists from the registry." -ForegroundColor Yellow
+    Add-RunError -Context 'phase:discovery' -Message 'Discovery produced no targets; rebuilding the worker and control-plane lists from the registry.'
+    # Clear them so the FALLBACK block below (which appends workers) cannot double-list a node.
+    $targets = @()
+    $masterTargets = @()
+    $actualMode = "FALLBACK"
+}
+elseif ($targets.Count -eq 0 -and $neverPowerOff.Count -gt 0) {
+    # Workers were discovered as zero while a neverPowerOff node is registered: legitimate only
+    # when kubernetes7 is the last one standing, but worth recording so the count is explainable.
+    Add-RunError -Context 'phase:discovery' -Message 'No worker nodes were discovered (the cluster may already be partly powered down, or only protected nodes are left).'
 }
 
 if ($actualMode -eq "FALLBACK") {
@@ -760,6 +841,18 @@ if ($actualMode -eq "FALLBACK") {
     $masterIp = $masterFallback.IP
     foreach ($w in $workerFallback) { $targets += [PSCustomObject]@{ Name = $w.Name; IP = $w.IP } }
 }
+
+# --- v9.3: ONE ERROR MUST NOT END THE RUN ---
+# The rest of the script runs inside try/catch/finally:
+#   * try     - the shutdown itself. Its phases (drain, detach gate, credentials) and its loops
+#               each handle their own recoverable errors and keep going,
+#   * catch   - anything unexpected (or a deliberate fatal, e.g. a neverPowerOff violation) is
+#               recorded instead of vanishing; the remainder is skipped, so nothing is powered off
+#               after a fatal,
+#   * finally - the summary, the run report and the exit code, so a fatal error or an unexpected
+#               exception still leaves a transcript and a machine-readable outcome behind.
+# This is why the script can no longer die silently half-way through a fleet power-down.
+try {
 
 # Hard safety net: never power off a node flagged neverPowerOff in the registry.
 foreach ($target in $targets) {
@@ -889,6 +982,12 @@ if ($actualMode -ne "FALLBACK") {
             Write-Host "[VERIFY] Degraded storage noted - not a shutdown run, so the gate is not applied." -ForegroundColor DarkGray
         }
         elseif (!$Force) {
+            # The one deliberate early exit (v9.3). Refusing to power off a fleet that has degraded
+            # attached volumes is a PRE-FLIGHT decision: nothing has been touched yet, so there is
+            # no half-powered cluster to recover - unlike stopping mid-run, which this version
+            # never does. Recorded in the report, and -Force is the documented override.
+            $script:ExitCode = 1
+            Add-RunError -Context 'gate:degraded-storage' -Message 'Refused to start: degraded attached Longhorn volumes were detected and -Force was not supplied.'
             Write-Error "Aborting: resolve degraded volumes first, or re-run with -Force to accept the risk."
             exit 1
         }
@@ -1003,8 +1102,18 @@ if ($VerifyCredentials) {
         $identity = if ($entry.user) { "$($entry.user)@$($entry.ip)" } else { "(none)" }
         Write-Host ("  {0,-20} {1,-16} {2,-18} {3}" -f $entry.node, $entry.ip, $identity, $entry.status)
     }
+    if ($script:RunErrors.Count -gt 0) {
+        Write-Host "Recoverable errors during the check (the run continued): $($script:RunErrors.Count)" -ForegroundColor Yellow
+        foreach ($runError in $script:RunErrors) {
+            Write-Host "    - [$($runError.context)] $($runError.message)" -ForegroundColor Yellow
+        }
+    }
     if ($credentialFailures.Count -gt 0) {
         Write-Host "[!] Nodes without a usable credential: $($credentialFailures -join ', ')" -ForegroundColor Red
+        $script:ExitCode = 1
+    }
+    elseif ($script:RunErrors.Count -gt 0) {
+        Write-Host "[!] Every listed node authenticated, but the run reported recoverable errors above." -ForegroundColor Yellow
         $script:ExitCode = 1
     }
     else {
@@ -1020,6 +1129,7 @@ if ($VerifyCredentials) {
             forced             = [bool]$Force
             credentials        = @($credentialReport)
             credentialFailures = @($credentialFailures)
+            errors             = @($script:RunErrors)
             log                = $script:LogPath
         }
         try { $verifyReport | ConvertTo-Json -Depth 4 | Set-Content -Path $script:ReportPath -Encoding UTF8 } catch {
@@ -1028,7 +1138,8 @@ if ($VerifyCredentials) {
         Write-Host "Report: $($script:ReportPath)" -ForegroundColor DarkGray
         Write-Host "Log: $($script:LogPath)" -ForegroundColor DarkGray
     }
-    try { Stop-Transcript | Out-Null } catch { Write-Verbose "Transcript was not active: $($_.Exception.Message)" }
+    # This path wrote its own report, so the shutdown finalizer must not overwrite it.
+    $script:ReportAlreadyWritten = $true
     exit $script:ExitCode
 }
 
@@ -1182,6 +1293,15 @@ foreach ($master in $masterTargets) {
     }
 }
 
+# end of the operational try body - what follows is the catch/finally finalizer.
+}
+# v9.3: an unexpected error is recorded, not fatal - the finally block below still writes the
+# summary and the run report, and the exit code still reflects the failure.
+catch {
+    Add-RunError -Context 'run' -Message "Unexpected error: $($_.Exception.Message)"
+}
+finally {
+if (-not $script:ReportAlreadyWritten) {
 Write-Host "`n--- Shutdown Summary ---" -ForegroundColor Cyan
 if ($script:DryRun) { Write-Host "[DRYRUN] Nothing was changed: no node was cordoned, drained or powered off." -ForegroundColor DarkGray }
 if ($skippedNodes.Count -gt 0) {
@@ -1191,8 +1311,15 @@ if ($failedNodes.Count -gt 0) {
     Write-Host "Still answering after every poweroff stage: $($failedNodes -join ', ')" -ForegroundColor Red
     Write-Host "  These hosts ignored sudo poweroff, shutdown -h now and systemctl poweroff -i. Retry with -Force -ForceKernelPowerOff, or use the physical power button." -ForegroundColor Yellow
 }
+if ($script:RunErrors.Count -gt 0) {
+    Write-Host "Recoverable errors (the run continued past each one): $($script:RunErrors.Count)" -ForegroundColor Yellow
+    foreach ($runError in $script:RunErrors) {
+        Write-Host "    - [$($runError.context)] $($runError.message)" -ForegroundColor Yellow
+    }
+}
 if ($skippedNodes.Count -eq 0 -and $failedNodes.Count -eq 0) {
     if ($script:DryRun) { Write-Host "[+] Dry run complete: review the plan above, then re-run without -DryRun." -ForegroundColor Green }
+    elseif ($script:RunErrors.Count -gt 0) { Write-Host "[!] Every target node is down, but $($script:RunErrors.Count) recoverable error(s) were recorded above." -ForegroundColor Yellow }
     else { Write-Host "[+] All target nodes processed cleanly (each one verified unreachable on TCP 22)." -ForegroundColor Green }
 }
 
@@ -1203,13 +1330,18 @@ if ($ShutdownLocalMac -and $script:DryRun) {
 }
 elseif ($ShutdownLocalMac) {
     Write-Host "`n--- Powering off Local Mac (-ShutdownLocalMac supplied) ---" -ForegroundColor Red
-    "test" | sudo -S shutdown -h now
+    try { "test" | sudo -S shutdown -h now } catch {
+        Add-RunError -Context 'local-mac' -Message "Could not power off the local Mac: $($_.Exception.Message)"
+    }
 }
 else {
     Write-Host "`n--- Local Mac left powered on (use -ShutdownLocalMac to include it) ---" -ForegroundColor Yellow
 }
 
-if ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0) { $script:ExitCode = 1 } else { $script:ExitCode = 0 }
+# Exit code: only ever RAISED to 1 (never reset), so a deliberate gate that exited non-zero keeps
+# its code through this finalizer. 1 = a node was skipped / is still up, a credential failed, or
+# any recoverable error was recorded.
+if ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0 -or $script:RunErrors.Count -gt 0) { $script:ExitCode = 1 }
 
 # --- RUN REPORT (v9.1): machine-readable outcome next to the transcript ---
 if ($script:ReportPath) {
@@ -1225,6 +1357,7 @@ if ($script:ReportPath) {
         forced     = [bool]$Force
         credentials = @($credentialReport)
         credentialFailures = @($credentialFailures)
+        errors     = @($script:RunErrors)
         down       = @($downNodes)
         skipped    = @($skippedNodes)
         failed     = @($failedNodes)
@@ -1236,8 +1369,10 @@ if ($script:ReportPath) {
     Write-Host "Report: $($script:ReportPath)" -ForegroundColor DarkGray
     Write-Host "Log: $($script:LogPath)" -ForegroundColor DarkGray
 }
+}
 try { Stop-Transcript | Out-Null } catch { Write-Verbose "Transcript was not active: $($_.Exception.Message)" }
 
 if ($script:DryRun) { exit 0 }
 exit $script:ExitCode
+}
 
