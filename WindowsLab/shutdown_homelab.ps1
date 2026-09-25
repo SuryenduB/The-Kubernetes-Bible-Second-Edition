@@ -63,7 +63,10 @@ param(
 
     [Parameter(HelpMessage="SSH connect timeout in seconds: a hung host must not stall the whole shutdown")]
     [ValidateRange(3, 120)]
-    [int]$SshConnectTimeoutSeconds = 15
+    [int]$SshConnectTimeoutSeconds = 15,
+
+    [Parameter(HelpMessage="Write a timestamped transcript + JSON outcome report to WindowsLab/logs/ (default: on). Disable with -NoLog.")]
+    [switch]$NoLog
 )
 
 $ErrorActionPreference = 'Stop' # Critical for Catch block to trigger on external errors
@@ -106,6 +109,28 @@ $workerFallback = @(
 )
 
 Write-Host "--- K3s Cluster Shutdown Sequence (v9) ---" -ForegroundColor Cyan
+
+# --- RUN LOGGING (v9.1): every run writes a transcript + JSON report to
+#     WindowsLab/logs/ unless -NoLog is given. This is what was missing when
+#     the "last knight" run failed silently: the only evidence was a stale
+#     WindowsLab/shutdown.log from June. Log name: shutdown-YYYYMMDD-HHMMSS.log
+#     plus a matching .json outcome report (down / still-up / skipped per node).
+$script:LogPath = $null
+$script:ReportPath = $null
+$script:RunStartedAt = Get-Date
+if (-not $NoLog) {
+    $logDir = Join-Path -Path $PSScriptRoot -ChildPath 'logs'
+    if (-not (Test-Path -Path $logDir)) { New-Item -ItemType Directory -Path $logDir | Out-Null }
+    $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $script:LogPath = Join-Path -Path $logDir -ChildPath "shutdown-$stamp.log"
+    $script:ReportPath = Join-Path -Path $logDir -ChildPath "shutdown-report-$stamp.json"
+    try { Start-Transcript -Path $script:LogPath -Append | Out-Null } catch {
+        Write-Host "[!] Could not start transcript at $($script:LogPath): $($_.Exception.Message)" -ForegroundColor Yellow
+        $script:LogPath = $null
+    }
+    Write-Host "Logging to: $($script:LogPath)" -ForegroundColor DarkGray
+    Write-Host "Report will be: $($script:ReportPath)" -ForegroundColor DarkGray
+}
 
 # --- Storage-safe helpers: a node must not lose power while Longhorn still has
 #     live attachments on it. Unclean detachment is what wedges engine frontends
@@ -642,11 +667,19 @@ if ($actualMode -ne "FALLBACK") {
     elseif ($degradedVolumes.Count -gt 0) {
         Write-Host "[!] Degraded attached volumes detected:" -ForegroundColor Red
         foreach ($vol in $degradedVolumes) { Write-Host "    - $vol" -ForegroundColor Red }
-        if (!$Force) {
+        # v9.1: -DryRun is a read-only rehearsal, not a shutdown attempt. The
+        # degraded-storage gate must not kill it (the whole point of a dry run
+        # is to SEE this output without -Force). Only a real run aborts here.
+        if ($script:DryRun) {
+            Write-Host "[DRYRUN] Degraded storage noted - a real run would abort here without -Force." -ForegroundColor DarkGray
+        }
+        elseif (!$Force) {
             Write-Error "Aborting: resolve degraded volumes first, or re-run with -Force to accept the risk."
             exit 1
         }
-        Write-Host "[!] -Force supplied: proceeding despite degraded storage." -ForegroundColor Red
+        else {
+            Write-Host "[!] -Force supplied: proceeding despite degraded storage." -ForegroundColor Red
+        }
     }
     else {
         Write-Host "[+] All attached Longhorn volumes healthy." -ForegroundColor Green
@@ -830,9 +863,7 @@ foreach ($master in $masterTargets) {
 }
 
 Write-Host "`n--- Shutdown Summary ---" -ForegroundColor Cyan
-if ($script:DryRun) {
-    Write-Host "[DRYRUN] Nothing was changed: no node was cordoned, drained or powered off." -ForegroundColor DarkGray
-}
+if ($script:DryRun) { Write-Host "[DRYRUN] Nothing was changed: no node was cordoned, drained or powered off." -ForegroundColor DarkGray }
 if ($skippedNodes.Count -gt 0) {
     Write-Host "Skipped (storage/drain not clean, no -Force): $($skippedNodes -join ', ')" -ForegroundColor Yellow
 }
@@ -858,7 +889,33 @@ else {
     Write-Host "`n--- Local Mac left powered on (use -ShutdownLocalMac to include it) ---" -ForegroundColor Yellow
 }
 
+if ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0) { $script:ExitCode = 1 } else { $script:ExitCode = 0 }
+
+# --- RUN REPORT (v9.1): machine-readable outcome next to the transcript ---
+if ($script:ReportPath) {
+    $downNodes = @(
+        @($targets | ForEach-Object { $_.Name }) + @($masterTargets | ForEach-Object { $_.Name }) |
+            Where-Object { ($skippedNodes -notcontains $_) -and ($failedNodes -notcontains $_) -and (-not $script:DryRun) }
+    )
+    $report = [ordered]@{
+        startedAt  = $script:RunStartedAt.ToString('o')
+        finishedAt = (Get-Date).ToString('o')
+        mode       = $actualMode
+        dryRun     = [bool]$script:DryRun
+        forced     = [bool]$Force
+        down       = @($downNodes)
+        skipped    = @($skippedNodes)
+        failed     = @($failedNodes)
+        log        = $script:LogPath
+    }
+    try { $report | ConvertTo-Json -Depth 4 | Set-Content -Path $script:ReportPath -Encoding UTF8 } catch {
+        Write-Host "[!] Could not write report: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    Write-Host "Report: $($script:ReportPath)" -ForegroundColor DarkGray
+    Write-Host "Log: $($script:LogPath)" -ForegroundColor DarkGray
+}
+try { Stop-Transcript | Out-Null } catch { }
+
 if ($script:DryRun) { exit 0 }
-if ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0) { exit 1 }
-exit 0
+exit $script:ExitCode
 
