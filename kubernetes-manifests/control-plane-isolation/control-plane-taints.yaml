@@ -13,9 +13,9 @@
 #      replica scheduling. K8s taints alone do NOT affect Longhorn.
 #
 # Apply: kubectl apply -k kubernetes-manifests/control-plane-isolation
-# Then (taints are owned by the k3s manager, so apply may conflict):
-#   kubectl taint nodes server-236 node-role.kubernetes.io/master=:NoSchedule --overwrite
-#   kubectl taint nodes server-252 node-role.kubernetes.io/master=:NoSchedule --overwrite
+# (no separate taint command needed - apply owns the taint field now).
+# server-236 was cordoned+drained 2026-09-25 after server-252 recovered:
+# all app pods migrated to workers, only DaemonSets remain (same as nuc).
 ---
 apiVersion: v1
 kind: Node
