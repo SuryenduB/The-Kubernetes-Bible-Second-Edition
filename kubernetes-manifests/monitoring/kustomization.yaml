@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
   - beszel-hub.yaml
   - beszel-agent.yaml
+  - node-disk-cleanup.yaml
   - uptime-kuma.yaml
   - uptime-kuma-monitors.yaml
   - uptime-kuma-sync.yaml

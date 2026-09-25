@@ -1,0 +1,149 @@
+---
+# Reclaims disk space on every node so kubelet never hits DiskPressure and
+# starts evicting pods (including the Longhorn control plane).
+#
+# Why this exists: on server-236 the root disk filled to 95%, which flipped
+# NodeHasDiskPressure and got longhorn-manager / longhorn-csi-plugin /
+# engine-image / instance-manager evicted mid-upgrade. journald had no size
+# cap, a disabled snap revision was left behind, and unreferenced container
+# images were never pruned.
+#
+# Deliberately NEVER touches:
+#   /var/lib/longhorn  - Longhorn replica data (real data; would be data loss)
+#   /var/lib/docker    - the registry:2 container backing 192.168.0.236:5000
+#
+# A CronJob cannot target "every node", so this is a DaemonSet running the
+# cleanup on an interval. Same effect, covers all nodes including the
+# control-plane ones that need it most.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node-disk-cleanup
+  namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: node-disk-cleanup-script
+  namespace: monitoring
+data:
+  cleanup.sh: |
+    #!/bin/sh
+    # Node disk cleanup, executed inside the host mount+PID namespace via
+    # nsenter so that host tooling (df, journalctl, snap, crictl) is used.
+    # Safe by construction: every step removes only regenerable data or
+    # already-unreferenced objects.
+    set -u
+
+    HOST="$(hostname)"
+    log() { echo "[$(date -Is 2>/dev/null || date)] $*"; }
+
+    USED_PCT="$(df -P / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')"
+    log "root filesystem ${USED_PCT:-?}% used on ${HOST}"
+
+    # Clean before the kubelet DiskPressure trigger (which fires around
+    # 85-90% depending on eviction-hard settings), not after eviction starts.
+    if [ "${USED_PCT:-0}" -lt 80 ]; then
+      log "below 80% threshold, nothing to do"
+      exit 0
+    fi
+
+    log "disk pressure detected, running cleanup"
+
+    # 1. Cap the systemd journal. The usual culprit: journald defaults to 10%
+    #    of the filesystem, which on a small 48G node is still several GB.
+    journalctl --vacuum-size=200M >/dev/null 2>&1 || log "journal vacuum skipped"
+
+    # 2. Drop disabled snap revisions only - never the active revision, so
+    #    snapd-managed apps keep working.
+    if command -v snap >/dev/null 2>&1; then
+      snap list --all 2>/dev/null | awk '$5 == "disabled" {print $1, $3}' | \
+      while read -r name rev; do
+        if [ -n "${name:-}" ] && [ -n "${rev:-}" ]; then
+          if snap remove "${name}" --revision="${rev}" >/dev/null 2>&1; then
+            log "removed disabled snap ${name} rev ${rev}"
+          fi
+        fi
+      done
+    fi
+
+    # 3. Prune unreferenced container images. crictl only removes images with
+    #    no container referencing them, so this cannot break a running
+    #    workload. kubelet's own image GC does this too, but only reactively
+    #    under pressure - by then it has usually started evicting pods.
+    if command -v crictl >/dev/null 2>&1; then
+      crictl rmi --prune >/dev/null 2>&1 || log "crictl prune skipped"
+    fi
+
+    # 4. Truncate rotated kernel logs. kern.log reaches hundreds of MB on a
+    #    noisy node. Truncate rather than delete so syslog keeps writing to
+    #    the same inode.
+    truncate -s 0 /var/log/kern.log 2>/dev/null || true
+    rm -f /var/log/kern.log.*.gz 2>/dev/null || true
+
+    # Intentionally NOT touching /var/lib/longhorn (replica data) or
+    # /var/lib/docker (the registry:2 container backing 192.168.0.236:5000).
+
+    log "cleanup finished: $(df -h / | tail -1)"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-disk-cleanup
+  namespace: monitoring
+  labels:
+    app: node-disk-cleanup
+spec:
+  selector:
+    matchLabels:
+      app: node-disk-cleanup
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: node-disk-cleanup
+    spec:
+      serviceAccountName: node-disk-cleanup
+      # Run on control-plane nodes too - server-236 is an etcd member and was
+      # the worst affected.
+      tolerations:
+        - operator: Exists
+      priorityClassName: system-cluster-critical
+      # hostPID + nsenter is what lets the busybox container execute the
+      # host's own crictl/snap/journalctl instead of its own limited set.
+      hostPID: true
+      containers:
+        - name: cleanup-loop
+          image: docker.io/library/busybox:1.36
+          command: ["sh", "-c"]
+          args:
+            - |
+              # Run once at startup, then every 6 hours.
+              # The script is piped on stdin rather than passed as a path:
+              # `nsenter -m` enters the host mount namespace, where /scripts
+              # does not exist.
+              while true; do
+                nsenter -t 1 -m -u -i -n -p -- sh -s < /scripts/cleanup.sh \
+                  || echo "cleanup exited non-zero"
+                sleep 21600
+              done
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: node-disk-cleanup-script
+            defaultMode: 0755
