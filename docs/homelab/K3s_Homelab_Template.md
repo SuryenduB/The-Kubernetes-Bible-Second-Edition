@@ -234,7 +234,7 @@ These components are listed separately from user-facing applications. No dedicat
 | **g5** | kubernetes4 | `64:00:6A:62:72:DC` | K3s Worker | ✅ Verified (LLDP) |
 | **g6** | kubernetes2 | `40:B0:76:0F:3C:72` | K3s Worker | ✅ Verified (LLDP) |
 | **g8** | NUC (Master) | `C0:3F:D5:6D:45:85` | K3s Master | ✅ Verified (LLDP) |
-| **g9** | HP-1 (DESKTOP-32DRFM7) → hosts `server-236` | `f0:d5:bf:26:11:be` | K3s control plane #2 + local registry | ✅ Active |
+| **g9** | HP-1 (DESKTOP-32DRFM7) → hosts `server-236` | `c8:d3:ff:6a:72:2e` | K3s control plane #2 + local registry | ✅ Active — *was on g9; moved to **g16** on 2026-10-04 while diagnosing the NIC fault* |
 | **g10** | kubernetes7 | `6C:C2:17:E9:A4:E5` | K3s Worker | ✅ Verified (LLDP) |
 | **g11** | HP-2 | `FC:3F:DB:86:1A:81` | Trusted Node | ✅ Active |
 | **g12** | kubernetes8-debian | `00:14:0B:45:02:83` | K3s Worker | ✅ Verified (LLDP) |

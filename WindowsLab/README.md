@@ -47,9 +47,10 @@ lab clients.
 > 4 cores / 16 GB match the older note.
 
 > [!WARNING]
-> `docs/homelab/K3s_Homelab_Template.md` records MAC `f0:d5:bf:26:11:be` against
+> `docs/homelab/K3s_Homelab_Template.md` used to record MAC `f0:d5:bf:26:11:be` against
 > "HP-1 → hosts `server-236`". That MAC is actually **HP-1's Wi-Fi adapter**, not the guest.
-> Correct it if you touch that file — it invites exactly the `.103`-vs-`.236` confusion above.
+> **Corrected on 2026-10-04** to the wired MAC `c8:d3:ff:6a:72:2e` — it invited exactly the
+> `.103`-vs-`.236` confusion above.
 
 ### Machine identities, as reported by the gateway
 
@@ -235,36 +236,39 @@ TCP 22    Listening
 ```
 
 > [!WARNING]
-> **Mac → HP-1 SSH is unresolved. Host-level filtering, not a networking fault.**
+> **HP-1's host cannot be reached from the LAN — confirmed NIC-level receive fault (2026-10-04).**
 >
-> What is *not* the cause, having been ruled out:
+> **Symptom:** the host answers ARP but never answers ICMP or TCP, from *any* LAN client (Mac and
+> DELL-1 both fail). The guest `server-236` (`.236`) on the same physical NIC is reachable the
+> whole time. Broadcast works, unicast to the host does not.
 >
-> - HP-1 is **up and reachable at the link layer** — the gateway reports `DESKTOP-32DRFM7-1` /
->   `.103` as **active**, at 1 Gbps, for ~12 days. ARP from the Mac resolves correctly to
->   `c8:d3:ff:6a:72:2e`, so frames are arriving at the NIC.
-> - It is **not** the wrong address. `.103` is genuinely HP-1's wired interface.
-> - It is **not** a dead cable, a dead switch port, or a Hyper-V vSwitch that took the adapter away
->   from the management OS — all four vSwitches report the management OS attached, and the I219-LM
->   link is up at 1 Gbps.
+> Ruled out **by test**, not by inference:
 >
-> What the symptom means: ICMP and TCP get **no reply at all** (not a refusal) while ARP succeeds.
-> Something on HP-1 is silently dropping the traffic after it reaches the host.
+> | Hypothesis | Result |
+> |---|---|
+> | Firewall / `NetworkCategory` | ❌ all profiles `Enabled=False`; `vEthernet (WiFI External)` is `Private` |
+> | WFP / Azure-VFP vSwitch extensions | ❌ both `Enabled=False`; only `Microsoft NDIS Capture` is on |
+> | Port ACLs on the management-OS vNIC | ❌ `Get-VMNetworkAdapterAcl` returns nothing |
+> | Checksum / LSO offloads | ❌ disabled on **both** `Ethernet` and `vEthernet (WiFI External)` — no change |
+> | VMQ / SR-IOV | ❌ not present on this NIC (`Get-NetAdapterVmq` / `Get-NetAdapterSriov` return no objects) |
+> | IP address / duplicate IP | ❌ fails on `.103` **and** `.105`; no duplicate-IP events; no duplicate MAC on the LAN |
+> | Switch port | ❌ cable moved `g9` → `g16`, no change |
+> | MAC address | ❌ Hyper-V locks the management-OS MAC to the physical NIC (`Set-VMNetworkAdapter -StaticMacAddress` → *"cannot be set for a management OS adapter"*; the `Network Address` advanced property is also rejected) |
+> | Hyper-V / the vSwitch | ❌ fails identically with `Disable-NetAdapterBinding -ComponentID vms_pp` **and** a static IP on the bare `Ethernet` adapter |
+> | The MAC itself | ❌ a brand-new MAC (`00-1b-21-3c-4d:5e`) is answered on ARP but still gets no unicast reply |
 >
-> **Most likely:** inbound traffic is being filtered on the **Hyper-V vSwitch host adapter**
-> (`vEthernet (WiFI External)`) rather than on the raw Ethernet profile, so a firewall that was
-> disabled globally is not the filter actually doing the dropping. Check the firewall state for
-> *that interface* rather than the machine as a whole.
+> **Confirmed cause:** the **Intel I219-LM does not receive inbound unicast addressed to its own
+> MAC**, while continuing to accept broadcast. Because the new MAC also fails, it is the NIC/driver
+> receive path — not a stale switch FDB entry and not a stale MAC filter.
 >
-> ```powershell
-> # on HP-1 — inspect the vSwitch host adapter specifically
-> Get-NetAdapter | Format-Table Name, Status, LinkSpeed
-> Get-NetConnectionProfile | Format-Table InterfaceAlias, NetworkCategory
-> Get-NetFirewallProfile | Format-Table Name, Enabled
-> Get-NetTCPConnection -State Listen -LocalPort 22 | Format-Table LocalAddress, LocalPort
-> ```
+> **Workaround:** bind the external vSwitch to a **USB Gigabit Ethernet adapter** instead of the
+> onboard I219-LM:
+> `New-VMSwitch -Name "WiFI External" -NetAdapterName "<USB NIC>" -AllowManagementOS $true`.
+> Optionally try HP's OEM I219-LM driver first, but expect the USB adapter to be the reliable fix.
 >
-> `NetworkCategory` matters: if the Ethernet profile came up as **Public**, inbound `sshd` rules
-> are blocked by default and disabling one profile is not enough.
+> Until then, reach HP-1 over **Chrome Remote Desktop** (outbound), which is unaffected.
+>
+> All of the above was collected with `WindowsLab/Get-HP1NetworkDiagnostics.ps1` (read-only).
 >
 > This is deliberately *not* part of the working AD/CrossHost architecture — do not treat it as a
 > regression against §3.

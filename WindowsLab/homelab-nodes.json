@@ -83,12 +83,13 @@
     {
       "name": "kubernetes7",
       "ip": "192.168.0.26",
+      "secondaryIps": ["192.168.0.104"],
       "role": "worker",
       "os": "Ubuntu 24.04",
       "sshUser": "suryendub",
       "neverCordon": true,
       "neverPowerOff": true,
-      "notes": "PERMANENT SURVIVOR: physical power switch is broken, so a power-off is unrecoverable. NEVER cordon, drain or power it off. Carries the largest workload share while other nodes are down."
+      "notes": "PERMANENT SURVIVOR: physical power switch is broken, so a power-off is unrecoverable. NEVER cordon, drain or power it off. Carries the largest workload share while other nodes are down. Dual-homed: second NIC answers on 192.168.0.104 (MAC 90:48:9a:df:2c:10; primary .26 is 6c:c2:17:e9:a4:e5) - verified 2026-10-04 via kubelet cert CN=kubernetes7 on both. .104 must never be reassigned to another host; it is NOT a free address."
     },
     {
       "name": "kubernetes8-debian",
