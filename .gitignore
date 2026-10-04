@@ -41,3 +41,11 @@ WindowsLab/k3s-audits/
 # Agent skills
 skills/
 
+# Editor / agent scratch state
+**/.commandcode/
+
+# Stray artifacts from mistyped shell redirects in this repo
+# e.g. `> ghostty` and `kubectl -o json > 0`
+ghostty
+WindowsLab/0
+
