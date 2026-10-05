@@ -1,6 +1,6 @@
 # Kubernetes Manifests for Multi-Node K3s Cluster
 
-This directory contains Kubernetes manifests for a 9-node K3s homelab cluster (1 control-plane `nuc` + 8 workers). All manifests are organized per application/namespace and aggregated via `kustomization.yaml`.
+This directory contains Kubernetes manifests for a 9–11-node K3s homelab cluster (control-plane `nuc` + workers; see `../WindowsLab/homelab-nodes.json` for the node source of truth). All manifests are organized per application/namespace and aggregated via `kustomization.yaml`.
 
 ## Directory Structure
 
@@ -31,7 +31,11 @@ kubernetes-manifests/
 │   ├── flick.yaml                  # File sharing: Go API, web, Caddy, Postgres
 │   └── pgweb.yaml                  # PostgreSQL explorer (no default DB)
 ├── homepage/
-│   └── homepage.yaml               # homepage ns (gethomepage dashboard + ConfigMap)
+│   └── homepage.yaml               # homepage ns (gethomepage dashboard + ConfigMap + Tailscale svc)
+├── cloudflare/                     # cloudflare ns (Cloudflare Tunnel -> Homepage, standalone apply)
+│   ├── README.md                   # quick (live) vs permanent (token) tunnel guide
+│   ├── quick-tunnel-homepage.yaml  # LIVE: ephemeral *.trycloudflare.com, no token
+│   └── permanent-tunnel-homepage.yaml  # standby: named tunnel, needs token secret
 ├── monitoring/                     # monitoring ns (observability + notifications)
 │   ├── kustomization.yaml
 │   ├── beszel-hub.yaml
@@ -71,7 +75,7 @@ kubernetes-manifests/
 | 4 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
 | 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
 | 6 | `media` | AudioBookshelf, Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick, pgweb | `media/` |
-| 7 | `homepage` | gethomepage dashboard | `homepage/homepage.yaml` |
+| 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/quick-tunnel-homepage.yaml` |
 | 8 | `monitoring` | Beszel, Uptime Kuma, Kuvasz, Lantern, PooML, OmniSight, Dozzle, Logchef, Trove, LAN Sheriff, LanGuard, Homelab Monitor, Gotify, Apprise | `monitoring/` |
 | 9 | `dashboard` | Homarr, Cairn | `dashboard/` |
 | 10 | `server-management` | HomeLab Manger, RemotePower | `server-management/` |
@@ -98,6 +102,21 @@ annotations:
   tailscale.com/proxy-class: "tailscale-proxy"
   tailscale.com/hostname: "my-app"
 ```
+
+## Public Access (Cloudflare Tunnel -> Homepage)
+
+Homepage is published publicly via a Cloudflare Quick Tunnel (no token, ephemeral `*.trycloudflare.com` URL). See `cloudflare/README.md` for the quick vs permanent tunnel guide.
+
+```bash
+# Live Quick Tunnel (ephemeral URL, changes on pod restart)
+kubectl apply -f cloudflare/quick-tunnel-homepage.yaml
+kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=20  # find URL
+
+# Permanent named tunnel (needs token + own domain, standby manifest)
+kubectl apply -f cloudflare/permanent-tunnel-homepage.yaml
+```
+
+The `cloudflare/` manifests are intentionally NOT part of the top-level `kustomization.yaml` — the Quick Tunnel is ephemeral/demo and the permanent manifest ships with a placeholder token that sleeps until a real token is set.
 
 ## Storage
 

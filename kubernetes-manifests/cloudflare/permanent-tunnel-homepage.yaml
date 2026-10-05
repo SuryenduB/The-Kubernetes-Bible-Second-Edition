@@ -1,0 +1,99 @@
+# Permanent Cloudflare Tunnel -> Homepage (requires token).
+# Steps (dashboard: Networking -> Tunnels -> Create Tunnel):
+#   1. Create tunnel, copy the token from the install command:
+#        cloudflared tunnel run --token eyJhIjoi....
+#   2. Store it (homelab convention: plaintext secret checked in is OK):
+#        kubectl -n cloudflare create secret generic cloudflared-token \
+#          --from-literal=token='<PASTE_TOKEN>' --dry-run=client -o yaml > token-secret.yaml
+#      ...then replace TUNNEL_TOKEN_PLACEHOLDER below, or apply via:
+#        kubectl -n cloudflare create secret generic cloudflared-token \
+#          --from-literal=token='<PASTE_TOKEN>' --dry-run=client -o yaml | kubectl apply -f -
+#   3. In dashboard Routes tab add Published Application route:
+#        hostname (e.g. home.example.com) -> Service URL http://homepage.homepage.svc:80
+#      OR use this repo's config.yaml ingress below (same result, GitOps style).
+#   4. kubectl apply -f permanent-tunnel-homepage.yaml
+#   5. Add your public hostname to Homepage allow-list or keep the
+#      --http-host-header rewrite (already set) so no Homepage change is needed.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflare
+  labels:
+    app.kubernetes.io/name: cloudflare-tunnel
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloudflared-token
+  namespace: cloudflare
+type: Opaque
+stringData:
+  # Replace with the real token from `cloudflared tunnel run --token ...`
+  token: TUNNEL_TOKEN_PLACEHOLDER
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudflared-config
+  namespace: cloudflare
+data:
+  config.yaml: |
+    tunnel: REPLACE_WITH_TUNNEL_ID_OR_NAME
+    credentials-file: /etc/cloudflared/creds/token.json
+    metrics: 0.0.0.0:2000
+    no-autoupdate: true
+    ingress:
+      # Public hostname -> in-cluster Homepage (ClusterIP :80 -> pod :3000).
+      # Hostname must match the Published Application route in dashboard,
+      # or the CNAME created for this tunnel.
+      - hostname: home.example.com
+        service: http://homepage.homepage.svc:80
+        originRequest:
+          httpHostHeader: homepage.homepage.svc
+      - service: http_status:404
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-homepage
+  namespace: cloudflare
+  labels:
+    app: cloudflared-homepage
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cloudflared-homepage
+  template:
+    metadata:
+      labels:
+        app: cloudflared-homepage
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:latest
+        imagePullPolicy: IfNotPresent
+        # Token mode: run with --token from env via shell expansion.
+        # ConfigMap is mounted for reference / future file-mode use.
+        command: ["/bin/sh", "-c"]
+        args:
+        - |
+          if [ "$TUNNEL_TOKEN" != "TUNNEL_TOKEN_PLACEHOLDER" ]; then
+            exec cloudflared tunnel --no-autoupdate run --token "$TUNNEL_TOKEN"
+          else
+            echo "cloudflared-token not set; paste token into Secret cloudflared-token" >&2
+            sleep 3600
+          fi
+        env:
+        - name: TUNNEL_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: cloudflared-token
+              key: token
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi

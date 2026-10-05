@@ -103,13 +103,13 @@ Inventory refreshed on **2026-09-17** from live workloads, Service ports, and th
 
 #### Dashboards & Server Management
 
-| Application | Namespace | MagicDNS access |
-|-------------|-----------|-----------------|
-| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> |
-| Homarr | `dashboard` | <http://homarr.tail35421d.ts.net> |
-| Cairn | `dashboard` | <http://cairn.tail35421d.ts.net> |
-| Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net> |
-| RemotePower | `server-management` | <http://remotepower.tail35421d.ts.net> |
+| Application | Namespace | MagicDNS access | Public access |
+|-------------|-----------|-----------------|---------------|
+| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> | <https://specialized-dpi-repair-vault.trycloudflare.com> (Cloudflare Quick Tunnel, ephemeral — see `kubernetes-manifests/cloudflare/README.md`) |
+| Homarr | `dashboard` | <http://homarr.tail35421d.ts.net> | — |
+| Cairn | `dashboard` | <http://cairn.tail35421d.ts.net> | — |
+| Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net> | — |
+| RemotePower | `server-management` | <http://remotepower.tail35421d.ts.net> | — |
 
 The spelling `homelab-manger` matches the deployed Service and registered hostname.
 

@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflare
+  labels:
+    app.kubernetes.io/name: cloudflare-tunnel
+---
+# Quick Tunnel (no token, ephemeral *.trycloudflare.com URL) -> Homepage.
+# This is the fastest way to publish Homepage publicly for testing.
+# cloudflared prints the public URL in the pod logs:
+#   kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=50
+# Origin is the in-cluster Homepage Service (ClusterIP :80 -> :3000).
+# NOTE: Homepage validates the Host header against HOMEPAGE_ALLOWED_HOSTS
+# and returns 400 for unknown hosts. A Quick Tunnel gets a RANDOM hostname
+# on every restart, so either:
+#   (a) set HOMEPAGE_ALLOWED_HOSTS="*" (simplest for demo), or
+#   (b) add --http-host-header=homepage.homepage.svc to rewrite the origin Host.
+# This Deployment does (b) so no Homepage change is strictly required,
+# but (a) is still recommended for Quick Tunnel testing (see README).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-homepage-quick
+  namespace: cloudflare
+  labels:
+    app: cloudflared-homepage-quick
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cloudflared-homepage-quick
+  template:
+    metadata:
+      labels:
+        app: cloudflared-homepage-quick
+    spec:
+      containers:
+      - name: cloudflared
+        image: cloudflare/cloudflared:latest
+        imagePullPolicy: IfNotPresent
+        args:
+        - tunnel
+        - --no-autoupdate
+        - --url
+        - http://homepage.homepage.svc:80
+        # Rewrite Host seen by Homepage so its allow-list passes without
+        # needing to know the random trycloudflare hostname in advance.
+        - --http-host-header
+        - homepage.homepage.svc
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
