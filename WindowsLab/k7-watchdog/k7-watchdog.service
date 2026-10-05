@@ -1,0 +1,8 @@
+[Unit]
+Description=k7 K3s runtime watchdog (reboot only when sick)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/k7-watchdog.sh
