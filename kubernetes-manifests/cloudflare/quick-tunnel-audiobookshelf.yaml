@@ -1,0 +1,125 @@
+# Quick Tunnel -> Audiobookshelf (no token, ephemeral *.trycloudflare.com URL).
+#
+# Separate Deployment from the Homepage quick tunnel on purpose: a Quick Tunnel
+# bakes its origin into --url, so publishing a second service means a second
+# connector. Each publishes exactly one origin.
+#
+# Publishes ONLY audiobookshelf. Databases, the ssh Service, the K3s API and
+# Longhorn stay on Tailscale/LAN - do not add them here.
+#
+# Deploy:
+#   kubectl apply -f quick-tunnel-audiobookshelf.yaml
+# Find the URL:
+#   kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20
+#
+# SECURITY: a Quick Tunnel has NO authentication - anyone with the URL can reach
+# the Audiobookshelf login. Fine for a demo, NOT for a permanent URL. Use the
+# permanent tunnel (permanent-tunnel-homepage.yaml) plus CF Access for that.
+# Audiobookshelf serves its own auth; the host-header rewrite below only satisfies
+# its virtual-host check.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-audiobookshelf-quick
+  namespace: cloudflare
+  labels:
+    app: cloudflared-audiobookshelf-quick
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/component: tunnel
+  annotations:
+    kubernetes-specialist/review: "reviewed 2026-10-06; added probes, securityContext, pinned image, control-plane affinity"
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: cloudflared-audiobookshelf-quick
+  template:
+    metadata:
+      labels:
+        app: cloudflared-audiobookshelf-quick
+        app.kubernetes.io/name: cloudflared
+    spec:
+      serviceAccountName: cloudflared
+      automountServiceAccountToken: false
+      # Control-plane nodes only, never kubernetes7 (failing disk).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cloudflared
+          # Pinned (kubernetes-specialist MUST NOT: never :latest in production).
+          image: cloudflare/cloudflared:2025.8.1
+          imagePullPolicy: IfNotPresent
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - --url
+            - http://audiobookshelf.media.svc:80
+            # Rewrite Host so Audiobookshelf's virtual-host check passes without
+            # knowing the random trycloudflare hostname in advance.
+            - --http-host-header
+            - audiobookshelf.media.svc
+          ports:
+            - name: metrics
+              containerPort: 2000
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

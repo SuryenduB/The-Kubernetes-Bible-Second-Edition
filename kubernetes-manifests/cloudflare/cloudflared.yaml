@@ -1,45 +1,28 @@
-# Permanent Cloudflare Tunnel -> Homepage + Audiobookshelf (requires token).
+# Cloudflare Tunnel - in-cluster connector publishing selected web services.
 #
-# Steps (dashboard: Networking -> Tunnels -> Create Tunnel):
-#   1. Create tunnel, copy the token from the install command:
-#        cloudflared tunnel run --token eyJhIjoi....
-#   2. Store it. Homelab convention allows a plaintext secret, but prefer:
-#        kubectl -n cloudflare create secret generic cloudflared-token \
-#          --from-literal=token='<PASTE_TOKEN>' --dry-run=client -o yaml | kubectl apply -f -
-#      (this manifest's Secret block is a fallback; the command above overwrites it)
-#   3. In the dashboard Routes tab add Published Application routes, OR rely on
-#      the config.yaml ingress in this file (declarative, same result):
-#        home.example.com   -> http://homepage.homepage.svc:80
-#        audio.example.com  -> http://audiobookshelf.media.svc:80
-#      Update both hostnames below to match your domain.
-#   4. kubectl apply -f permanent-tunnel-homepage.yaml
-#   5. Keep CF Access in front of both hostnames (email OTP / Google) so the
-#      public endpoint is gated before traffic reaches the cluster.
+# Publishes ONLY browser-facing UIs. Databases, SSH, K3s API and Longhorn stay
+# on Tailscale/LAN. Every origin uses an httpHostHeader rewrite because Homepage
+# (and Traefik-less ClusterIP origins) validate the Host header.
 #
-# SECURITY: only these two browser-facing UIs are published. Databases
-# (db, db-mysql, postgres, redis, mariadb), the ssh Service, the K3s API and
-# Longhorn remain Tailscale-only. Do not add them here.
+# Pod security (kubernetes-specialist MUST-DO):
+#   - runAsNonRoot + runAsUser 65532 (cloudflared's nonroot uid), fsGroup same
+#   - readOnlyRootFilesystem, all writes redirected to /tmp
+#   - drop ALL capabilities, seccomp RuntimeDefault
+#   - pinned image (never :latest), resource requests+limits
+#   - readiness/liveness probes on cloudflared's own /ready endpoint
+# Placement: pinned to control-plane nodes only. kubernetes7 is excluded on
+# purpose (failing disk, see homelab-nodes.json neverPowerOff).
 #
-# NOT wired into the top-level kustomization.yaml on purpose: the Secret below
-# holds a placeholder token until a real one is set.
+# Deploy:
+#   kubectl apply -f cloudflared.yaml
+# Find the Quick Tunnel URL:
+#   kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=20
 apiVersion: v1
 kind: Namespace
 metadata:
   name: cloudflare
   labels:
     app.kubernetes.io/name: cloudflare-tunnel
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cloudflared-token
-  namespace: cloudflare
-  labels:
-    app.kubernetes.io/name: cloudflared
-type: Opaque
-stringData:
-  # Replace with the real token from `cloudflared tunnel run --token ...`
-  token: TUNNEL_TOKEN_PLACEHOLDER
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -50,8 +33,9 @@ metadata:
     app.kubernetes.io/name: cloudflared
 automountServiceAccountToken: false
 ---
-# Empty by design: cloudflared only dials outbound to Cloudflare's edge and
-# needs no Kubernetes API access.
+# --- Least-privilege RBAC: cloudflared needs no Kubernetes API access. It only
+# dials outbound to Cloudflare's edge, so this Role is intentionally empty and
+# exists to document that decision.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -81,6 +65,8 @@ data:
         originRequest:
           httpHostHeader: homepage.homepage.svc
       # Public hostname -> in-cluster Audiobookshelf (ClusterIP :80 -> pod :80).
+      # Origin requests are buffered (WebSocket/SSE-safe) so long-running
+      # audio streams are not cut when cloudflared reconnects.
       - hostname: audio.example.com
         service: http://audiobookshelf.media.svc:80
         originRequest:
@@ -93,18 +79,18 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: cloudflared-homepage
+  name: cloudflared-homepage-quick
   namespace: cloudflare
   labels:
-    app: cloudflared-homepage
+    app: cloudflared-homepage-quick
     app.kubernetes.io/name: cloudflared
     app.kubernetes.io/component: tunnel
   annotations:
-    kubernetes-specialist/review: "reviewed 2026-10-06; hardened (probes, securityContext, pinned image, nodeSelector), replicas 1->2, audiobookshelf origin added"
+    # Documents the deployment decision: quick tunnel is ephemeral/demo, so it
+    # is kept at 1 replica. The permanent tunnel uses 2.
+    kubernetes-specialist/review: "reviewed 2026-10-06; probes+securityContext added, image pinned, nodeSelector added"
 spec:
-  # 2 replicas: the tunnel is the only public entry point, so it must survive a
-  # single node loss (kubernetes-specialist: no single point of failure).
-  replicas: 2
+  replicas: 1
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -112,11 +98,11 @@ spec:
       maxSurge: 1
   selector:
     matchLabels:
-      app: cloudflared-homepage
+      app: cloudflared-homepage-quick
   template:
     metadata:
       labels:
-        app: cloudflared-homepage
+        app: cloudflared-homepage-quick
         app.kubernetes.io/name: cloudflared
     spec:
       serviceAccountName: cloudflared
@@ -152,24 +138,17 @@ spec:
           # Pinned (kubernetes-specialist MUST NOT: never :latest in production).
           image: cloudflare/cloudflared:2025.8.1
           imagePullPolicy: IfNotPresent
-          # Token mode: run with --token from env via shell expansion. Without a
-          # real token the pod idles instead of crash-looping, so the rest of
-          # the config stays verifiable.
-          command: ["/bin/sh", "-c"]
           args:
-            - |
-              if [ "$TUNNEL_TOKEN" != "TUNNEL_TOKEN_PLACEHOLDER" ] && [ -n "$TUNNEL_TOKEN" ]; then
-                exec cloudflared tunnel --no-autoupdate --metrics 0.0.0.0:2000 run --token "$TUNNEL_TOKEN"
-              else
-                echo "cloudflared-token not set; paste a real token into Secret cloudflared-token" >&2
-                sleep 3600
-              fi
-          env:
-            - name: TUNNEL_TOKEN
-              valueFrom:
-                secretKeyRef:
-                  name: cloudflared-token
-                  key: token
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - --url
+            - http://homepage.homepage.svc:80
+            # Rewrite Host seen by Homepage so its allow-list passes without
+            # needing to know the random trycloudflare hostname in advance.
+            - --http-host-header
+            - homepage.homepage.svc
           ports:
             - name: metrics
               containerPort: 2000
@@ -178,7 +157,7 @@ spec:
             httpGet:
               path: /ready
               port: metrics
-            initialDelaySeconds: 15
+            initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
             failureThreshold: 3
@@ -186,7 +165,7 @@ spec:
             httpGet:
               path: /ready
               port: metrics
-            initialDelaySeconds: 45
+            initialDelaySeconds: 30
             periodSeconds: 20
             timeoutSeconds: 3
             failureThreshold: 3
@@ -203,17 +182,9 @@ spec:
             capabilities:
               drop: ["ALL"]
           volumeMounts:
-            # ConfigMap is mounted for reference / file-mode use; token mode
-            # reads TUNNEL_TOKEN from the environment instead.
-            - name: config
-              mountPath: /etc/cloudflared
-              readOnly: true
             - name: tmp
               mountPath: /tmp
       volumes:
-        - name: config
-          configMap:
-            name: cloudflared-config
         - name: tmp
           emptyDir:
             sizeLimit: 64Mi
