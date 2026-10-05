@@ -54,7 +54,7 @@ if (-not $Token) { $Token = $env:K3S_JOIN_TOKEN }
 if (-not $Token -and -not $DryRun) { throw 'No join token: pass -Token or $env:K3S_JOIN_TOKEN (fresh node token from the surviving server).' }
 
 function Invoke-NodeSsh {
-    param([string]$Ip, [string]$User, [string]$RemoteCommand, [int]$TimeoutSec = 180)
+    param([string]$Ip, [string]$User, [string]$RemoteCommand)
     $sshArgs = @(
         '-o', 'BatchMode=no',
         '-o', 'ConnectTimeout=10',
@@ -72,9 +72,9 @@ function Invoke-NodeSsh {
 }
 
 function Invoke-NodeSudo {
-    param([string]$Ip, [string]$User, [string]$RemoteCommand, [int]$TimeoutSec = 180)
+    param([string]$Ip, [string]$User, [string]$RemoteCommand)
     if (-not $env:SSHPASS) { throw 'SSHPASS is not set - password sudo over SSH needs $env:SSHPASS.' }
-    return Invoke-NodeSsh -Ip $Ip -User $User -RemoteCommand "echo '$env:SSHPASS' | sudo -S $RemoteCommand" -TimeoutSec $TimeoutSec
+    return Invoke-NodeSsh -Ip $Ip -User $User -RemoteCommand "echo '$env:SSHPASS' | sudo -S $RemoteCommand"
 }
 
 # --- Resolve target identity from the registry (usernames are case-sensitive) ---
@@ -92,11 +92,11 @@ if (-not $apiOk -and -not $DryRun) { throw 'API is not responsive - recover quor
 Write-Host '[*] API is healthy. Proceeding with rejoin.'
 
 # --- Guard: target must be SSH-reachable ---
-$probe = Invoke-NodeSsh -Ip $ip -User $user -RemoteCommand 'echo SSH_OK' -TimeoutSec 30
+$probe = Invoke-NodeSsh -Ip $ip -User $user -RemoteCommand 'echo SSH_OK'
 if ($probe -notcontains 'SSH_OK' -and -not $DryRun) { throw "Target is not SSH-reachable: $ip" }
 
 if ($DryRun) {
-    Write-Host '[DRY RUN] Would execute on ' + $NodeName + ':'
+    Write-Host "[DRY RUN] Would execute on ${NodeName}:"
     Write-Host '  1. systemctl stop k3s; rm -rf /var/lib/rancher/k3s/server/db/etcd (stale membership)'
     Write-Host "  2. Reinstall/pin k3s $K3sVersion and join $ServerUrl as server-$shortOctet (fresh token)"
     Write-Host '  3. Label node-role.kubernetes.io/master, verify etcd members + node Ready'
@@ -112,19 +112,19 @@ if ($PSCmdlet.ShouldProcess("$NodeName ($ip)", 'wipe stale etcd state and rejoin
     $joinCmd = "export K3S_TOKEN='$Token'; curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='$K3sVersion' sh -s - server " +
         "--server $ServerUrl --node-ip $ip --node-external-ip $ip " +
         "--flannel-iface eth0 --node-name server-$shortOctet"
-    Invoke-NodeSudo -Ip $ip -User $user -RemoteCommand $joinCmd -TimeoutSec 600 | Out-Null
+    Invoke-NodeSudo -Ip $ip -User $user -RemoteCommand $joinCmd | Out-Null
 
     Write-Host '[3/4] Applying master role label for parity...'
     kubectl label node "server-$shortOctet" node-role.kubernetes.io/master=true --overwrite 2>$null | Out-Null
 
     Write-Host '[4/4] Verifying membership and node status...'
     $ok = $false
-    for ($i = 0; $i -lt 18; $i++) {
+    for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 10
         $memberLine = kubectl get nodes --request-timeout=10s 2>$null | Select-String "server-$shortOctet\s+Ready"
         if ($memberLine) { $ok = $true; break }
     }
-    if (-not $ok) { throw "server-$shortOctet did not become Ready within 3 minutes - inspect k3s on the target." }
+    if (-not $ok) { throw "server-$shortOctet did not become Ready within 5 minutes - inspect k3s on the target." }
     kubectl get nodes
     Write-Host ''
     Write-Host "[+] $NodeName rejoined. Verify quorum: kubectl get --raw='/readyz?verbose'"

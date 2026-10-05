@@ -56,7 +56,7 @@ if (-not (Test-Path $registryModule)) {
 Import-Module $registryModule -Force -DisableNameChecking
 
 function Invoke-NodeSsh {
-    param([string]$Ip, [string]$User, [string]$RemoteCommand, [int]$TimeoutSec = 120)
+    param([string]$Ip, [string]$User, [string]$RemoteCommand)
     $sshArgs = @(
         '-o', 'BatchMode=no',
         '-o', 'ConnectTimeout=10',
@@ -74,10 +74,10 @@ function Invoke-NodeSsh {
 }
 
 function Invoke-NodeSudo {
-    param([string]$Ip, [string]$User, [string]$RemoteCommand, [int]$TimeoutSec = 120)
+    param([string]$Ip, [string]$User, [string]$RemoteCommand)
     if (-not $env:SSHPASS) { throw 'SSHPASS is not set - password sudo over SSH needs $env:SSHPASS.' }
     $wrapped = "echo '$env:SSHPASS' | sudo -S $RemoteCommand"
-    return Invoke-NodeSsh -Ip $Ip -User $User -RemoteCommand $wrapped -TimeoutSec $TimeoutSec
+    return Invoke-NodeSsh -Ip $Ip -User $User -RemoteCommand $wrapped
 }
 
 # --- Resolve server identity from the registry ---
@@ -100,18 +100,24 @@ Write-Host "[*] API is unresponsive (quorum lost). Proceeding with reset."
 
 # --- Pick snapshot (newest on-disk unless named) ---
 if (-not $SnapshotName) {
-    $ls = Invoke-NodeSudo -Ip $nucIp -User $nucUser `
-        -RemoteCommand 'ls -t /var/lib/rancher/k3s/server/db/snapshots/ | head -n 1'
-    $SnapshotName = ($ls | Select-Object -Last 1).Trim()
-    if (-not $SnapshotName) { throw 'No on-disk etcd snapshots found on the server.' }
+    if ($DryRun -and -not $env:SSHPASS) {
+        $SnapshotName = '<latest on-disk snapshot>'
+    } else {
+        $ls = Invoke-NodeSudo -Ip $nucIp -User $nucUser `
+            -RemoteCommand 'ls -t /var/lib/rancher/k3s/server/db/snapshots/ | head -n 1'
+        $SnapshotName = ($ls | Select-Object -Last 1).Trim()
+        if (-not $SnapshotName) { throw 'No on-disk etcd snapshots found on the server.' }
+    }
 }
 $snapPath = "/var/lib/rancher/k3s/server/db/snapshots/$SnapshotName"
 Write-Host "[*] Snapshot: $snapPath"
-$exists = Invoke-NodeSudo -Ip $nucIp -User $nucUser -RemoteCommand "test -f $snapPath && echo PRESENT"
-if ($exists -notcontains 'PRESENT') { throw "Snapshot not found on server: $snapPath" }
+if (-not $DryRun) {
+    $exists = Invoke-NodeSudo -Ip $nucIp -User $nucUser -RemoteCommand "test -f $snapPath && echo PRESENT"
+    if ($exists -notcontains 'PRESENT') { throw "Snapshot not found on server: $snapPath" }
+}
 
 if ($DryRun) {
-    Write-Host '[DRY RUN] Would execute on ' + $ServerName + ':'
+    Write-Host "[DRY RUN] Would execute on ${ServerName}:"
     Write-Host "  1. systemctl stop k3s"
     Write-Host "  2. k3s server --cluster-reset --cluster-reset-restore-path $snapPath"
     Write-Host '  3. systemctl start k3s, wait for /readyz, kubectl get nodes'
@@ -125,9 +131,11 @@ if ($PSCmdlet.ShouldProcess("$ServerName ($nucIp)", "etcd cluster-reset restore 
 
     Write-Host '[2/4] Restoring snapshot with --cluster-reset (up to ~2 min)...'
     $resetOut = Invoke-NodeSudo -Ip $nucIp -User $nucUser `
-        -RemoteCommand "timeout 100 k3s server --cluster-reset --cluster-reset-restore-path $snapPath" `
-        -TimeoutSec 180
+        -RemoteCommand "timeout 100 k3s server --cluster-reset --cluster-reset-restore-path $snapPath"
     $resetOut | Select-String -Pattern 'restored snapshot|new cluster|cluster-reset=true|error' | ForEach-Object { Write-Host "  $_" }
+    if ($resetOut -notmatch 'restored snapshot') {
+        throw 'Reset did not report "restored snapshot" - k3s left STOPPED. Inspect the server before starting it.'
+    }
 
     Write-Host '[3/4] Starting k3s normally...'
     Invoke-NodeSudo -Ip $nucIp -User $nucUser -RemoteCommand 'systemctl start k3s' | Out-Null
