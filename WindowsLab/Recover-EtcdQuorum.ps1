@@ -55,6 +55,11 @@ if (-not (Test-Path $registryModule)) {
 }
 Import-Module $registryModule -Force -DisableNameChecking
 
+if (-not $DryRun -and -not $env:SSHPASS) {
+    Write-Host '[*] Loading sudo password (cred.xml -> vault -> prompt)...'
+    $env:SSHPASS = Resolve-SudoPassword
+}
+
 function Invoke-NodeSsh {
     param([string]$Ip, [string]$User, [string]$RemoteCommand)
     $sshArgs = @(
@@ -75,9 +80,51 @@ function Invoke-NodeSsh {
 
 function Invoke-NodeSudo {
     param([string]$Ip, [string]$User, [string]$RemoteCommand)
-    if (-not $env:SSHPASS) { throw 'SSHPASS is not set - password sudo over SSH needs $env:SSHPASS.' }
+    if (-not $env:SSHPASS) { throw 'No sudo password (set $env:SSHPASS, or provide cred.xml / vault secret).' }
     $wrapped = "echo '$env:SSHPASS' | sudo -S $RemoteCommand"
     return Invoke-NodeSsh -Ip $Ip -User $User -RemoteCommand $wrapped
+}
+
+function Resolve-SudoPassword {
+    <#
+    .SYNOPSIS
+        Loads the sudo password without ever committing it: $env:SSHPASS first,
+        then WindowsLab/cred.xml (DPAPI/clixml SecureString, gitignored), then the
+        SecretStore vault ('k3s-homelab-sudo'), then an interactive prompt.
+        Plaintext lives only in memory for sshpass -e.
+    #>
+    if ($env:SSHPASS) { return $env:SSHPASS }
+    $credPath = Join-Path $PSScriptRoot 'cred.xml'
+    if (Test-Path -Path $credPath) {
+        try {
+            $loaded = Import-Clixml -Path $credPath
+            $sec = $null
+            if ($loaded -is [securestring]) { $sec = $loaded }
+            elseif ($loaded -is [pscredential]) { $sec = $loaded.Password }
+            if ($sec) {
+                $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+                try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
+                finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
+            }
+            Write-Warning "cred.xml holds an unexpected type; ignoring it."
+        } catch {
+            Write-Warning "cred.xml unusable: $($_.Exception.Message)"
+        }
+    }
+    if (Get-Command Get-Secret -ErrorAction SilentlyContinue) {
+        try {
+            $secret = Get-Secret -Name 'k3s-homelab-sudo' -ErrorAction Stop
+            $sec2 = $null
+            if ($secret -is [securestring]) { $sec2 = $secret }
+            elseif ($secret -is [pscredential]) { $sec2 = $secret.Password }
+            if ($sec2) {
+                $b = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec2)
+                try { return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($b) }
+                finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
+            }
+        } catch { }
+    }
+    return (Read-Host 'Enter sudo password')
 }
 
 # --- Resolve server identity from the registry ---
