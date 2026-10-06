@@ -110,6 +110,15 @@ data:
       # burn the budget the audiobook stream needs.
       limit_req_zone $binary_remote_addr zone=abslogin:10m rate=1r/s;
 
+      # Emit relative Location headers (Location: /login) instead of absolute
+      # ones. The Cloudflare connector rewrites Host to audiobookshelf.media.svc,
+      # so nginx has no idea what public hostname the browser used; left to
+      # build an absolute URL it invents audiobookshelf.media.svc:8080 and sends
+      # the browser to an in-cluster address that does not resolve. A relative
+      # redirect keeps the browser on whichever public hostname it arrived with,
+      # which is what we want when the Quick Tunnel hostname rotates.
+      absolute_redirect off;
+
       # Rate limit by client IP. zone is shared state across workers.
       limit_req_zone $binary_remote_addr zone=absreq:10m rate=10r/s;
       limit_req_status 429;
@@ -151,9 +160,9 @@ data:
         # The gate: the abs-gate sidecar on loopback validates the signed
         # session cookie. Internal, so nginx never routes to it from outside.
         #
-        # 200 = valid session, 401 + Location = no session. nginx turns that
-        # into a redirect via error_page 401 = $gate_login_url in the main
-        # location. Audiobookshelf's own 401 is left alone, so a failed ABS
+        # 200 = valid session, 401 = no session. nginx distinguishes this from
+        # Audiobookshelf's own 401 with $gate_denied (the auth_request
+        # subrequest status) and redirects only in that case, so a failed ABS
         # login shows the ABS login form rather than looping back here.
         location = /_gate_authz {
           internal;
@@ -166,11 +175,8 @@ data:
           proxy_set_header X-Forwarded-Host $http_host;
           proxy_set_header X-Original-URI $request_uri;
 
-          # The gate's 401 carries a Location: header naming the login page.
-          # Captured here and used by error_page below. auth_request always
-          # reports a denial as 401, so this variable is the only way to tell
-          # the gate's 401 from Audiobookshelf's own 401 on the main request.
-          auth_request_set $gate_login_url $upstream_http_location;
+          # No auth_request_set here: those belong in the location that calls
+          # auth_request (see location / and $gate_denied).
         }
 
         # Login form. Rate limited harder than the app itself because it is the
@@ -192,17 +198,33 @@ data:
           proxy_set_header X-Forwarded-Proto $scheme;
         }
 
+        location @gate_login {
+          # Only reached for the gate's own 401: ABS's 401 leaves $gate_denied
+          # empty, so error_page falls through and ABS's response is served
+          # as-is. $gate_denied is inherited from the main request's
+          # auth_request subrequest.
+          if ($gate_denied) {
+            return 302 /login;
+          }
+          return 401;
+        }
+
         location / {
           # Gate first, then proxy to ABS in the same location: auth_request
           # runs as an access-phase subrequest, so an invalid cookie never
           # reaches Audiobookshelf.
           auth_request /_gate_authz;
+          auth_request_set $gate_denied $upstream_status;
 
-          # Redirect to the gate's login page only when the 401 came from the
-          # gate, i.e. $gate_login_url is set. Audiobookshelf's own 401 (failed
-          # ABS login) leaves it empty and is passed through untouched, so the
-          # ABS login form still works instead of looping back to the gate.
-          error_page 401 = $gate_login_url;
+          # Redirect to the gate's login page when the 401 came from the gate.
+          #
+          # A redirect driven by error_page 401 = $var is what this originally
+          # used and it is wrong: nginx resolves the variable per-request but
+          # still emits the redirect when it is empty, so an Audiobookshelf 401
+          # turned into a bodyless 302 that bounced the SPA back to itself.
+          # $gate_denied distinguishes the two 401s reliably (the subrequest
+          # only runs on the gate's path) and @gate_login decides explicitly.
+          error_page 401 = @gate_login;
 
           proxy_pass http://audiobookshelf;
           proxy_http_version 1.1;
@@ -607,17 +629,11 @@ data:
                     # Attribute the request for the nginx access log.
                     self._send(200, user.encode())
                 else:
-                    # 401 with an empty body plus Location. nginx captures that
-                    # header as $gate_login_url and redirects only when it is set,
-                    # so this never collides with Audiobookshelf's own 401s (which
-                    # always carry a body and no such header).
-                    #
-                    # Scheme/host come from the proxy's forwarded headers, because
-                    # Cloudflare terminates TLS and nginx cannot infer the public
-                    # origin on its own.
-                    proto = self.headers.get("X-Forwarded-Proto", "https")
-                    host = self.headers.get("X-Forwarded-Host", self.headers.get("Host", ""))
-                    self._send(401, b"", headers={"Location": f"{proto}://{host}/login"})
+                    # Plain bodyless 401. nginx distinguishes this from
+                    # Audiobookshelf's own 401 using $gate_denied (the
+                    # auth_request subrequest status), not by inspecting headers,
+                    # so no Location header is needed here.
+                    self._send(401, b"")
                 return
 
             if path == "/healthz":
