@@ -89,6 +89,16 @@ data:
       default_type application/octet-stream;
       access_log /dev/stdout;
 
+      # Only send "Connection: upgrade" when the client actually asked to
+      # upgrade. Sending it unconditionally (as this file used to) on plain
+      # asset GETs is malformed, breaks keep-alive, and makes browsers retry
+      # the request - each retry re-triggers the Basic auth challenge, which is
+      # what produced the endless sign-in prompts.
+      map $http_upgrade $abs_connection_upgrade {
+        default upgrade;
+        ''      close;
+      }
+
       # Rate limit by client IP. zone is shared state across workers.
       limit_req_zone $binary_remote_addr zone=absreq:10m rate=10r/s;
       limit_req_status 429;
@@ -134,9 +144,11 @@ data:
           proxy_pass http://audiobookshelf;
           proxy_http_version 1.1;
 
-          # Websocket upgrade - Audiobookshelf socket.io needs these three.
+          # Websocket upgrade - Audiobookshelf socket.io needs these. The
+          # Connection value is mapped, so plain requests get "close" instead of
+          # a bogus "upgrade" (see the map block above).
           proxy_set_header Upgrade $http_upgrade;
-          proxy_set_header Connection "upgrade";
+          proxy_set_header Connection $abs_connection_upgrade;
           proxy_set_header Host audiobookshelf.media.svc;
           proxy_set_header X-Real-IP $remote_addr;
           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
