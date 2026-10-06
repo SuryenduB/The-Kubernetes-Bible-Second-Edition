@@ -164,30 +164,46 @@ would cover both; the blocker is the absent domain, not the cost.
 but a corporate iPhone cannot install a VPN client, so the tailnet cannot serve it.
 
 **The gate is in git** — `abs-auth-proxy.yaml`: nginx in front of
-`audiobookshelf.media.svc` enforcing HTTP Basic auth (`auth_basic`), per-IP rate
-limits (`10r/s`, burst 20), connection caps, and the websocket headers
-Audiobookshelf requires. The Quick Tunnel now points at that proxy, not at
-Audiobookshelf directly, so the public URL yields a password prompt rather than
-an open login form.
+`audiobookshelf.media.svc` plus an `abs-gate` sidecar that serves a login form
+and issues a signed session cookie. Per-IP rate limits (`10r/s` for the app,
+`1r/s` for the login form), connection caps, and the websocket headers
+Audiobookshelf requires. The Quick Tunnel points at that proxy, not at
+Audiobookshelf, so the public URL yields a login page rather than an open one.
 
 ```
-browser --TLS--> CF edge --http--> nginx (auth_basic + limit_req) --> ABS
+browser --TLS--> CF edge --http--> nginx (auth_request + limit_req) --> ABS
+                              \-> abs-gate (login form, session cookie)
 ```
 
-CF Access is deliberately **not** used: it needs a domain in the account. If a
-domain is ever bought, `Option B` + Access email OTP supersedes this proxy
-(it gives per-user identity instead of one shared password).
+**Why a cookie and not HTTP Basic auth.** Basic auth was tried first and Chrome
+re-challenged endlessly, including in incognito — the public endpoint is HTTP/2
+at the edge and Chrome drops Basic credentials on reused h2 connections. A
+cookie means one login per session and no browser-native prompt. The gate is
+stateless (HMAC-signed cookie, no session store), so both replicas are
+independent and a restart logs nobody out.
 
-**Rotate the proxy password** — the APR1 digest is in
-`kubernetes-manifests/cloudflare/abs-auth-proxy.yaml` (Secret
-`media/abs-proxy-creds`):
+**Why not CF Access or a cookie-based IdP (Authelia).** Both key off a hostname
+in a domain you control. `trycloudflare.com` is on the Public Suffix List, so a
+cookie domain cannot be configured there at all, and the same constraint rules
+out Audiobookshelf's native OIDC with Google as the provider. This is why the
+gate is self-contained.
+
+**Rotate the proxy password** — regenerate the PBKDF2 entry in the Secret
+(`media/abs-gate`):
 
 ```bash
-kubectl -n media create secret generic abs-proxy-creds \
-  --from-literal=htpasswd="absproxy:$(openssl passwd -apr1 'NEWPASS')" \
-  --dry-run=client -o yaml | kubectl apply -f -
+# 1. generate a new entry for the chosen password
+python3 -c "import hashlib,os;p=b'NEWPASS';s=os.urandom(16);\
+  d=hashlib.pbkdf2_hmac('sha256',p,s,200000);\
+  print(f'pbkdf2_sha256$200000${s.hex()}${d.hex()}')"
+# 2. patch the secret, then restart
+kubectl -n media patch secret abs-gate \
+  -p '{"stringData":{"passwordEntry":"pbkdf2_sha256$200000$<salt>$<hash>"}}'
 kubectl -n media rollout restart deploy/abs-auth-proxy
 ```
+
+Rotating `sessionSecret` instead logs out every device without changing the
+password.
 
 **Still required, not code** — Audiobookshelf must not allow public
 registration (Settings → Users → Permissions). nginx stops strangers, but a
@@ -197,6 +213,22 @@ self-registration setting bypasses the gate by design.
 identity, and the Quick Tunnel hostname still rotates and can rot (see the
 failure mode above). Repair remains `kubectl -n cloudflare rollout restart
 deploy/cloudflared-audiobookshelf-quick`.
+
+**Troubleshooting the gate.** The nginx access log records `up=$upstream_status`,
+which distinguishes the gate from Audiobookshelf: `401 up=-` is the gate
+rejecting a request (no session cookie) and `401 up=401` is Audiobookshelf
+rejecting one (bad ABS password). The gate's own log lines are prefixed
+`abs-gate`:
+
+```bash
+kubectl -n media logs -l app=abs-auth-proxy -c nginx --tail=50
+kubectl -n media logs -l app=abs-auth-proxy -c gate --tail=50
+```
+
+Two paths deliberately return 401 to the browser: the gate's own (rendered as
+the login form, and it is what you see when you are not logged in) and
+Audiobookshelf's (its login form). They are distinguished by which service
+produced it, not by the status code.
 
 ## Option B: Permanent Tunnel (needs token + own domain)
 
