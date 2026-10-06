@@ -427,35 +427,27 @@ spec:
           # cluster can reach it, but kubelet's HTTP probe runs from outside the
           # pod's network namespace and could never connect. An exec probe
           # preserves the loopback-only bind.
+          #
+          # The probe must be a busybox applet, NOT `python3 -c`. Every probe
+          # invocation of the latter forks a full CPython interpreter plus the
+          # urllib import; under CPU contention that startup exceeded the probe
+          # timeout, liveness failed, and the kubelet SIGKILLed a perfectly
+          # healthy container (exit 137) - 74 restarts before this was found.
+          # `wget` answers /healthz in ~0.00s because the gate is a trivial
+          # single-URL endpoint.
           readinessProbe:
             exec:
-              command:
-                - python3
-                - -c
-                - |
-                  import sys, urllib.request
-                  sys.exit(0 if urllib.request.urlopen(
-                      "http://127.0.0.1:9001/healthz", timeout=3).status == 200 else 1)
+              command: ["sh", "-c", "wget -q -O- http://127.0.0.1:9001/healthz >/dev/null 2>&1"]
             initialDelaySeconds: 5
             periodSeconds: 10
-            # Interpreter startup dominates: the probe itself answers in
-            # milliseconds, but python3 -c costs ~1s to boot on this image, and
-            # under CPU contention that exceeded a 5s budget and the kubelet
-            # killed a perfectly healthy container.
-            timeoutSeconds: 15
+            timeoutSeconds: 5
             failureThreshold: 3
           livenessProbe:
             exec:
-              command:
-                - python3
-                - -c
-                - |
-                  import sys, urllib.request
-                  sys.exit(0 if urllib.request.urlopen(
-                      "http://127.0.0.1:9001/healthz", timeout=3).status == 200 else 1)
+              command: ["sh", "-c", "wget -q -O- http://127.0.0.1:9001/healthz >/dev/null 2>&1"]
             initialDelaySeconds: 30
             periodSeconds: 30
-            timeoutSeconds: 15
+            timeoutSeconds: 5
             failureThreshold: 3
           resources:
             requests:
