@@ -89,23 +89,23 @@ Inventory refreshed on **2026-09-17** from live workloads, Service ports, and th
 
 #### Books & Media
 
-| Application | Namespace | MagicDNS access |
-|-------------|-----------|-----------------|
-| Audiobookshelf | `media` | <http://audiobookshelf.tail35421d.ts.net> |
-| Calibre-Web | `media` | <http://calibre-web.tail35421d.ts.net:8083> |
-| BookHoarder | `media` | <http://bookhoarder.tail35421d.ts.net> |
-| Booklogr | `media` | <http://booklogr.tail35421d.ts.net> |
-| BookOrbit | `media` | <http://bookorbit.tail35421d.ts.net> |
-| LibrisLog | `media` | <http://librislog.tail35421d.ts.net> |
-| Immich | `media` | <http://immich.tail35421d.ts.net> |
-| pgweb | `media` | <http://pgweb.tail35421d.ts.net> |
-| Flick | `media` | <http://flick.tail35421d.ts.net> |
+| Application | Namespace | MagicDNS access | Public access |
+|-------------|-----------|-----------------|---------------|
+| Audiobookshelf | `media` | <http://audiobookshelf.tail35421d.ts.net> | <https://yeah-quarter-pads-guitars.trycloudflare.com> (Cloudflare Quick Tunnel, ephemeral — see `kubernetes-manifests/cloudflare/README.md`) |
+| Calibre-Web | `media` | <http://calibre-web.tail35421d.ts.net:8083> | — |
+| BookHoarder | `media` | <http://bookhoarder.tail35421d.ts.net> | — |
+| Booklogr | `media` | <http://booklogr.tail35421d.ts.net> | — |
+| BookOrbit | `media` | <http://bookorbit.tail35421d.ts.net> | — |
+| LibrisLog | `media` | <http://librislog.tail35421d.ts.net> | — |
+| Immich | `media` | <http://immich.tail35421d.ts.net> | — |
+| pgweb | `media` | <http://pgweb.tail35421d.ts.net> | — |
+| Flick | `media` | <http://flick.tail35421d.ts.net> | — |
 
 #### Dashboards & Server Management
 
 | Application | Namespace | MagicDNS access | Public access |
 |-------------|-----------|-----------------|---------------|
-| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> | <https://specialized-dpi-repair-vault.trycloudflare.com> (Cloudflare Quick Tunnel, ephemeral — see `kubernetes-manifests/cloudflare/README.md`) |
+| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> | <https://ensemble-hip-lens-capable.trycloudflare.com> (Cloudflare Quick Tunnel, ephemeral — see `kubernetes-manifests/cloudflare/README.md`) |
 | Homarr | `dashboard` | <http://homarr.tail35421d.ts.net> | — |
 | Cairn | `dashboard` | <http://cairn.tail35421d.ts.net> | — |
 | Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net> | — |

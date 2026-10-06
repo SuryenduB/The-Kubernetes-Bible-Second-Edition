@@ -32,9 +32,10 @@ kubernetes-manifests/
 │   └── pgweb.yaml                  # PostgreSQL explorer (no default DB)
 ├── homepage/
 │   └── homepage.yaml               # homepage ns (gethomepage dashboard + ConfigMap + Tailscale svc)
-├── cloudflare/                     # cloudflare ns (Cloudflare Tunnel -> Homepage, standalone apply)
+├── cloudflare/                     # cloudflare ns (Cloudflare Tunnels, standalone apply)
 │   ├── README.md                   # quick (live) vs permanent (token) tunnel guide
-│   ├── quick-tunnel-homepage.yaml  # LIVE: ephemeral *.trycloudflare.com, no token
+│   ├── cloudflared.yaml            # LIVE: ns + RBAC + Homepage Quick Tunnel (hardened)
+│   ├── quick-tunnel-audiobookshelf.yaml  # LIVE: Audiobookshelf Quick Tunnel (hardened)
 │   └── permanent-tunnel-homepage.yaml  # standby: named tunnel, needs token secret
 ├── monitoring/                     # monitoring ns (observability + notifications)
 │   ├── kustomization.yaml
@@ -74,8 +75,8 @@ kubernetes-manifests/
 | 3 | `openlingo` | OpenLingo (Next.js language platform + Postgres) | `media/openlingo.yaml` |
 | 4 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
 | 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
-| 6 | `media` | AudioBookshelf, Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick, pgweb | `media/` |
-| 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/quick-tunnel-homepage.yaml` |
+| 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick, pgweb | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
+| 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
 | 8 | `monitoring` | Beszel, Uptime Kuma, Kuvasz, Lantern, PooML, OmniSight, Dozzle, Logchef, Trove, LAN Sheriff, LanGuard, Homelab Monitor, Gotify, Apprise | `monitoring/` |
 | 9 | `dashboard` | Homarr, Cairn | `dashboard/` |
 | 10 | `server-management` | HomeLab Manger, RemotePower | `server-management/` |
@@ -103,14 +104,18 @@ annotations:
   tailscale.com/hostname: "my-app"
 ```
 
-## Public Access (Cloudflare Tunnel -> Homepage)
+## Public Access (Cloudflare Tunnels -> Homepage + Audiobookshelf)
 
-Homepage is published publicly via a Cloudflare Quick Tunnel (no token, ephemeral `*.trycloudflare.com` URL). See `cloudflare/README.md` for the quick vs permanent tunnel guide.
+Homepage and Audiobookshelf are published publicly via Cloudflare Quick Tunnels
+(no token, ephemeral `*.trycloudflare.com` URLs). See `cloudflare/README.md`
+for the quick vs permanent tunnel guide.
 
 ```bash
-# Live Quick Tunnel (ephemeral URL, changes on pod restart)
-kubectl apply -f cloudflare/quick-tunnel-homepage.yaml
-kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=20  # find URL
+# Live Quick Tunnels (ephemeral URLs, change on pod restart)
+kubectl apply -f cloudflare/cloudflared.yaml                  # Homepage
+kubectl apply -f cloudflare/quick-tunnel-audiobookshelf.yaml  # Audiobookshelf
+kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=20       # find URL
+kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20 # find URL
 
 # Permanent named tunnel (needs token + own domain, standby manifest)
 kubectl apply -f cloudflare/permanent-tunnel-homepage.yaml
