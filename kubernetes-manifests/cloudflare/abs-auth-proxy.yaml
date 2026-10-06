@@ -15,15 +15,19 @@
 #   a domain you own - so it is not usable here. This gate is in git instead.
 #
 # SECURITY MODEL (layered, each layer independent)
-#   1. nginx auth_basic  - bcrypt-free APR1 hash, bcrypt-equivalent cost, so a
-#      stolen git clone does not yield a plaintext password. One shared
-#      credential -> brute force is the remaining risk, so see the rate limits.
-#   2. limit_req         - 10 r/s sustained, 2x burst per client IP. Defeats
-#      credential stuffing and keeps ABS's event loop free for real listeners.
-#   3. ABS registration  - MUST be off (Settings > Users > Permissions). nginx
-#      stops strangers, but if ABS allows self-registration the whole gate is
-#      bypassed by design. This is a dashboard toggle, documented in README.
-#   4. ABS own login     - still required, unchanged.
+#   1. abs-gate cookie   - PBKDF2-HMAC-SHA256 password check, HMAC-signed
+#      session cookie. Replaced an earlier auth_basic design that Chrome
+#      re-challenged endlessly over HTTP/2 at the edge.
+#   2. limit_req         - 10 r/s sustained, 2x burst per client IP for the app,
+#      1 r/s for the login form. Defeats credential stuffing.
+#   3. ABS own login     - still required, unchanged.
+#
+# There is no fourth layer to add and no app setting to disable: Audiobookshelf
+# has no self-service registration, so no signup path exists to bypass the gate.
+# Verified on the running instance - /register returns 404, the login page has no
+# sign-up link, and the users table holds exactly one account (the root user).
+# Earlier revisions of this file wrongly claimed a registration setting had to be
+# turned off in Audiobookshelf; there is no such setting.
 #
 # LIMITS, STATED PLAINLY
 #   - The Quick Tunnel URL is ephemeral and can rot (see README "Known failure

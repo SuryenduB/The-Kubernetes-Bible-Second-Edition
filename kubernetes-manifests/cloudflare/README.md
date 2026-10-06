@@ -205,9 +205,22 @@ kubectl -n media rollout restart deploy/abs-auth-proxy
 Rotating `sessionSecret` instead logs out every device without changing the
 password.
 
-**Still required, not code** — Audiobookshelf must not allow public
-registration (Settings → Users → Permissions). nginx stops strangers, but a
-self-registration setting bypasses the gate by design.
+**No third action is required — there is nothing to disable in Audiobookshelf.**
+Earlier revisions of this file claimed public registration had to be switched
+off in the app. That was wrong: Audiobookshelf has no self-service signup, so
+there is no such setting and no registration endpoint to abuse. Verified on the
+running instance (2.36.1):
+
+| Check | Result |
+|---|---|
+| `/register`, `/audiobookshelf/register` | 404 |
+| `/api/auth/register`, `/api/register`, `/api/auth/signup` | 401 (ordinary auth guard, not a signup path) |
+| `sign up` / `register` / `create account` in the login page HTML | none |
+| Accounts in `/config/absdatabase.sqlite` | 1 — `SuryenduB`, type `root`, active |
+
+Per the upstream docs the only account types are Root, Admin, User and Guest,
+and "Admins can create new users through the server settings" — so the gate is
+the only way in, which is what makes the two-layer design sufficient.
 
 **Known limits of this design:** one shared credential is weaker than per-user
 identity, and the Quick Tunnel hostname still rotates and can rot (see the
