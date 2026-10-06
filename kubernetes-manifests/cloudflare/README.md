@@ -34,8 +34,28 @@ kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20 | g
 |---|---|
 | `cloudflared.yaml` | Namespace, ServiceAccount, empty Role, ConfigMap (both origins), Homepage Quick Tunnel |
 | `quick-tunnel-audiobookshelf.yaml` | Audiobookshelf Quick Tunnel (separate Deployment: `--url` bakes in one origin). Origin is `abs-auth-proxy.media.svc`, not ABS directly |
-| `abs-auth-proxy.yaml` | nginx gate: `auth_basic` + rate limits + websocket headers in front of Audiobookshelf. Makes the public URL gated without a domain |
+| `abs-gate.py` | The gate application source — a stdlib-only login form plus HMAC-signed session cookies |
+| `render-abs-auth-proxy.py` | Renders `abs-auth-proxy.yaml` from `abs-gate.py` + `abs-auth-proxy.tmpl`. `--check` fails if the committed manifest is stale (use in CI) |
+| `abs-auth-proxy.tmpl` | Manifest skeleton, with a placeholder for the gate source |
+| `abs-auth-proxy.yaml` | **Generated** — the applied manifest. Do not hand-edit; edit `abs-gate.py` or the template and re-render |
 | `permanent-tunnel-homepage.yaml` | Token-based tunnel for a real domain, both origins, 2 replicas — dormant until a token is set, **and unusable until a domain is owned** |
+
+### Changing the gate
+
+```bash
+cd kubernetes-manifests/cloudflare
+$EDITOR abs-gate.py                       # edit the source
+python3 render-abs-auth-proxy.py          # regenerate the manifest
+kubectl apply -f abs-auth-proxy.yaml
+```
+
+The rendered Deployment carries a `kubernetes-specialist/gate-sha256` pod
+annotation derived from `abs-gate.py`. This matters because **Kubernetes does not
+restart pods when a mounted ConfigMap changes** — without the hash, a gate fix
+would apply successfully and then sit inert in the cluster until some unrelated
+restart. The hash makes `kubectl apply` roll the pods. `render-abs-auth-proxy.py
+--check` exits non-zero when the committed manifest no longer matches its
+sources, which is the CI hook.
 
 ## Security posture
 
@@ -222,6 +242,30 @@ Per the upstream docs the only account types are Root, Admin, User and Guest,
 and "Admins can create new users through the server settings" — so the gate is
 the only way in, which is what makes the two-layer design sufficient.
 
+**Replicas and node failure.** `abs-auth-proxy` runs 2 replicas with
+`topologySpreadConstraints` on `kubernetes.io/hostname` and
+`whenUnsatisfiable: DoNotSchedule`, so the scheduler cannot place both on one
+node — without it "replicas: 2" can silently provide no availability at all.
+Verified landing on distinct nodes.
+
+The Quick Tunnel is deliberately **1 replica**. A second replica would be a
+second *ephemeral hostname*, and only one of them could ever be the URL written
+here, so two replicas would guarantee a stale link in this document. Fixing that
+properly needs a stable hostname, which means owning a domain (see Option B).
+
+**NetworkPolicy is intentionally absent.** The cluster's CNI is stock Flannel
+(`/var/lib/rancher/k3s/agent/etc/cni/net.d/10-flannel.conflist` contains
+exactly the `flannel`, `portmap` and `bandwidth` plugins) and has **no
+NetworkPolicy enforcement**, so policy objects would be accepted by the API
+server and then do nothing. Inert manifests that look like segmentation are worse
+than documented absence of it. This also means the `iiqstack` NetworkPolicies may
+be equally ineffective and are worth a separate look.
+
+Replacing the CNI (Calico, Cilium) to gain east-west policy is a far larger
+change than adding YAML — it can affect pod networking, routing and service
+connectivity across every other workload. Treat it as a deliberate future
+project, not a prerequisite for this deployment.
+
 **Known limits of this design:** one shared credential is weaker than per-user
 identity, and the Quick Tunnel hostname still rotates and can rot (see the
 failure mode above). Repair remains `kubectl -n cloudflare rollout restart
@@ -242,6 +286,25 @@ Two paths deliberately return 401 to the browser: the gate's own (rendered as
 the login form, and it is what you see when you are not logged in) and
 Audiobookshelf's (its login form). They are distinguished by which service
 produced it, not by the status code.
+
+### An ungated path that existed, and was removed
+
+A live-only Service named `audiobookshelf-nodeport` (NodePort 30652) selected
+`app: audiobookshelf` directly, **bypassing this gate entirely**, and answered
+`HTTP 200` with no credentials from anywhere on the LAN. It was not in the repo,
+which is how it survived a manifest review. It has been deleted.
+
+Recorded here because the same shape recurs: any Service whose `selector`
+targets the `audiobookshelf` pod is an alternate entrance that does not pass
+through this proxy. Check with:
+
+```bash
+kubectl -n media get svc -o json \
+  | python3 -c "import json,sys; print([(i['metadata']['name'],i['spec']['type'],i['spec'].get('selector')) for i in json.load(sys.stdin)['items']])"
+```
+
+`audiobookshelf` and `abs-auth-proxy` are the only two Services that should
+select anything ABS-related, and both are ClusterIP.
 
 ## Option B: Permanent Tunnel (needs token + own domain)
 

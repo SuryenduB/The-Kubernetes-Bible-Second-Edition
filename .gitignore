@@ -49,3 +49,7 @@ skills/
 ghostty
 WindowsLab/0
 
+
+# Python bytecode cache from local tooling
+__pycache__/
+*.pyc
