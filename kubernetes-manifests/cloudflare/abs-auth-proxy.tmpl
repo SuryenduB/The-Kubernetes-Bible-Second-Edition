@@ -44,15 +44,21 @@
 #
 # LIMITS, STATED PLAINLY
 #   - The Quick Tunnel URL is ephemeral and can rot (see README "Known failure
-#     mode"). Repair: rollout restart the connector. This is a listening
-#     endpoint, so prefer the tailnet whenever the device allows a VPN.
-#   - One shared password is weaker than per-user identities. Rotate it (htpasswd
-#     emits the bcrypt digest nginx expects):
-#       NEWPASS='...' htpasswd -nbB absproxy "$NEWPASS"   # gives absproxy:<hash>
-#       kubectl -n media create secret generic abs-proxy-creds \
-#         --from-literal=htpasswd='<that output>' \
-#         --dry-run=client -o yaml | kubectl apply -f -
+#     mode"). Repair: rollout restart the connector. This exists for devices that
+#     cannot run a VPN; prefer the tailnet everywhere else.
+#   - One shared password is weaker than per-user identity. Rotate it:
+#       python3 -c "import hashlib,os;p=b'NEWPASS';s=os.urandom(16);\
+#         d=hashlib.pbkdf2_hmac('sha256',p,s,200000);\
+#         print(f'pbkdf2_sha256$200000${s.hex()}${d.hex()}')"
+#       kubectl -n media patch secret abs-gate \
+#         -p '{"stringData":{"passwordEntry":"pbkdf2_sha256$200000$<salt>$<hash>"}}'
 #       kubectl -n media rollout restart deploy/abs-auth-proxy
+#     Rotating `sessionSecret` instead logs out every device without changing
+#     the password.
+#   - The gate password is deliberately short so it can be typed on a phone. That
+#     is genuinely weak against offline cracking of this repo, so the rate limits
+#     are the real brake on online guessing, and the password must never be
+#     reused anywhere else.
 #
 # Websockets: the whole reason this file sets proxy_http_version/Upgrade/
 # Connection and long read timeouts. Audiobookshelf is websocket-only

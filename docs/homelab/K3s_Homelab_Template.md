@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-09-20 | **Scope**: Control-plane HA (3 embedded-etcd servers), node inventory and Docker-registry ownership refreshed; other audit snapshots retain their original dates | **Version**: K3s v1.34.6+k3s1
+**Last Updated**: 2026-10-06 | **Scope**: Control-plane HA (3 embedded-etcd servers), node inventory, Docker-registry ownership, and the Audiobookshelf public-exposure path refreshed; other audit snapshots retain their original dates | **Version**: K3s v1.34.6+k3s1
 
 ---
 
@@ -91,7 +91,7 @@ Inventory refreshed on **2026-09-17** from live workloads, Service ports, and th
 
 | Application | Namespace | MagicDNS access | Public access |
 |-------------|-----------|-----------------|---------------|
-| Audiobookshelf | `media` | <http://audiobookshelf.tail35421d.ts.net> | <https://yeah-quarter-pads-guitars.trycloudflare.com> (Cloudflare Quick Tunnel, ephemeral — see `kubernetes-manifests/cloudflare/README.md`) |
+| Audiobookshelf | `media` | **<http://audiobookshelf.tail35421d.ts.net> — use this, it is the daily path** | via Cloudflare Quick Tunnel, gated by the nginx session-cookie gate (`absproxy`) for devices that cannot run a VPN. Hostname is ephemeral — **do not record it here**; run `pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify`. See `kubernetes-manifests/cloudflare/README.md` |
 | Calibre-Web | `media` | <http://calibre-web.tail35421d.ts.net:8083> | — |
 | BookHoarder | `media` | <http://bookhoarder.tail35421d.ts.net> | — |
 | Booklogr | `media` | <http://booklogr.tail35421d.ts.net> | — |
@@ -105,7 +105,7 @@ Inventory refreshed on **2026-09-17** from live workloads, Service ports, and th
 
 | Application | Namespace | MagicDNS access | Public access |
 |-------------|-----------|-----------------|---------------|
-| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> | <https://ensemble-hip-lens-capable.trycloudflare.com> (Cloudflare Quick Tunnel, ephemeral — see `kubernetes-manifests/cloudflare/README.md`) |
+| Homepage | `homepage` | <http://homepage-homepage.tail35421d.ts.net> | via Cloudflare Quick Tunnel, **ungated** (it is a dashboard, no library data). Hostname is ephemeral — get it from the same script as above |
 | Homarr | `dashboard` | <http://homarr.tail35421d.ts.net> | — |
 | Cairn | `dashboard` | <http://cairn.tail35421d.ts.net> | — |
 | Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net> | — |
@@ -257,7 +257,8 @@ These components are listed separately from user-facing applications. No dedicat
 | **iiqstack** | `activemq-0` | `kubernetes3` | 12m | 256Mi |
 | **ai** | `ollama-*` | `kubernetes7` | 1m | 50Mi |
 | **ai** | `openwebui-*` | `kubernetes7` | 320m | 1.2Gi |
-| **media** | `audiobookshelf-*` | `kubernetes3` | 100m | 256Mi |
+| **media** | `audiobookshelf-*` | `kubernetes4` (2026-10-06) | 100m | 256Mi |
+| **media** | `abs-auth-proxy-*` | 2 replicas, spread across nodes | 25m | 32Mi |
 | **monitoring** | `beszel-hub-*` | `kubernetes5` | 15m | 180Mi |
 | **monitoring** | `beszel-agent-*` | *(all nodes)* | 5m | 42Mi |
 
@@ -349,6 +350,23 @@ To prevent a single namespace from consuming all cluster resources, hard limits 
 - **`db-pdb`**: `maxUnavailable: 0` (MSSQL must never be taken down automatically).
 - **`iiq-pdb`**: `minAvailable: 1` (At least one IdentityIQ replica must remain live).
 - **`audiobookshelf-pdb` / `calibre-web-pdb`**: `maxUnavailable: 0` (Ensures media is always accessible).
+- **`abs-auth-proxy-pdb`**: `maxUnavailable: 1`, plus `topologySpreadConstraints` on `kubernetes.io/hostname` (`DoNotSchedule`), so the two gate replicas cannot be co-located on one node and "2 replicas" means real availability.
+
+### Not deployed: Kubernetes NetworkPolicy
+
+The cluster CNI is **stock Flannel** (`/var/lib/rancher/k3s/agent/etc/cni/net.d/10-flannel.conflist`
+contains exactly the `flannel`, `portmap` and `bandwidth` plugins) and has **no
+NetworkPolicy enforcement**. Policy objects would be accepted by the API server
+and then do nothing, so they are deliberately not written for the media namespace.
+Inert manifests that look like segmentation are worse than a documented absence.
+
+Consequence worth acting on: the three `iiqstack` NetworkPolicies have been
+applied for months and are probably **equally ineffective**. Treat that as a
+separate audit item.
+
+Gaining real east-west policy means replacing the CNI (Calico, Cilium), which
+touches pod networking, routing and service connectivity for every workload in
+the cluster. That is a deliberate project, not a prerequisite for any app.
 
 ---
 
@@ -467,6 +485,9 @@ The audit system collects and packs node-level diagnostics into tarball bundles 
 | **NAS Tailscale No Socket** | `Error: connect: no such file or directory` when running `tailscale` on QNAP. | **Cause**: Default socket is `/tmp/tailscale/tailscaled.sock` but CLI search paths may differ. **Fix**: Use explicit `--socket=/tmp/tailscale/tailscaled.sock` with all `tailscale` commands, or set `TS_SOCKET` env var. |
 | **NAS Tailscale No TUN** | `tun: open(/dev/net/tun): no such file or directory` on QNAP NAS. | **Cause**: ARM kernel 3.2.26 has no TUN driver. **Fix**: Always run `tailscaled` with `--tun=userspace-networking` flag. No performance penalty for low-bandwidth NAS use. |
 | **Control-plane member NotReady** | One of `nuc` / `server-236` / `server-252` is `NotReady` while `/readyz` still answers. | **Cause**: host or VM power state, not Kubernetes. **Fix**: start the host — the `k3s` unit is enabled and its etcd member is retained, so it rejoins on boot. Do **not** delete the member and do **not** power off a second control-plane host while one is already down (`Start-K3sHomelab.ps1` reports the remaining quorum margin). |
+| **ABS public URL dead or hanging** | The `*.trycloudflare.com` link returns 522/523/timeouts, or the page loads but the "Socket Disconnected" banner appears. The tailnet URL is unaffected. | **Cause:** Cloudflare-side edge-route rot on Quick Tunnels — invisible to `/ready`, to `request_errors` and to connector logs; the failing requests never reach the connector. Check with `pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify`. Repair: `kubectl -n cloudflare rollout restart deploy/cloudflared-audiobookshelf-quick`, then re-read the URL from the script. It can rot again. |
+| **ABS "Socket Disconnected" on the tailnet URL** | `http://audiobookshelf.tail35421d.ts.net` shows the disconnected banner. | The tailnet path held 275s+ end-to-end and the public path is the fragile one, so this is *not* the Quick Tunnel. Check ABS memory (1Gi limit) and the NFS mount at `192.168.0.128`; the app logs `transport close` for a dropped proxy and a different reason for a stall. |
+| **Gate rejects a correct password** | `absproxy` + the documented password returns "Incorrect username or password." | Password lives in `Secret media/abs-gate` as `passwordEntry` (PBKDF2). Regenerate with the command in `kubernetes-manifests/cloudflare/abs-auth-proxy.yaml`, then `kubectl -n media rollout restart deploy/abs-auth-proxy`. |
 | **etcd quorum lost** | `/readyz` fails, `kubectl` times out, `etcdctl endpoint health` fails for two of three members. | Quorum is 2 of 3 — bring a member back before any other change. If a member is permanently gone, rebuild the pool from a survivor with `k3s server --cluster-reset` (emergency: loses the removed member's history). Snapshot first: `sudo k3s etcd-snapshot save`. |
 | **Client API outage with a healthy control plane** | `kubectl` fails from a workstation while all three members are `Ready`. | **Cause**: every kubeconfig points at `https://192.168.0.21:6443`, which is one member, not a VIP. **Fix**: repoint clients at a DNS name/VIP spanning the three members (control-plane HA plan, Phase 3.1). |
 
@@ -479,5 +500,7 @@ The audit system collects and packs node-level diagnostics into tarball bundles 
 - **[homelab-control-plane-ha-plan.md](homelab-control-plane-ha-plan.md)** - Design, implementation status and the open client-endpoint gap.
 - **[homelab-media-deployment-plan.md](homelab-media-deployment-plan.md)** - Detailed plan for AudioBookShelf.
 - **[audiobookshelf.yaml](../../kubernetes-manifests/media/audiobookshelf.yaml)** - AudioBookShelf deployment manifest (static NFS PV, config PVC via Longhorn).
+- **[cloudflare/README.md](../../kubernetes-manifests/cloudflare/README.md)** - Public exposure path: the nginx session-cookie gate, the silent edge-route failure mode, why CF Access and named tunnels are unavailable without a domain, and why NetworkPolicy is not deployed.
+- **[Get-CloudflareTunnelUrls.ps1](../../WindowsLab/Get-CloudflareTunnelUrls.ps1)** - Discovers the current ephemeral Quick Tunnel URLs; `-Verify` probes them through the edge and exits non-zero when one is dead.
 - **[calibre-web-with-importer.yaml](../../kubernetes-manifests/media/calibre-web-with-importer.yaml)** - Calibre-Web deployment with auto-importer sidecar (NFS library, NFS import staging, config PVC via Longhorn).
 - **[CLUSTER_FIXES_2026-03-30.md](CLUSTER_FIXES_2026-03-30.md)** - Historical troubleshooting logs.

@@ -1,6 +1,9 @@
 # Cloudflare Tunnel -> Homepage + Audiobookshelf
 
-Publishes selected in-cluster web UIs publicly via Cloudflare Tunnel.
+Publishes selected in-cluster web UIs publicly via Cloudflare Tunnel. Read this
+before changing anything here: it records *why* the design looks like this, and
+several of those reasons are non-obvious dead ends that cost real time to
+rediscover.
 
 **Status (2026-10-06):** both Quick Tunnels LIVE from `nuc`. The Homepage one has
 been continuously healthy; the Audiobookshelf one is **intermittently unreachable
@@ -9,24 +12,30 @@ and after a connector restart) — see
 [Known failure mode](#known-failure-mode-silent-edge-route-rot). Quick Tunnels are
 not reliable enough to be anyone's daily access path.
 
-| Service | URL | Origin |
+| Service | Origin | Gated |
 |---|---|---|
-| Homepage | `https://ensemble-hip-lens-capable.trycloudflare.com` | `http://homepage.homepage.svc:80` |
-| Audiobookshelf | `https://louis-ecological-tulsa-plug.trycloudflare.com` | `http://audiobookshelf.media.svc:80` |
+| Homepage | `http://homepage.homepage.svc:80` | no — a dashboard holds no library data |
+| Audiobookshelf | `http://abs-auth-proxy.media.svc:80` | **yes** — session-cookie gate, see below |
+
+> **The public hostnames are deliberately not recorded here.** They are
+> ephemeral: they change on every connector restart and can rot without warning.
+> A hostname pasted into a document is a dead link within hours. Get the live
+> pair on demand:
+>
+> ```bash
+> pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify
+> ```
+>
+> `-Verify` probes each URL through the edge and exits non-zero when one is dead,
+> because a dead tunnel looks identical to a healthy one in `kubectl` output.
 
 **Daily use goes to the tailnet URL, not these:**
 `http://audiobookshelf.tail35421d.ts.net` held a websocket for **275s+** and then
 for a second **150s** run end-to-end, against the same pod, with no connector, no
 untrusted edge and no rotating hostname. A Cloudflare socket on the same pod held
 60s, failed its upgrade, and failed outright (522/523/000) during the same
-sessions. The Quick Tunnel is for sharing a link, not for watching/listening.
-
-Quick Tunnel URLs change on every pod restart — read the current ones with:
-
-```bash
-kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=20      | grep trycloudflare
-kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20 | grep trycloudflare
-```
+sessions. The Quick Tunnel is for reaching ABS from a device that cannot run a
+VPN — nothing more.
 
 ## Files
 
@@ -149,7 +158,7 @@ kubectl -n cloudflare rollout restart deploy/cloudflared-audiobookshelf-quick
 ```
 
 The real fix for a stable, monitorable, authenticated public URL is
-[Option B](#option-b-permanent-tunnel-needs-token--own-domain): a named tunnel
+[Option B](#option-b-permanent-tunnel-needs-token-and-a-domain-you-own): a named tunnel
 keeps a fixed hostname, runs 2 replicas and survives this failure mode.
 
 ## Pod hardening (kubernetes-specialist review 2026-10-06)
@@ -194,6 +203,22 @@ Audiobookshelf, so the public URL yields a login page rather than an open one.
 browser --TLS--> CF edge --http--> nginx (auth_request + limit_req) --> ABS
                               \-> abs-gate (login form, session cookie)
 ```
+
+nginx's phase ordering is what makes this a real gate rather than a redirect:
+`auth_request` runs in the access phase, `proxy_pass` in the content phase, so an
+unauthenticated request is answered before a single byte reaches
+Audiobookshelf.
+
+**Two logins, two credential sets.** The gate (`absproxy`) is a shared secret
+held only by the nginx pods; the Audiobookshelf login (`SuryenduB`) is the app's
+own. Neither credential works in the other form. On the tailnet URL there is only
+the Audiobookshelf login — no gate.
+
+**The in-cluster hops are plain HTTP.** Reasonable on a flat LAN, and no less
+private than the rest of the cluster, but it does mean the session cookie crosses
+the pod network in the clear. The compensating controls that actually apply here
+are the gate itself, ABS's own auth, and Service-level exposure (below) —
+not NetworkPolicy, which this cluster cannot enforce.
 
 **Why a cookie and not HTTP Basic auth.** Basic auth was tried first and Chrome
 re-challenged endlessly, including in incognito — the public endpoint is HTTP/2
@@ -271,6 +296,45 @@ identity, and the Quick Tunnel hostname still rotates and can rot (see the
 failure mode above). Repair remains `kubectl -n cloudflare rollout restart
 deploy/cloudflared-audiobookshelf-quick`.
 
+### What would actually improve this
+
+Owning a domain — roughly £5/yr — is the only thing that materially changes the
+picture. Cloudflare's free tier would then cover a named tunnel (fixed hostname,
+no rot, no silent-route failure) plus CF Access email OTP, which replaces the
+shared password with per-user identity and named audit logs. That is a domain
+purchase, **not** a Cloudflare subscription.
+
+Until then, the honest summary: this is a single shared secret in front of an
+application that has no self-service signup, reachable only through a Quick
+Tunnel that can drop at any moment. Reasonable for a homelab; it should not be
+mistaken for a hardened production endpoint.
+
+**Troubleshooting the gate.** The nginx access log records `up=$upstream_status`,
+which distinguishes the gate from Audiobookshelf: `401 up=-` is the gate
+rejecting a request (no session cookie) and `401 up=401` is Audiobookshelf
+rejecting one (bad ABS password). The gate's own log lines are prefixed
+`abs-gate`:
+
+```bash
+kubectl -n media logs -l app=abs-auth-proxy -c nginx --tail=50
+kubectl -n media logs -l app=abs-auth-proxy -c gate --tail=50
+```
+
+Two paths deliberately return 401 to the browser: the gate's own (rendered as
+the login form, and it is what you see when you are not logged in) and
+Audiobookshelf's (its login form). They are distinguished by which service
+produced it, not by the status code.
+
+Two subtleties worth knowing before you touch this config:
+
+- `absolute_redirect off` is required. The connector rewrites `Host` to
+  `audiobookshelf.media.svc`, so without it nginx builds absolute redirects to an
+  in-cluster address the browser cannot resolve. Relative `/login` also survives
+  hostname rotation.
+- `error_page 401` must be routed through `$gate_denied`, not a variable that can
+  be empty. An empty-valued redirect still fires, which turns an Audiobookshelf
+  401 into a loop back to the gate.
+
 **Troubleshooting the gate.** The nginx access log records `up=$upstream_status`,
 which distinguishes the gate from Audiobookshelf: `401 up=-` is the gate
 rejecting a request (no session cookie) and `401 up=401` is Audiobookshelf
@@ -306,7 +370,11 @@ kubectl -n media get svc -o json \
 `audiobookshelf` and `abs-auth-proxy` are the only two Services that should
 select anything ABS-related, and both are ClusterIP.
 
-## Option B: Permanent Tunnel (needs token + own domain)
+## Option B: Permanent Tunnel (needs token AND a domain you own)
+
+Blocked today only by the missing domain — the token is a few clicks away. Cloudflare's
+free tier covers a named tunnel plus Access for 50 users, so this is a domain
+purchase, not a subscription.
 
 1. Dashboard: Networking -> Tunnels -> Create Tunnel, copy the token from
    `cloudflared tunnel run --token eyJhIjoi....`
@@ -314,10 +382,15 @@ select anything ABS-related, and both are ClusterIP.
       --from-literal=token='<PASTE>' --dry-run=client -o yaml | kubectl apply -f -`
    (homelab convention allows a plaintext secret; the Secret block in the manifest
    is only a fallback)
-3. Set both hostnames in the ConfigMap ingress of `permanent-tunnel-homepage.yaml`
-   (`home.example.com`, `audio.example.com`) to match your domain, then apply it.
+3. Add the domain to the Cloudflare account, then set both hostnames in the
+   ConfigMap ingress of `permanent-tunnel-homepage.yaml` to match, and apply it.
 4. Put CF Access in front of both hostnames.
+5. Optionally drop the ABS Quick Tunnel and point the permanent tunnel at
+   `audiobookshelf.media.svc` directly — with Access gating the hostname, the
+   nginx gate becomes redundant and one password is removed.
 
-Neither file is wired into the top-level `kustomization.yaml` on purpose: the
-quick tunnels are ephemeral and the permanent one sleeps until a real token is
-set.
+That removes every limit listed above except the shared password, which Access
+replaces with per-user identity.
+
+Neither quick-tunnel file is wired into the top-level `kustomization.yaml`, and
+the permanent one sleeps until a real token is set.

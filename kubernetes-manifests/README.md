@@ -33,10 +33,13 @@ kubernetes-manifests/
 ├── homepage/
 │   └── homepage.yaml               # homepage ns (gethomepage dashboard + ConfigMap + Tailscale svc)
 ├── cloudflare/                     # cloudflare ns (Cloudflare Tunnels, standalone apply)
-│   ├── README.md                   # quick (live) vs permanent (token) tunnel guide
+│   ├── README.md                   # public-exposure guide: gate, edge-rot failure mode, no-domain constraints
 │   ├── cloudflared.yaml            # LIVE: ns + RBAC + Homepage Quick Tunnel (hardened)
-│   ├── quick-tunnel-audiobookshelf.yaml  # LIVE: ABS Quick Tunnel -> nginx auth gate
-│   ├── abs-auth-proxy.yaml             # LIVE: nginx auth_basic + rate limits in front of ABS
+│   ├── quick-tunnel-audiobookshelf.yaml  # LIVE: ABS Quick Tunnel -> nginx gate
+│   ├── abs-gate.py                 # gate source: login form + HMAC session cookies
+│   ├── render-abs-auth-proxy.py    # renders the manifest from source; --check fails if stale (CI)
+│   ├── abs-auth-proxy.tmpl         # manifest skeleton with a gate-code placeholder
+│   ├── abs-auth-proxy.yaml         # LIVE: GENERATED from the two files above - do not hand-edit
 │   └── permanent-tunnel-homepage.yaml  # standby: named tunnel, needs token + a domain
 ├── monitoring/                     # monitoring ns (observability + notifications)
 │   ├── kustomization.yaml
@@ -107,22 +110,41 @@ annotations:
 
 ## Public Access (Cloudflare Tunnels -> Homepage + Audiobookshelf)
 
-Homepage and Audiobookshelf are published publicly via Cloudflare Quick Tunnels
-(no token, ephemeral `*.trycloudflare.com` URLs). See `cloudflare/README.md`
-for the quick vs permanent tunnel guide.
+Homepage and Audiobookshelf are published via Cloudflare **Quick Tunnels** (no
+token, ephemeral `*.trycloudflare.com` URLs). Read `cloudflare/README.md` before
+changing anything here — it documents the session-cookie gate in front of
+Audiobookshelf, the silent edge-route failure mode, and why CF Access and named
+tunnels are both unavailable without owning a domain.
+
+Audiobookshelf is **gated**; Homepage is not (a dashboard holds no library data).
+Both URLs are ephemeral and can rot — never record one in a document. Get the
+current pair on demand:
 
 ```bash
-# Live Quick Tunnels (ephemeral URLs, change on pod restart)
-kubectl apply -f cloudflare/cloudflared.yaml                  # Homepage
-kubectl apply -f cloudflare/quick-tunnel-audiobookshelf.yaml  # Audiobookshelf
-kubectl -n cloudflare logs -l app=cloudflared-homepage-quick --tail=20       # find URL
-kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20 # find URL
+pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify   # exits 1 if one is dead
+```
 
-# Permanent named tunnel (needs token + own domain, standby manifest)
+```bash
+# Deploy
+kubectl apply -f cloudflare/cloudflared.yaml                  # Homepage
+kubectl apply -f cloudflare/abs-auth-proxy.yaml               # ABS gate (generated; see below)
+kubectl apply -f cloudflare/quick-tunnel-audiobookshelf.yaml  # ABS Quick Tunnel -> the gate
+
+# Regenerate the ABS gate manifest after editing its source
+cd cloudflare && python3 render-abs-auth-proxy.py && kubectl apply -f abs-auth-proxy.yaml
+
+# Permanent named tunnel (needs token AND a domain you own; standby manifest)
 kubectl apply -f cloudflare/permanent-tunnel-homepage.yaml
 ```
 
-The `cloudflare/` manifests are intentionally NOT part of the top-level `kustomization.yaml` — the Quick Tunnel is ephemeral/demo and the permanent manifest ships with a placeholder token that sleeps until a real token is set.
+`abs-auth-proxy.yaml` is **generated**. `abs-gate.py` is the application source
+and `abs-auth-proxy.tmpl` the skeleton; run `python3 render-abs-auth-proxy.py`
+after editing either. `--check` exits non-zero when the committed manifest is
+stale, which is the CI hook. The rendered Deployment carries a `gate-sha256` pod
+annotation so a code change actually rolls the pods — ConfigMap updates alone do
+not.
+
+The `cloudflare/` manifests are intentionally NOT part of the top-level `kustomization.yaml` — the Quick Tunnel is ephemeral and the permanent manifest ships with a placeholder token that sleeps until a real token is set.
 
 ## Storage
 
