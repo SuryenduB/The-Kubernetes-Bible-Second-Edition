@@ -29,9 +29,11 @@
 #   - The Quick Tunnel URL is ephemeral and can rot (see README "Known failure
 #     mode"). Repair: rollout restart the connector. This is a listening
 #     endpoint, so prefer the tailnet whenever the device allows a VPN.
-#   - One shared password is weaker than per-user identities. Rotate it:
+#   - One shared password is weaker than per-user identities. Rotate it (htpasswd
+#     emits the bcrypt digest nginx expects):
+#       NEWPASS='...' htpasswd -nbB absproxy "$NEWPASS"   # gives absproxy:<hash>
 #       kubectl -n media create secret generic abs-proxy-creds \
-#         --from-literal=htpasswd='absproxy:$(openssl passwd -apr1 NEWPASS)' \
+#         --from-literal=htpasswd='<that output>' \
 #         --dry-run=client -o yaml | kubectl apply -f -
 #       kubectl -n media rollout restart deploy/abs-auth-proxy
 #
@@ -49,14 +51,24 @@ metadata:
   name: abs-proxy-creds
   namespace: media
   annotations:
-    # Password for user `absproxy` is held by the repo owner. APR1 digest only;
+    # Password for user `absproxy` is held by the repo owner. bcrypt digest only;
     # regenerate rather than reusing if this repo ever leaves the homelab.
     kubernetes-specialist/review: "reviewed 2026-10-06; nginx gate added so ABS is reachable from a VPN-less corporate device"
 type: Opaque
 stringData:
-  # Basic-auth credential for the public ABS endpoint. Rotate via the command
-  # in the header comment. Do not reuse this password anywhere else.
-  htpasswd: "absproxy:$apr1$EcsePLHm$xWjpg8Vk4fyT2cOB.k1g41"
+  # Basic-auth credential for the public ABS endpoint. 8 chars from a 31-char
+  # alphabet (~40 bits) - deliberately short so it is typeable on a phone, which
+  # is the whole reason this gate exists (a corporate device cannot run a VPN).
+  #
+  # That is genuinely weak against offline cracking of this repo, which is why:
+  #   - the tailnet URL remains the daily path and needs no password at all;
+  #   - limit_req (10r/s, burst 20) and limit_conn (20) are the real brake on
+  #     online guessing, so do not weaken those;
+  #   - this password must never be reused anywhere else.
+  #
+  # If you want the same typing effort with far more strength, replace it with a
+  # 3-word passphrase (~44 bits at 4 words, and easier to recall than this).
+  htpasswd: "absproxy:$2y$05$WbpHHvZxTl7v.7/UctPQd.zd.ae9V.aHrd741AhTV4uOGOZQmIFx2"
 ---
 apiVersion: v1
 kind: ConfigMap
