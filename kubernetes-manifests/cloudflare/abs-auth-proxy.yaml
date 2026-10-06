@@ -95,19 +95,24 @@ data:
       }
 
       server {
-        listen 80;
+        # 8080, not 80: this container is uid 101 with every capability
+        # dropped, so it cannot bind a privileged port. The Service maps
+        # 80 -> 8080 so callers are unaffected.
+        listen 8080;
         server_name _;
 
         # Gate order matters: reject floods before spending CPU on bcrypt.
         limit_req zone=absreq burst=20 nodelay;
         limit_conn absconn 20;
 
-        # Health endpoint stays open so the probes and tunnel can check the
-        # proxy is alive without a password. ABS has its own /healthcheck.
+        # Health endpoint stays open (no password) so probes can check the proxy
+        # without credentials. Answers locally rather than proxying: ABS's own
+        # /healthcheck sits behind the gate above, so probing it here would
+        # return 401 and never let the pod become Ready.
         location = /healthz {
           access_log off;
-          proxy_pass http://audiobookshelf;
-          proxy_set_header Host audiobookshelf.media.svc;
+          default_type text/plain;
+          return 200 "ok\n";
         }
 
         location / {
