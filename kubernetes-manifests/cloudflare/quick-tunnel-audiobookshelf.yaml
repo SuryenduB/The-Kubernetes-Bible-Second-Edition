@@ -12,11 +12,14 @@
 # Find the URL:
 #   kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20
 #
-# SECURITY: a Quick Tunnel has NO authentication - anyone with the URL can reach
-# the Audiobookshelf login. Fine for a demo, NOT for a permanent URL. Use the
-# permanent tunnel (permanent-tunnel-homepage.yaml) plus CF Access for that.
-# Audiobookshelf serves its own auth; the host-header rewrite below only satisfies
-# its virtual-host check.
+# SECURITY: a Quick Tunnel provides no authentication of its own. The origin is
+# therefore abs-auth-proxy.media.svc, which enforces HTTP Basic auth plus rate
+# limits (abs-auth-proxy.yaml) - so reaching this URL yields a password prompt,
+# not Audiobookshelf's login form. Audiobookshelf's own auth remains the second
+# layer, and public registration must be disabled in its settings.
+#
+# The host-header rewrite below only satisfies Audiobookshelf's virtual-host
+# check.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -78,10 +81,13 @@ spec:
             - --no-autoupdate
             - --metrics
             - 0.0.0.0:2000
+            # Origin is the nginx auth proxy, NOT Audiobookshelf directly. The
+            # proxy enforces auth_basic + rate limits, so this public endpoint is
+            # never an open login form. See abs-auth-proxy.yaml.
             - --url
-            - http://audiobookshelf.media.svc:80
-            # Rewrite Host so Audiobookshelf's virtual-host check passes without
-            # knowing the random trycloudflare hostname in advance.
+            - http://abs-auth-proxy.media.svc:80
+            # Rewrite Host so the proxy can pass Audiobookshelf's virtual-host
+            # check without knowing the random trycloudflare hostname in advance.
             - --http-host-header
             - audiobookshelf.media.svc
           ports:

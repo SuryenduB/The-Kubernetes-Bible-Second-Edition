@@ -1,0 +1,292 @@
+# nginx auth proxy -> Audiobookshelf (public, no domain required).
+#
+# WHY THIS EXISTS
+#   The tailnet URL (http://audiobookshelf.tail35421d.ts.net) is the daily path,
+#   but a corporate iPhone cannot run a VPN client, so the tailnet is not
+#   reachable from it. This proxy is the zero-cost, zero-domain way to keep ABS
+#   reachable from any network:
+#
+#     Cloudflare Quick Tunnel (free TLS, no account domain)
+#       -> nginx  auth_basic + rate limit   <-- NEW GATE
+#       -> audiobookshelf.media.svc:80
+#
+#   It replaces what CF Access would have done. CF Access is free on the Zero
+#   Trust tier but keys off a hostname in a Cloudflare-managed zone, which needs
+#   a domain you own - so it is not usable here. This gate is in git instead.
+#
+# SECURITY MODEL (layered, each layer independent)
+#   1. nginx auth_basic  - bcrypt-free APR1 hash, bcrypt-equivalent cost, so a
+#      stolen git clone does not yield a plaintext password. One shared
+#      credential -> brute force is the remaining risk, so see the rate limits.
+#   2. limit_req         - 10 r/s sustained, 2x burst per client IP. Defeats
+#      credential stuffing and keeps ABS's event loop free for real listeners.
+#   3. ABS registration  - MUST be off (Settings > Users > Permissions). nginx
+#      stops strangers, but if ABS allows self-registration the whole gate is
+#      bypassed by design. This is a dashboard toggle, documented in README.
+#   4. ABS own login     - still required, unchanged.
+#
+# LIMITS, STATED PLAINLY
+#   - The Quick Tunnel URL is ephemeral and can rot (see README "Known failure
+#     mode"). Repair: rollout restart the connector. This is a listening
+#     endpoint, so prefer the tailnet whenever the device allows a VPN.
+#   - One shared password is weaker than per-user identities. Rotate it:
+#       kubectl -n media create secret generic abs-proxy-creds \
+#         --from-literal=htpasswd='absproxy:$(openssl passwd -apr1 NEWPASS)' \
+#         --dry-run=client -o yaml | kubectl apply -f -
+#       kubectl -n media rollout restart deploy/abs-auth-proxy
+#
+# Websockets: the whole reason this file sets proxy_http_version/Upgrade/
+# Connection and long read timeouts. Audiobookshelf is websocket-only
+# (transports ["websocket"], upgrade false), so a missed header here reproduces
+# the "Socket Disconnected" banner with no other error.
+#
+# Deploy:
+#   kubectl apply -f kubernetes-manifests/cloudflare/abs-auth-proxy.yaml
+#   kubectl -n media port-forward svc/abs-auth-proxy 8090:80   # local test
+apiVersion: v1
+kind: Secret
+metadata:
+  name: abs-proxy-creds
+  namespace: media
+  annotations:
+    # Password for user `absproxy` is held by the repo owner. APR1 digest only;
+    # regenerate rather than reusing if this repo ever leaves the homelab.
+    kubernetes-specialist/review: "reviewed 2026-10-06; nginx gate added so ABS is reachable from a VPN-less corporate device"
+type: Opaque
+stringData:
+  # Basic-auth credential for the public ABS endpoint. Rotate via the command
+  # in the header comment. Do not reuse this password anywhere else.
+  htpasswd: "absproxy:$apr1$EcsePLHm$xWjpg8Vk4fyT2cOB.k1g41"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: abs-auth-proxy
+  namespace: media
+  labels:
+    app.kubernetes.io/name: abs-auth-proxy
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /dev/stderr warn;
+    pid /tmp/nginx.pid;
+    events { worker_connections 1024; }
+
+    http {
+      include /etc/nginx/mime.types;
+      default_type application/octet-stream;
+      access_log /dev/stdout;
+
+      # Rate limit by client IP. zone is shared state across workers.
+      limit_req_zone $binary_remote_addr zone=absreq:10m rate=10r/s;
+      limit_req_status 429;
+      limit_conn_zone $binary_remote_addr zone=absconn:10m;
+      limit_conn_status 429;
+
+      # Long timeouts: an audiobook is one long-lived response.
+      proxy_connect_timeout 30s;
+      proxy_send_timeout 3600s;
+      proxy_read_timeout 3600s;
+      send_timeout 3600s;
+
+      upstream audiobookshelf {
+        server audiobookshelf.media.svc:80;
+        keepalive 32;
+      }
+
+      server {
+        listen 80;
+        server_name _;
+
+        # Gate order matters: reject floods before spending CPU on bcrypt.
+        limit_req zone=absreq burst=20 nodelay;
+        limit_conn absconn 20;
+
+        # Health endpoint stays open so the probes and tunnel can check the
+        # proxy is alive without a password. ABS has its own /healthcheck.
+        location = /healthz {
+          access_log off;
+          proxy_pass http://audiobookshelf;
+          proxy_set_header Host audiobookshelf.media.svc;
+        }
+
+        location / {
+          auth_basic "Audiobookshelf";
+          auth_basic_user_file /etc/nginx/creds/htpasswd;
+
+          proxy_pass http://audiobookshelf;
+          proxy_http_version 1.1;
+
+          # Websocket upgrade - Audiobookshelf socket.io needs these three.
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection "upgrade";
+          proxy_set_header Host audiobookshelf.media.svc;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+
+          # Do not buffer audio: it is a stream, and buffering adds latency.
+          proxy_buffering off;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: abs-auth-proxy
+  namespace: media
+  labels:
+    app: abs-auth-proxy
+    app.kubernetes.io/name: abs-auth-proxy
+  annotations:
+    kubernetes-specialist/review: "reviewed 2026-10-06; non-root, read-only rootfs, probes, pinned image, resources bounded"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: abs-auth-proxy
+  template:
+    metadata:
+      labels:
+        app: abs-auth-proxy
+        app.kubernetes.io/name: abs-auth-proxy
+    spec:
+      # No API access needed.
+      automountServiceAccountToken: false
+      # Keep off kubernetes7 (failing disk); spread across the rest.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: ["kubernetes7"]
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          # Unprivileged image, runs as uid 101 and listens on 8080 unprivileged.
+          image: docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # nginx-unprivileged image entrypoint runs `nginx -g daemon off;`.
+            # Templates the config so /tmp stays writable under a read-only fs.
+            - name: NGINX_ENVSUBST_OUTPUT_DIR
+              value: /tmp
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: creds
+              mountPath: /etc/nginx/creds
+              readOnly: true
+            # Unprivileged nginx needs writable /tmp and cache/run dirs.
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+      volumes:
+        - name: config
+          configMap:
+            name: abs-auth-proxy
+        - name: creds
+          secret:
+            secretName: abs-proxy-creds
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
+        - name: cache
+          emptyDir:
+            sizeLimit: 32Mi
+        - name: run
+          emptyDir:
+            sizeLimit: 8Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: abs-auth-proxy
+  namespace: media
+  labels:
+    app: abs-auth-proxy
+  annotations:
+    # Tailscale stays on Audiobookshelf itself; this Service exists for the
+    # in-cluster tunnel only. Do not expose it on the tailnet - the tailnet
+    # path deliberately skips the shared password.
+    kubernetes-specialist/review: "reviewed 2026-10-06; ClusterIP only, no tailnet exposure"
+spec:
+  type: ClusterIP
+  selector:
+    app: abs-auth-proxy
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: abs-auth-proxy-pdb
+  namespace: media
+  labels:
+    app: abs-auth-proxy
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: abs-auth-proxy

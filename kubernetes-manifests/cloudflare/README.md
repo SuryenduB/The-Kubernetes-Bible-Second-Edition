@@ -2,12 +2,24 @@
 
 Publishes selected in-cluster web UIs publicly via Cloudflare Tunnel.
 
-**Status (verified 2026-10-06):** both Quick Tunnels LIVE from `nuc`, HTTP 200.
+**Status (2026-10-06):** both Quick Tunnels LIVE from `nuc`. The Homepage one has
+been continuously healthy; the Audiobookshelf one is **intermittently unreachable
+at the edge** (~15 min of 522/523/timeouts, then self-recovers, reproduced before
+and after a connector restart) — see
+[Known failure mode](#known-failure-mode-silent-edge-route-rot). Quick Tunnels are
+not reliable enough to be anyone's daily access path.
 
 | Service | URL | Origin |
 |---|---|---|
 | Homepage | `https://ensemble-hip-lens-capable.trycloudflare.com` | `http://homepage.homepage.svc:80` |
-| Audiobookshelf | `https://yeah-quarter-pads-guitars.trycloudflare.com` | `http://audiobookshelf.media.svc:80` |
+| Audiobookshelf | `https://louis-ecological-tulsa-plug.trycloudflare.com` | `http://audiobookshelf.media.svc:80` |
+
+**Daily use goes to the tailnet URL, not these:**
+`http://audiobookshelf.tail35421d.ts.net` held a websocket for **275s+** and then
+for a second **150s** run end-to-end, against the same pod, with no connector, no
+untrusted edge and no rotating hostname. A Cloudflare socket on the same pod held
+60s, failed its upgrade, and failed outright (522/523/000) during the same
+sessions. The Quick Tunnel is for sharing a link, not for watching/listening.
 
 Quick Tunnel URLs change on every pod restart — read the current ones with:
 
@@ -21,8 +33,9 @@ kubectl -n cloudflare logs -l app=cloudflared-audiobookshelf-quick --tail=20 | g
 | File | Purpose |
 |---|---|
 | `cloudflared.yaml` | Namespace, ServiceAccount, empty Role, ConfigMap (both origins), Homepage Quick Tunnel |
-| `quick-tunnel-audiobookshelf.yaml` | Audiobookshelf Quick Tunnel (separate Deployment: `--url` bakes in one origin) |
-| `permanent-tunnel-homepage.yaml` | Token-based tunnel for a real domain, both origins, 2 replicas — dormant until a token is set |
+| `quick-tunnel-audiobookshelf.yaml` | Audiobookshelf Quick Tunnel (separate Deployment: `--url` bakes in one origin). Origin is `abs-auth-proxy.media.svc`, not ABS directly |
+| `abs-auth-proxy.yaml` | nginx gate: `auth_basic` + rate limits + websocket headers in front of Audiobookshelf. Makes the public URL gated without a domain |
+| `permanent-tunnel-homepage.yaml` | Token-based tunnel for a real domain, both origins, 2 replicas — dormant until a token is set, **and unusable until a domain is owned** |
 
 ## Security posture
 
@@ -43,9 +56,81 @@ the permanent tunnel plus **CF Access** (email OTP or Google) in front.
   Homepage's `HOMEPAGE_ALLOWED_HOSTS` and Audiobookshelf's virtual-host check
   pass without knowing the random `*.trycloudflare.com` hostname in advance.
 - Metrics are enabled on `:2000`; the readiness/liveness probes use cloudflared's
-  own `/ready`, so the pod is only Ready once it is actually registered.
-- Long-running audio streams are unaffected: cloudflared buffers origin
-  requests, and the permanent tunnel raises `keepAliveTimeout` to 90s.
+  own `/ready`. That only reflects the **connector's local view** — see the known
+  failure mode below for what it cannot see.
+- `--url` mode accepts the origin-request knobs that the permanent tunnel sets in
+  its ConfigMap: `--proxy-keepalive-timeout` defaults to **1m30s** (same as the
+  permanent tunnel's `keepAliveTimeout: 90s`) and `--proxy-keepalive-connections`
+  defaults to **100**. So the Quick Tunnel is *not* missing websocket tuning; when
+  it drops a socket it is because the edge has lost the route to the connector,
+  not because of an idle keepalive.
+
+## Known failure mode: silent edge-route rot
+
+`trycloudflare.com` Quick Tunnels can stop serving traffic while every signal you
+would normally check still says healthy. Measured on 2026-10-06:
+
+```
+abs  HTTP=200 200 200 000 000 000 000 000   <- Audiobookshelf, dies within ~15s
+hp   HTTP=200 200 200 200 200 200 200 200   <- Homepage, same node, same image
+```
+
+- The edge answers `522`/`523`, or times out with no response at all, while the
+  Homepage connector on the same node (`nuc`), same image, same QUIC transport
+  keeps serving — node, cluster, connector image and origin are all healthy.
+  It is per-tunnel, not per-node.
+- From a second, unrelated network the same URL returned `522` too.
+- It is intermittent and **self-recovers**: one burst ran ~15 min, then the URL
+  answered `200` for a 140s sampling window with no intervention. A connector
+  `rollout restart` also clears it (fresh tunnel, new URL) — and the replacement
+  rotted again within ~4 min.
+- The connector was `Running 1/1`, `restarts=0`, `creationTimestamp` 10h old and
+  metricically clean: `cloudflared_tunnel_request_errors 0`,
+  `cloudflared_tunnel_ha_connections 1`, `cloudflared_tunnel_total_requests 85`
+  (78x `200`). The failing requests **never reach the connector**, so they cannot
+  be counted, logged or probed from inside the pod.
+- `cloudflared tunnel --help` shows `--retries` (default 5) retries
+  connection/protocol errors only — cloudflared never noticed one, and the pod
+  log held a single `Registered tunnel connection` line for its whole 10h life.
+  It does not re-register, so **it does not self-heal**.
+
+Symptom for Audiobookshelf users: its web client is
+`transports: ["websocket"]` with `upgrade: false` (no polling fallback), so when
+this rot hits, the browser shows the *Socket Disconnected* banner and
+socket.io reconnects in a loop. Audiobookshelf's own log looks like:
+
+```
+[SocketAuthority] Socket Connected to /audiobookshelf/socket.io 8-AW...
+[SocketAuthority] Socket 8-AW... disconnected from client "<user>" after 35922ms (Reason: transport close)
+```
+
+What it is *not*: an idle-timeout, a keepalive, or an unhealthy connector — see
+§How it works for the keepalive defaults that rule that out.
+
+`--region <name>` is **not** a usable workaround: `--region fra` makes cloudflared
+fail its own SRV lookup and crash-loop
+(`Could not lookup srv records on _fra-v2-origintunneld._tcp.argotunnel.com`).
+One clue worth knowing: the healthy Homepage connector registered to edge `fra21`,
+while both broken Audiobookshelf connectors registered to `txl01`.
+
+Detect it with the repo's own tooling — it probes each discovered URL through the
+edge and exits non-zero when one is dead:
+
+```bash
+pwsh -File Get-CloudflareTunnelUrls.ps1 -Verify
+pwsh -File Get-CloudflareTunnelUrls.ps1 -Watch -Verify -IntervalSeconds 60
+```
+
+Repair by restarting that one connector. The URL then changes and the old one
+stays dead, which is exactly why the Quick Tunnel is not viable for daily use:
+
+```bash
+kubectl -n cloudflare rollout restart deploy/cloudflared-audiobookshelf-quick
+```
+
+The real fix for a stable, monitorable, authenticated public URL is
+[Option B](#option-b-permanent-tunnel-needs-token--own-domain): a named tunnel
+keeps a fixed hostname, runs 2 replicas and survives this failure mode.
 
 ## Pod hardening (kubernetes-specialist review 2026-10-06)
 
@@ -67,6 +152,51 @@ Applied to every connector, against that skill's MUST-DO/MUST-NOT list:
 
 Permanent tunnel runs 2 replicas: it is the only public entry point, so it must
 survive a single node loss.
+
+## Public Audiobookshelf without owning a domain
+
+**Constraint:** no domain is owned, and CF Access is unusable because it keys off
+a hostname in a Cloudflare-managed zone. A named tunnel (`Option B`) is therefore
+unavailable too, for the same reason — not a pricing issue. Cloudflare's free tier
+would cover both; the blocker is the absent domain, not the cost.
+
+**Why there is still a public path at all:** the tailnet URL is the daily path,
+but a corporate iPhone cannot install a VPN client, so the tailnet cannot serve it.
+
+**The gate is in git** — `abs-auth-proxy.yaml`: nginx in front of
+`audiobookshelf.media.svc` enforcing HTTP Basic auth (`auth_basic`), per-IP rate
+limits (`10r/s`, burst 20), connection caps, and the websocket headers
+Audiobookshelf requires. The Quick Tunnel now points at that proxy, not at
+Audiobookshelf directly, so the public URL yields a password prompt rather than
+an open login form.
+
+```
+browser --TLS--> CF edge --http--> nginx (auth_basic + limit_req) --> ABS
+```
+
+CF Access is deliberately **not** used: it needs a domain in the account. If a
+domain is ever bought, `Option B` + Access email OTP supersedes this proxy
+(it gives per-user identity instead of one shared password).
+
+**Rotate the proxy password** — the APR1 digest is in
+`kubernetes-manifests/cloudflare/abs-auth-proxy.yaml` (Secret
+`media/abs-proxy-creds`):
+
+```bash
+kubectl -n media create secret generic abs-proxy-creds \
+  --from-literal=htpasswd="absproxy:$(openssl passwd -apr1 'NEWPASS')" \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n media rollout restart deploy/abs-auth-proxy
+```
+
+**Still required, not code** — Audiobookshelf must not allow public
+registration (Settings → Users → Permissions). nginx stops strangers, but a
+self-registration setting bypasses the gate by design.
+
+**Known limits of this design:** one shared credential is weaker than per-user
+identity, and the Quick Tunnel hostname still rotates and can rot (see the
+failure mode above). Repair remains `kubectl -n cloudflare rollout restart
+deploy/cloudflared-audiobookshelf-quick`.
 
 ## Option B: Permanent Tunnel (needs token + own domain)
 

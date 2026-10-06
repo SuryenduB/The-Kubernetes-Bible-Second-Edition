@@ -35,8 +35,9 @@ kubernetes-manifests/
 ├── cloudflare/                     # cloudflare ns (Cloudflare Tunnels, standalone apply)
 │   ├── README.md                   # quick (live) vs permanent (token) tunnel guide
 │   ├── cloudflared.yaml            # LIVE: ns + RBAC + Homepage Quick Tunnel (hardened)
-│   ├── quick-tunnel-audiobookshelf.yaml  # LIVE: Audiobookshelf Quick Tunnel (hardened)
-│   └── permanent-tunnel-homepage.yaml  # standby: named tunnel, needs token secret
+│   ├── quick-tunnel-audiobookshelf.yaml  # LIVE: ABS Quick Tunnel -> nginx auth gate
+│   ├── abs-auth-proxy.yaml             # LIVE: nginx auth_basic + rate limits in front of ABS
+│   └── permanent-tunnel-homepage.yaml  # standby: named tunnel, needs token + a domain
 ├── monitoring/                     # monitoring ns (observability + notifications)
 │   ├── kustomization.yaml
 │   ├── beszel-hub.yaml
