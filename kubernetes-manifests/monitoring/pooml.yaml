@@ -55,7 +55,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: pooml
-          image: mykonordy/pooml:0.3.0
+          image: mykonordy/pooml:0.3.4
           ports:
             - name: api
               containerPort: 8080
