@@ -74,7 +74,7 @@ spec:
       containers:
         - name: cloudflared
           # Pinned (kubernetes-specialist MUST NOT: never :latest in production).
-          image: cloudflare/cloudflared:2025.8.1
+          image: cloudflare/cloudflared:2026.10.0
           imagePullPolicy: IfNotPresent
           args:
             - tunnel
