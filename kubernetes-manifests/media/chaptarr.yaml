@@ -166,9 +166,9 @@ spec:
               mountPath: /config
       containers:
         - name: chaptarr
-          # 0.9.958 (2026-09-04) is the newest stable tag; `latest` still
+          # 0.9.965 (2026-10-09) is the newest stable tag; `latest` still
           # points at the older 2026-08-08 build.
-          image: chaptarr/chaptarr:0.9.958
+          image: chaptarr/chaptarr:0.9.965
           ports:
             - name: http
               containerPort: 8789
