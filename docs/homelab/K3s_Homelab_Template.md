@@ -1,6 +1,6 @@
 # 🏠 K3s Homelab - Complete Kubernetes Environment
 
-**Last Updated**: 2026-10-06 | **Scope**: Control-plane HA (3 embedded-etcd servers), node inventory, Docker-registry ownership, and the Audiobookshelf public-exposure path refreshed; other audit snapshots retain their original dates | **Version**: K3s v1.34.6+k3s1
+**Last Updated**: 2026-10-09 | **Scope**: Control-plane HA (3 embedded-etcd servers), node inventory, Docker-registry ownership, the Audiobookshelf public-exposure path, and an application image-version refresh pass (12 images across 10 workloads); other audit snapshots retain their original dates | **Version**: K3s v1.34.6+k3s1
 
 ---
 
@@ -15,9 +15,10 @@
 7. [Storage Architecture](#storage-architecture)
 8. [Governance & Security](#governance--security)
 9. [Local Docker Registry](#local-docker-registry)
-10. [Audit & Compliance Reference](#audit--compliance-reference)
-11. [Troubleshooting](#troubleshooting)
-12. [Documentation References](#documentation-references)
+10. [Application Image Versions](#application-image-versions)
+11. [Audit & Compliance Reference](#audit--compliance-reference)
+12. [Troubleshooting](#troubleshooting)
+13. [Documentation References](#documentation-references)
 
 ---
 
@@ -441,6 +442,34 @@ kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "cl
 | `sailpoint-iiq` | `8.5` | `iiqstack` |
 | `mysql` | `8.0` | `iiqstack` |
 | `axllent/mailpit` | `latest` | `iiqstack` |
+
+---
+
+## 📦 Application Image Versions
+
+**Refresh pass: 2026-10-09.** Pinned application images were checked against upstream latest (GitHub Releases and registry tag probes) and bumped one workload at a time. Each update was applied, rolled out, health-checked, then committed and pushed; anything that failed would have been rolled back. All 12 image changes below are live and 1/1 ready.
+
+| Application | Namespace | Previous → Current | Manifest |
+|-------------|-----------|--------------------|----------|
+| Dozzle | `monitoring` | `amir20/dozzle:v11.1.0` → `v11.3.0` | `kubernetes-manifests/monitoring/dozzle.yaml` |
+| Gotify | `monitoring` | `gotify/server:3.1.0` → `3.1.1` | `kubernetes-manifests/monitoring/gotify.yaml` |
+| PooML | `monitoring` | `mykonordy/pooml:0.3.0` → `0.3.4` | `kubernetes-manifests/monitoring/pooml.yaml` |
+| Chaptarr | `media` | `chaptarr/chaptarr:0.9.958` → `0.9.965` | `kubernetes-manifests/media/chaptarr.yaml` |
+| Audiobookshelf | `media` | `advplyr/audiobookshelf:2.36.1` → `2.37.1` | `kubernetes-manifests/media/audiobookshelf.yaml` |
+| Calibre-Web | `media` | `linuxserver/calibre-web:0.6.27-ls401` → `0.6.27-ls404` | `kubernetes-manifests/media/calibre-web-with-importer.yaml` |
+| Flick (api + web) | `media` | `dellixou/flick-api:v0.2.8` & `flick-web:v0.2.8` → `v0.2.10` | `kubernetes-manifests/media/flick.yaml` |
+| Immich (server + ML) | `media` | `immich-server:v3.2.0` & `immich-machine-learning:v3.2.0` → `v3.3.1` | `kubernetes-manifests/media/immich.yaml` |
+| ActiveMQ | `iiqstack` | `apache/activemq-artemis:2.31.0-alpine` → `2.31.2-alpine` | `kubernetes-manifests/iiq-stateful.yaml` |
+| cloudflared (homepage + ABS) | `cloudflare` | `cloudflare/cloudflared:2025.8.1` → `2026.10.0` | `kubernetes-manifests/cloudflare/cloudflared.yaml`, `quick-tunnel-audiobookshelf.yaml` |
+
+Notes on this pass:
+
+- **Immich DB/valkey were deliberately left unchanged.** Upstream v3.3.1 still pins `ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0` and `docker.io/valkey/valkey:9`, so only the server and ML images moved. The upgrade runs its own DB migrations on startup (confirmed live: API returns `major 3 / minor 3 / patch 1`).
+- **Audiobookshelf Quick Tunnel hostname rotated** as a side effect of restarting the ABS cloudflared pod. This is expected — Quick Tunnel hostnames are ephemeral and are intentionally **not** recorded here; read the current one with `pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify`.
+- **Verified already-latest (no change):** homelab-manger (`v0.8.5`), remotepower (`7.0.3`), trove server+agent (`0.18.1`), librislog + librislog-api (`v1.9.0`), pgweb (`0.17.0`), reactive-resume (`v5.3.1`), apprise (`v1.5.4`), kuvasz (`4.4.0`), lantern (`v0.72.0`), booklogr + booklogr-web (`v1.12.0`), osixia/openldap (`1.5.0`).
+- **Deliberately skipped — Homarr (`v1.77.1`).** Upstream latest is `v2.4.0`, a **major** version jump. Major upgrades can change config/schema and break the dashboard, so this is left as a separate, planned task rather than folded into a version refresh.
+- **Not refreshed — images from the local registry (`192.168.0.236:5000`):** OpenLingo, AI Language Tutor, and SailPoint IdentityIQ build from images hosted on the registry that is co-hosted on `server-236`. That host was powered off/unreachable during this pass, so those images cannot be re-pulled and were left untouched.
+- **Floating/moving tags were not pinned:** `ollama:latest`, `openwebui:latest`, `postgres:15-alpine`/`16-alpine`, `redis:7.2-alpine`, `valkey:9`, `caddy:2-alpine`, `mysql:8.0`, `mariadb:10.11`, `busybox:1.36`, and the Beszel/Homepage images already resolve to current builds on pull. Converting them to immutable pinned digests would be a design change, not a version refresh, so it was not done here.
 
 ---
 
