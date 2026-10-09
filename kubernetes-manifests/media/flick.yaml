@@ -354,7 +354,7 @@ spec:
               mountPath: /db/migrations
       containers:
         - name: api
-          image: dellixou/flick-api:v0.2.8
+          image: dellixou/flick-api:v0.2.10
           ports:
             - containerPort: 15702
               name: http
@@ -458,7 +458,7 @@ spec:
                       - kubernetes4
       containers:
         - name: web
-          image: dellixou/flick-web:v0.2.8
+          image: dellixou/flick-web:v0.2.10
           ports:
             - containerPort: 3000
               name: http
