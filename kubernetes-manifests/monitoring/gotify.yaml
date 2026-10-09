@@ -50,7 +50,7 @@ spec:
                     values: [kubernetes4]
       containers:
         - name: gotify
-          image: gotify/server:3.1.0
+          image: gotify/server:3.1.1
           ports:
             - name: http
               containerPort: 80
