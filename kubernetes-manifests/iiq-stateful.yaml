@@ -453,7 +453,7 @@ spec:
         fsGroup: 1000
       containers:
         - name: activemq
-          image: apache/activemq-artemis:2.31.0-alpine
+          image: apache/activemq-artemis:2.31.2-alpine
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8161
