@@ -152,6 +152,19 @@ spec:
       labels:
         app: openwebui
     spec:
+      # The Open WebUI image currently imports NumPy with x86-v2 baseline
+      # optimizations. kubernetes8-debian lacks those CPU features, so keep
+      # this workload on the compatible homelab workers after rescheduling.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: NotIn
+                values:
+                - kubernetes7
+                - kubernetes8-debian
       containers:
       - name: openwebui
         image: ghcr.io/open-webui/open-webui

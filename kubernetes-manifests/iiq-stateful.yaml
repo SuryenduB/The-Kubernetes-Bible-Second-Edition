@@ -836,6 +836,31 @@ spec:
       labels:
         app: iiq
     spec:
+      # IdentityIQ exits if Tomcat starts while MSSQL is still recovering.
+      # Gate startup on both the database and the application login being
+      # available, rather than relying on the app's restart loop.
+      initContainers:
+        - name: wait-for-identityiq-database
+          image: 192.168.0.236:5000/sailpoint-iiq:8.5
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sailpoint-db-secrets
+                  key: mssql-sa-password
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              until /opt/mssql-tools18/bin/sqlcmd \
+                -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C \
+                -Q "SET NOCOUNT ON; IF DB_ID('identityiq') IS NOT NULL AND EXISTS (SELECT 1 FROM identityiq.sys.database_principals WHERE name = 'identityiq') SELECT 1" \
+                -h -1 2>/dev/null | grep -q 1; do
+                echo "Waiting for MSSQL identityiq database and login..."
+                sleep 10
+              done
+              echo "MSSQL identityiq database and login are ready."
       containers:
         - name: iiq
           image: 192.168.0.236:5000/sailpoint-iiq:8.5
