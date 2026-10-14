@@ -849,17 +849,26 @@ spec:
                 secretKeyRef:
                   name: sailpoint-db-secrets
                   key: mssql-sa-password
+            - name: MSSQL_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sailpoint-db-secrets
+                  key: mssql-user-password
           command:
             - /bin/bash
             - -ec
             - |
               until /opt/mssql-tools18/bin/sqlcmd \
                 -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C \
-                -Q "SET NOCOUNT ON; IF DB_ID('identityiq') IS NOT NULL AND EXISTS (SELECT 1 FROM identityiq.sys.database_principals WHERE name = 'identityiq') SELECT 1" \
+                -Q "SET NOCOUNT ON; IF DB_ID('identityiq') IS NOT NULL SELECT 1" \
                 -h -1 2>/dev/null | grep -q 1; do
                 echo "Waiting for MSSQL identityiq database and login..."
                 sleep 10
               done
+              /opt/mssql-tools18/bin/sqlcmd \
+                -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C \
+                -Q "IF NOT EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = 'identityiq') CREATE LOGIN [identityiq] WITH PASSWORD = N'$MSSQL_USER_PASSWORD'; ELSE ALTER LOGIN [identityiq] WITH PASSWORD = N'$MSSQL_USER_PASSWORD'; USE [identityiq]; IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'identityiq') CREATE USER [identityiq] FOR LOGIN [identityiq]; ELSE ALTER USER [identityiq] WITH LOGIN = [identityiq]; ALTER ROLE [db_owner] ADD MEMBER [identityiq]" \
+                >/dev/null
               echo "MSSQL identityiq database and login are ready."
       containers:
         - name: iiq
