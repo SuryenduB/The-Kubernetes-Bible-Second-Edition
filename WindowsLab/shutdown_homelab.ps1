@@ -20,8 +20,9 @@
 # sudo password comes from the SecretStore vault ('k3s-homelab-sudo') or cred.xml, and is
 # piped to 'sudo -S' base64-encoded so it never appears in the transcript.
 #
-# -Force is the "make it stop" switch. It skips every *refusable* gate and rides out every
-# recoverable failure:
+# -Force skips recoverable control-flow gates, but does not bypass storage safety by itself.
+# -AllowDirtyPowerOff is the explicit emergency override for attached/degraded volumes.
+# recoverable failure (storage-safety gates still require -AllowDirtyPowerOff):
 #   - no confirmation prompt, no abort on degraded storage / volumes still attached,
 #   - an unreachable API no longer aborts an explicit -Mode Dynamic run (registry fallback),
 #   - a failed kubectl drain no longer withholds that node's poweroff,
@@ -34,8 +35,11 @@
 # homelab-nodes.json (kubernetes7's power switch is broken, so a poweroff is unrecoverable).
 [CmdletBinding()]
 param(
-    [Parameter(HelpMessage="Ignore every refusable warning (confirmation, degraded storage, volumes still attached, unreachable API), retry each poweroff through its full escalation ladder and keep going until every target node is confirmed down. Never overrides the neverPowerOff rule.")]
+    [Parameter(HelpMessage="Ignore prompts and continue recoverable errors, but still honor storage-safety gates unless -AllowDirtyPowerOff is also supplied. Never overrides the neverPowerOff rule.")]
     [switch]$Force,
+
+    [Parameter(HelpMessage="Explicitly allow powering off with failed drains or attached/degraded Longhorn volumes. Dangerous: may corrupt stateful databases. Requires -Force.")]
+    [switch]$AllowDirtyPowerOff,
 
     [Parameter(HelpMessage="With -Force: after every SSH poweroff stage has failed on a node, force a kernel-level sysrq poweroff (sync + remount-ro + power off). Bypasses systemd's orderly shutdown - last resort only.")]
     [switch]$ForceKernelPowerOff,
@@ -81,6 +85,10 @@ param(
 )
 
 $ErrorActionPreference = 'Stop' # Critical for Catch block to trigger on external errors
+
+if ($AllowDirtyPowerOff -and -not $Force) {
+    throw "-AllowDirtyPowerOff requires -Force; refusing to permit a dirty poweroff without the emergency switch."
+}
 
 # Native command failures (kubectl, ssh) are judged by explicit $LASTEXITCODE checks instead of
 # exceptions, so a non-zero exit can never abort the run half-way through a power-down. Set the
@@ -981,14 +989,14 @@ if ($actualMode -ne "FALLBACK") {
         elseif ($VerifyCredentials) {
             Write-Host "[VERIFY] Degraded storage noted - not a shutdown run, so the gate is not applied." -ForegroundColor DarkGray
         }
-        elseif (!$Force) {
+        elseif (!$Force -or !$AllowDirtyPowerOff) {
             # The one deliberate early exit (v9.3). Refusing to power off a fleet that has degraded
             # attached volumes is a PRE-FLIGHT decision: nothing has been touched yet, so there is
             # no half-powered cluster to recover - unlike stopping mid-run, which this version
-            # never does. Recorded in the report, and -Force is the documented override.
+            # never does. Recorded in the report; -AllowDirtyPowerOff is the explicit emergency override.
             $script:ExitCode = 1
-            Add-RunError -Context 'gate:degraded-storage' -Message 'Refused to start: degraded attached Longhorn volumes were detected and -Force was not supplied.'
-            Write-Error "Aborting: resolve degraded volumes first, or re-run with -Force to accept the risk."
+            Add-RunError -Context 'gate:degraded-storage' -Message 'Refused to start: degraded attached Longhorn volumes were detected. Use -Force -AllowDirtyPowerOff only for an emergency.'
+            Write-Error "Aborting: resolve degraded volumes first, or re-run with -Force -AllowDirtyPowerOff to accept the risk."
             exit 1
         }
         else {
@@ -1169,8 +1177,8 @@ foreach ($worker in $targets) {
                 # withhold the poweroff that follows. Without -Force the old behaviour is kept
                 # (skip the node, report it) so an accidental run stays conservative.
                 Write-Host "  [!] Drain failed for $($worker.Name): $($_.Exception.Message)" -ForegroundColor Yellow
-                if (!$Force) {
-                    Write-Host "  [!] Skipping poweroff for this node (re-run with -Force to power it off anyway)." -ForegroundColor Red
+                if (!$Force -or !$AllowDirtyPowerOff) {
+                    Write-Host "  [!] Skipping poweroff for this node (use -Force -AllowDirtyPowerOff only for an emergency override)." -ForegroundColor Red
                     $skippedNodes += $worker.Name
                     continue
                 }
@@ -1186,9 +1194,9 @@ foreach ($worker in $targets) {
             $clean = Wait-NodeVolumesDetached -NodeName $worker.Name -TimeoutSeconds $DetachTimeoutSeconds
             if (!$clean) {
                 $left = @(Get-NodeAttachedVolumes -NodeName $worker.Name)
-                if (!$Force) {
+                if (!$Force -or !$AllowDirtyPowerOff) {
                     Write-Host "  [!] Volumes still attached to $($worker.Name): $($left -join ', ')" -ForegroundColor Red
-                    Write-Host "  [!] Skipping poweroff for this node (re-run with -Force to override)." -ForegroundColor Red
+                    Write-Host "  [!] Skipping poweroff for this node (use -Force -AllowDirtyPowerOff only for an emergency override)." -ForegroundColor Red
                     $skippedNodes += $worker.Name
                     continue
                 }
@@ -1246,8 +1254,8 @@ foreach ($master in $masterTargets) {
             Write-Host "  - Waiting for Longhorn detach on $masterName (timeout ${DetachTimeoutSeconds}s)..."
             $clean = Wait-NodeVolumesDetached -NodeName $masterName -TimeoutSeconds $DetachTimeoutSeconds
             if ($clean) { Write-Host "  [+] Storage clean on $masterName." -ForegroundColor Green }
-            elseif (!$Force) {
-                Write-Host "  [!] Volumes still attached to ${masterName}; skipping poweroff (re-run with -Force to override)." -ForegroundColor Red
+            elseif (!$Force -or !$AllowDirtyPowerOff) {
+                Write-Host "  [!] Volumes still attached to ${masterName}; skipping poweroff (use -Force -AllowDirtyPowerOff only for an emergency override)." -ForegroundColor Red
                 $skippedNodes += $masterName
                 $masterOk = $false
             }
@@ -1259,8 +1267,8 @@ foreach ($master in $masterTargets) {
             # it had attachments, do not silently power it off.
             $preAttached = @()
             if ($masterPreCheck.ContainsKey($masterName)) { $preAttached = @($masterPreCheck[$masterName]) }
-            if ($preAttached.Count -gt 0 -and ($preAttached -notcontains 'UNKNOWN-API-FAILURE') -and !$Force) {
-                Write-Host "  [!] ${masterName} had attached volume(s) at pre-flight ($($preAttached -join ', ')) and the API is no longer answering - skipping poweroff (re-run with -Force to override)." -ForegroundColor Red
+            if ($preAttached.Count -gt 0 -and ($preAttached -notcontains 'UNKNOWN-API-FAILURE') -and (!$Force -or !$AllowDirtyPowerOff)) {
+                Write-Host "  [!] ${masterName} had attached volume(s) at pre-flight ($($preAttached -join ', ')) and the API is no longer answering - skipping poweroff (use -Force -AllowDirtyPowerOff only for an emergency override)." -ForegroundColor Red
                 $skippedNodes += $masterName
                 $masterOk = $false
             }
