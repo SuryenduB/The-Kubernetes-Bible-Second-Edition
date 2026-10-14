@@ -850,6 +850,34 @@ if ($actualMode -eq "FALLBACK") {
     foreach ($w in $workerFallback) { $targets += [PSCustomObject]@{ Name = $w.Name; IP = $w.IP } }
 }
 
+# Prefer an orderly worker shutdown before touching nodes that are already affected.
+# A node with no live Longhorn attachment and a Ready kubelet is the safest first target;
+# NotReady nodes and nodes still holding volumes are deferred so healthy capacity remains
+# available to receive evicted workloads and storage detachments.
+if ($actualMode -eq "DYNAMIC" -and $targets.Count -gt 1) {
+    $orderedTargets = @(
+        foreach ($target in $targets) {
+            $node = @($registryAllNodes.items | Where-Object { $_.metadata.name -eq $target.Name }) | Select-Object -First 1
+            $ready = $false
+            if ($node) {
+                $ready = @($node.status.conditions | Where-Object { $_.type -eq 'Ready' -and $_.status -eq 'True' }).Count -gt 0
+            }
+            $attached = @(Get-NodeAttachedVolumes -NodeName $target.Name)
+            $attachmentCount = if ($attached -contains 'UNKNOWN-API-FAILURE') { [int]::MaxValue } else { $attached.Count }
+            $priority = if ($ready -and $attachmentCount -eq 0) { 0 } elseif ($ready) { 1 } else { 2 }
+            [PSCustomObject]@{
+                Name = $target.Name
+                IP = $target.IP
+                ShutdownPriority = $priority
+                AttachedVolumeCount = $attachmentCount
+            }
+        }
+    )
+    $targets = @($orderedTargets | Sort-Object ShutdownPriority, AttachedVolumeCount, Name |
+        Select-Object Name, IP)
+    Write-Host "Worker shutdown order: healthy/storage-clean first; affected nodes deferred." -ForegroundColor DarkGray
+}
+
 # --- v9.3: ONE ERROR MUST NOT END THE RUN ---
 # The rest of the script runs inside try/catch/finally:
 #   * try     - the shutdown itself. Its phases (drain, detach gate, credentials) and its loops
