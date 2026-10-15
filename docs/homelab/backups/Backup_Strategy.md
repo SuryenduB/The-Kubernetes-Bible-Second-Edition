@@ -116,6 +116,21 @@ Explicitly NOT covered:
 
 ### 3.4 Restore a PVC (drill procedure — UNTESTED, do it)
 
+> **Automated path (added 2026-10-15):** `WindowsLab/Start-K3sHomelab.ps1 -Force` detects
+> Longhorn volumes that are `faulted` with no live replica left (e.g. the sole replica sat on a
+> powered-off `kubernetes1`-`kubernetes6` worker) and restores each one from its newest backup
+> by recreating the Longhorn volume under the **same name**. Without `-Force` it only reports the
+> plan. Restoring discards every write made after the backup, which is what `-Force` acknowledges.
+>
+> **Important (learned the hard way, 2026-10-15):** deleting a Longhorn volume also deletes the
+> PV/PVC bound to it ("If Longhorn detects that a volume is tied to a PersistentVolume or
+> PersistentVolumeClaim, then these resources will also be deleted"). The script therefore
+> captures that binding first and **re-creates the PV/PVC** after the volume comes back (PV marked
+> `Retain`), and scales an owning StatefulSet down/up so the controller cannot race in an empty
+> replacement. It also validates the restore manifest against the API server *before* deleting
+> anything. The scratch-namespace drill below is still the way to *verify* a backup round-trip
+> without touching production PVCs.
+
 ```bash
 # 1. Pick a backup (small, low-risk first: beszel-hub-data)
 kubectl -n longhorn-system get backups.longhorn.io

@@ -115,7 +115,26 @@ same registry field for its poweroff step.
 | `-RestartWorkloads` | Opt-in full serialized rolling restart (StatefulSets, storage-gated, one at a time, then Deployments). Off by default - uncordoning usually suffices. |
 | `-Rebalance` | Redistribute movable workloads off overloaded nodes using Eviction-API drains (PodDisruptionBudgets respected, protected nodes skipped). |
 | `-WaitForNodesMinutes <n>` | Wait up to N minutes for expected nodes to report Ready. |
+| `-Force` | Acknowledge that restoring a faulted Longhorn volume from backup **discards every write made after that backup**, and let the restore phase run it. Needed to recover volumes whose last replica sat on a down `kubernetes1`-`kubernetes6` worker. |
+| `-SkipFaultedVolumeRestore` | Detect and report faulted volumes even with `-Force`, but never delete/recreate them. |
+| `-FaultedVolumeRestoreNodes <names>` | Override which down nodes trigger the restore phase (default: the `kubernetes1`-`kubernetes6` workers from the registry). |
+| `-RestoreReplicaCount <n>` | Replica count written onto restored volumes (default `3`). |
 | `-FailOnDegraded` | Exit `2` when degraded workloads remain (for automation). |
+
+Faulted-volume restore: when a `kubernetes1`-`kubernetes6` worker is NotReady and a Longhorn
+volume is `faulted` with no live replica left, the run names its newest backup. Without `-Force`
+it stops there; with `-Force` it validates the restore manifest against the API server, deletes
+the dead Longhorn volume and recreates it from that backup **under the same name**, then rebuilds
+the PV/PVC that Longhorn removes along with the volume (marked `Retain` so a future deletion
+cannot cascade into the claim again). Deleting a Longhorn volume also deletes its PV/PVC - the
+script captures that binding up front and re-creates it, and scales any owning StatefulSet down
+and back up so the controller cannot race in an empty replacement. There is no in-place repair
+for a faulted volume - the backup is the recovery point.
+
+> Recovered volumes come back **degraded** until Longhorn rebuilds their replicas; that converges
+> on its own once the down workers return. If the down workers stay off, rebuild may never
+> happen: the surviving disks have little headroom above their reserved space, so Longhorn
+> reports `ReplicaSchedulingFailure` and the volumes stay at a single replica (no redundancy).
 
 Exit codes: `0` healthy, `1` fatal, `2` completed-but-degraded (only with `-FailOnDegraded`).
 

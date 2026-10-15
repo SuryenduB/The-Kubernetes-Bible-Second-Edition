@@ -3,7 +3,8 @@
 # Restores cluster capacity after a power-down. Every recovery phase runs by default:
 # uncordon Ready nodes -> recover the cluster core (CoreDNS/Traefik/metrics-server) ->
 # recover the Longhorn control plane and instance-managers -> clear multipathd ->
-# purge stranded/zombie pods -> repair Longhorn -> recycle CSI plugins ->
+# purge stranded/zombie pods -> repair Longhorn -> restore faulted volumes from backup
+# (only with -Force) -> recycle CSI plugins ->
 # engine-frontend recovery for dead /dev/longhorn devices ->
 # serialized workload reconcile -> PDB-aware rebalance -> verify.
 # Use the -Skip* switches to opt out of individual phases.
@@ -25,8 +26,10 @@
 
         uncordon Ready nodes -> recover the cluster core (CoreDNS/Traefik/metrics-server/
         local-path-provisioner) -> recover the Longhorn control plane and instance-managers ->
-        clear multipathd -> purge stranded/zombie pods -> repair Longhorn -> recycle CSI
-        plugins -> serialized workload reconcile -> PDB-aware rebalance -> verify
+        clear multipathd -> purge stranded/zombie pods -> repair Longhorn -> restore faulted
+        volumes from their newest Longhorn backup when a kubernetes1..kubernetes6 worker is
+        down (requires -Force) -> recycle CSI plugins -> serialized workload reconcile ->
+        PDB-aware rebalance -> verify
 
     A power-cycle leaves the cluster core half-dead in a specific way: the API comes back but
     CoreDNS does not, Longhorn's own managers then cannot resolve their webhook service, no
@@ -67,6 +70,15 @@
       * Every destructive action goes through one helper, so -DryRun/-WhatIf work and every
         change is recorded in a machine-readable run report.
 
+    Restore phase (added 2026-10-15): when one of the kubernetes1..kubernetes6 workers is
+    NotReady, the run looks for Longhorn volumes that are 'faulted' AND have no live replica
+    on any Ready node AND have their remaining replica(s) on that down worker. Those volumes
+    cannot recover on their own; the default run reports them plus the newest backup, and a
+    run with -Force reclaims each one by deleting the dead Longhorn volume and recreating it
+    from backup under the SAME name, so the existing PV/PVC reattach unchanged. -Force is the
+    explicit acknowledgement that every write made after the backup is discarded. Without
+    -Force (or with -SkipFaultedVolumeRestore) the phase is detect-and-report only.
+
 .PARAMETER SkipRestartWorkloads
     Opt OUT of the deterministic full rolling restart of StatefulSets (serialized,
     storage-gated) followed by Deployments. The restart runs by default.
@@ -83,7 +95,9 @@
     node is respawned by restarting the node's instance-manager. Survivors are then
     moved off nodes with a proven-dead frontend (cordon, cycle, uncordon - protected
     nodes are never cordoned), and anything still stuck is reported as a VOLUME WEDGE
-    with snapshot/backup restore guidance (detection only, never auto-restored).
+    with snapshot/backup restore guidance (detection only in this phase; a volume that is
+    actually Longhorn-faulted is handled by the faulted-volume restore phase, which needs
+    -Force).
     Runs by default; a node is only touched when every blocked volume on it is
 .PARAMETER SkipPlatformRepair
     Opt OUT of the cluster-core recovery: no purge of zombie platform pods and no restart of
@@ -179,6 +193,26 @@
     Legacy switch. Still honoured: guarantees no workload restarts happen (equivalent to
     -SkipRestartWorkloads; both can be supplied together harmlessly).
 
+.PARAMETER Force
+    Acknowledge that restoring a faulted Longhorn volume from backup DISCARDS every write
+    made after that backup, and let the restore phase run. Without -Force the restore phase
+    only detects and reports; it never deletes or recreates a volume.
+
+.PARAMETER SkipFaultedVolumeRestore
+    Opt OUT of the restore phase even when -Force is supplied.
+
+.PARAMETER FaultedVolumeRestoreNodes
+    Registry node names whose being NotReady triggers the restore phase. Empty (default)
+    derives the kubernetes1..kubernetes6 workers from WindowsLab/homelab-nodes.json.
+
+.PARAMETER RestoreReplicaCount
+    Replica count written onto every restored volume. Default: 3. Raising it above the
+    original is how the 2026-10-15 single-replica drift gets fixed rather than recreated.
+
+.PARAMETER RestoreWaitSeconds
+    How long to wait for the batch of restored volumes to report replicas before moving on
+    (they restore in parallel, so this is one shared window). Default: 900.
+
 .EXAMPLE
     PS> .\Start-K3sHomelab.ps1 -DryRun
     Preview the full recovery without changing anything. Start here.
@@ -201,15 +235,28 @@
     Full recovery, and exit 2 when the post-run verification still finds degraded
     workloads (useful from CI/cron).
 
+.EXAMPLE
+    PS> .\Start-K3sHomelab.ps1 -Force
+    Full recovery plus restore of faulted Longhorn volumes whose last replica sits on a down
+    kubernetes1..kubernetes6 worker. Data written after each volume's newest backup is lost.
+
+.EXAMPLE
+    PS> .\Start-K3sHomelab.ps1 -Force -FaultedVolumeRestoreNodes kubernetes6
+    Same restore, but only treat kubernetes6 being down as the trigger.
+
 .NOTES
     Requires: kubectl, pwsh 7+. Optional: ssh/sshpass for node telemetry.
     Platform: Windows, Linux, macOS (PowerShell 7+).
     Defaults: ALL recovery phases run. Only -FailOnDegraded (exit-code semantics) and the
-              waiting/budget knobs remain opt-in.
+              waiting/budget knobs remain opt-in. The one phase that needs an extra
+              acknowledgement is the faulted-volume restore: it only mutates with -Force
+              (without it the run still detects and reports the exact restore plan).
     Exit codes: 0 = healthy, 1 = fatal error, 2 = completed with degraded workloads
                 (only when -FailOnDegraded is supplied).
     Safety: this script never powers nodes on or off. Power the hardware on first, then run
             this script to uncordon and reconcile.
+    Restore safety: restoring a volume from backup permanently discards every write made
+            after that backup. -Force is that acknowledgement; the phase never runs silently.
 #>
 
 # Script-level PSScriptAnalyzer suppressions. Each was checked by hand and is either a
@@ -326,7 +373,36 @@ param(
     [int]$GracefulDeleteTimeout = 30,
 
     [Parameter()]
-    [switch]$SkipStaleAttachmentCleanup
+    [switch]$SkipStaleAttachmentCleanup,
+
+    # ── Faulted-volume restore from Longhorn backup ──────────────────────
+    # Restoring a volume from backup discards every write made after that backup, so it is
+    # never implicit: the phase only mutates when -Force is supplied. Without -Force the run
+    # still detects a restore-trigger node being down and reports exactly what it would do.
+    [Parameter()]
+    [switch]$Force,
+
+    # Opt out of the restore phase even when -Force is supplied.
+    [Parameter()]
+    [switch]$SkipFaultedVolumeRestore,
+
+    # Registry names whose being NotReady triggers the restore phase. Empty (default) derives
+    # the kubernetes1..kubernetes6 workers from WindowsLab/homelab-nodes.json - never a
+    # hardcoded list.
+    [Parameter()]
+    [string[]]$FaultedVolumeRestoreNodes = @(),
+
+    # Replica count applied to a restored volume. 3 is the resilience fix: the 2026-10-15
+    # outage faulted 19 volumes that had been left with a single replica on one worker.
+    [Parameter()]
+    [ValidateRange(1, 10)]
+    [int]$RestoreReplicaCount = 3,
+
+    # How long to wait for the batch of restored volumes to report replicas. One shared window
+    # for all of them, because they restore in parallel.
+    [Parameter()]
+    [ValidateRange(60, 1800)]
+    [int]$RestoreWaitSeconds = 900
 )
 
 $ErrorActionPreference = 'Stop'
@@ -341,6 +417,9 @@ $DoPlatformRepair    = -not $SkipPlatformRepair
 $DoMultipathRepair   = -not $SkipMultipathRepair
 $DoRebalance         = -not $SkipRebalance
 $DoStaleAttachmentCleanup = -not $SkipStaleAttachmentCleanup
+# Restoring a faulted volume from backup is destructive (writes after the backup are lost),
+# so it needs BOTH storage repair and the explicit -Force acknowledgement.
+$DoFaultedVolumeRestore = $Force -and (-not $SkipFaultedVolumeRestore) -and $DoStorageRepair
 # Restart is suppressed by either -SkipRestartWorkloads or the legacy -SkipRestart.
 $DoRestartWorkloads  = (-not $SkipRestartWorkloads) -and (-not $SkipRestart)
 # Callers that still pass an opt-in switch get a notice instead of a silent no-op.
@@ -2040,6 +2119,677 @@ function Get-LatestVolumeBackupName {
     return $newest
 }
 
+function Get-FaultedVolumeRestoreTriggerNodes {
+    <#
+    .SYNOPSIS
+        Registry node names whose being NotReady triggers the faulted-volume restore phase.
+
+    .DESCRIPTION
+        Defaults to the kubernetes1..kubernetes6 workers, derived from
+        WindowsLab/homelab-nodes.json so the list is never hardcoded here. Callers may pass an
+        explicit set (for example only kubernetes6) via -FaultedVolumeRestoreNodes.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param(
+        [Parameter()][string[]]$Names = @()
+    )
+
+    if ($Names.Count -gt 0) { return @($Names) }
+
+    return @(Get-HomelabNodes -Role 'worker' |
+        Where-Object { $_.name -match '^kubernetes[1-6]$' } |
+        ForEach-Object { [string]$_.name })
+}
+
+function Get-LonghornReplicaNodeMap {
+    <#
+    .SYNOPSIS
+        Longhorn volume name -> the nodeIDs that currently host a replica of that volume.
+    #>
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param()
+
+    $byVolume = @{}
+    foreach ($replica in (Get-K8sJson -KubectlArgs @('get', 'replicas.longhorn.io', '-n', $StorageNamespace))) {
+        $spec = Get-Prop $replica 'spec'
+        $volumeName = [string](Get-Prop $spec 'volumeName')
+        $nodeId = [string](Get-Prop $spec 'nodeID')
+        if (-not $volumeName) { continue }
+        if (-not $byVolume.ContainsKey($volumeName)) {
+            $byVolume[$volumeName] = [System.Collections.Generic.List[string]]::new()
+        }
+        $byVolume[$volumeName].Add($nodeId)
+    }
+
+    $map = @{}
+    foreach ($key in $byVolume.Keys) { $map[$key] = @($byVolume[$key].ToArray()) }
+    return $map
+}
+
+function Get-FaultedVolumeRestoreCandidate {
+    <#
+    .SYNOPSIS
+        Faulted Longhorn volumes that can only be recovered from backup because their last
+        replica sat on a down restore-trigger worker.
+
+    .DESCRIPTION
+        A volume qualifies only when ALL of the following hold:
+          * robustness is 'faulted' (replay exhausted - a retry cannot fix it), and
+          * it has no replica on any Ready node (nothing live is left to rebuild from), and
+          * at least one of its replicas is on a down trigger node, OR it has no replica
+            records at all while a trigger node is down.
+
+        Detection only - this function never mutates anything.
+    #>
+    [CmdletBinding()]
+    [OutputType([object[]])]
+    param(
+        [Parameter(Mandatory)][System.Collections.IDictionary]$NodeState,
+        [Parameter(Mandatory)][AllowEmptyCollection()][string[]]$DownTriggerNodes
+    )
+
+    $replicaNodeMap = Get-LonghornReplicaNodeMap
+    $storageStatus = Get-StorageStatus
+    $candidates = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($volume in @($storageStatus.Faulted)) {
+        $volumeName = [string]$volume.Name
+        $nodes = @()
+        if ($replicaNodeMap.ContainsKey($volumeName)) { $nodes = @($replicaNodeMap[$volumeName]) }
+
+        $liveOnReady = @($nodes | Where-Object { $_ -and $NodeState.Contains($_) -and $NodeState[$_].Ready })
+        if ($liveOnReady.Count -gt 0) { continue }   # a live replica exists; rebuilding is possible
+
+        $onDownTrigger = @($nodes | Where-Object { $DownTriggerNodes -contains $_ })
+        $attributable = ($onDownTrigger.Count -gt 0) -or ($nodes.Count -eq 0)
+        if (-not $attributable) { continue }
+
+        $backupName = Get-LatestVolumeBackupName -VolumeName $volumeName
+        $backupUrl = ''
+        $backupSize = ''
+        if ($backupName) {
+            $backupObjects = @(Get-K8sJson -KubectlArgs @('get', 'backups.longhorn.io', $backupName, '-n', $StorageNamespace))
+            if ($backupObjects.Count -gt 0) {
+                $backupStatus = Get-Prop $backupObjects[0] 'status'
+                $backupUrl = [string](Get-Prop $backupStatus 'url')
+                $backupSize = [string](Get-Prop $backupStatus 'volumeSize')
+            }
+        }
+
+        $candidates.Add([pscustomobject]@{
+                Name         = $volumeName
+                State        = [string]$volume.State
+                ReplicaNodes = @($nodes)
+                DownNodes    = @($onDownTrigger)
+                BackupName   = $backupName
+                BackupUrl    = $backupUrl
+                BackupSize   = $backupSize
+            })
+    }
+
+    return @($candidates)
+}
+
+function ConvertFrom-LonghornAccessMode {
+    <#
+    .SYNOPSIS
+        Maps a Longhorn access-mode token (rwo/rwx/ro) to the Kubernetes accessModes list.
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param([Parameter()][string]$Mode)
+
+    switch ($Mode) {
+        'rwx' { return @('ReadWriteMany') }
+        'ro' { return @('ReadOnlyMany') }
+        default { return @('ReadWriteOnce') }
+    }
+}
+
+function Get-PvcStatefulSetOwner {
+    <#
+    .SYNOPSIS
+        Returns the StatefulSet that owns a PVC by the '<template>-<sts>-<ordinal>' naming
+        contract, or '' when the PVC is not StatefulSet-managed.
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][string]$Namespace,
+        [Parameter(Mandatory)][string]$PvcName
+    )
+
+    foreach ($sts in @(Get-K8sJson -KubectlArgs @('get', 'statefulset', '-n', $Namespace))) {
+        $stsName = [string](Get-Prop (Get-Prop $sts 'metadata') 'name')
+        if (-not $stsName) { continue }
+        if ($PvcName -match ("^.+-{0}-\d+$" -f [regex]::Escape($stsName))) { return $stsName }
+    }
+    return ''
+}
+
+function Get-FaultedVolumeRestoreTarget {
+    <#
+    .SYNOPSIS
+        Captures everything needed to recreate the PV and PVC a faulted volume was bound to.
+
+    .DESCRIPTION
+        Longhorn deletes the PersistentVolume and PersistentVolumeClaim tied to a volume when
+        the volume itself is deleted ("If Longhorn detects that a volume is tied to a
+        PersistentVolume or PersistentVolumeClaim, then these resources will also be deleted").
+        A same-name restore therefore has to rebuild the PV/PVC as well. Metadata comes from the
+        live PV first; if the PV is already gone the newest backup's KubernetesStatus and
+        access-mode labels are used instead. Detection only - this never mutates anything.
+    #>
+    [CmdletBinding()]
+    [OutputType([object])]
+    param(
+        [Parameter(Mandatory)][string]$VolumeName,
+        [Parameter(Mandatory)]$Candidate
+    )
+
+    $target = [pscustomobject]@{
+        VolumeName   = $VolumeName
+        PvcName      = ''
+        Namespace    = ''
+        AccessModes  = @('ReadWriteOnce')
+        Capacity     = ''
+        StorageClass = 'longhorn'
+        FsType       = 'ext4'
+        StatefulSet  = ''
+    }
+
+    $pvObjects = @(Get-K8sJson -KubectlArgs @('get', 'pv', $VolumeName))
+    if ($pvObjects.Count -gt 0) {
+        $pvSpec = Get-Prop $pvObjects[0] 'spec'
+        $claimRef = Get-Prop $pvSpec 'claimRef'
+        $target.PvcName = [string](Get-Prop $claimRef 'name')
+        $target.Namespace = [string](Get-Prop $claimRef 'namespace')
+
+        $modes = @(Get-Prop $pvSpec 'accessModes')
+        if ($modes.Count -gt 0) { $target.AccessModes = @($modes) }
+
+        $capacity = [string](Get-Prop (Get-Prop $pvSpec 'capacity') 'storage')
+        if ($capacity) { $target.Capacity = $capacity }
+
+        $storageClass = [string](Get-Prop $pvSpec 'storageClassName')
+        if ($storageClass) { $target.StorageClass = $storageClass }
+
+        $csi = Get-Prop $pvSpec 'csi'
+        $fsType = [string](Get-Prop $csi 'fsType')
+        if ($fsType) { $target.FsType = $fsType }
+    }
+
+    if (-not $target.PvcName -and $Candidate.BackupName) {
+        $backupObjects = @(Get-K8sJson -KubectlArgs @('get', 'backups.longhorn.io', $Candidate.BackupName, '-n', $StorageNamespace))
+        if ($backupObjects.Count -gt 0) {
+            $labels = Get-Prop (Get-Prop $backupObjects[0] 'spec') 'labels'
+            $kubernetesStatus = [string](Get-Prop $labels 'KubernetesStatus')
+            if ($kubernetesStatus) {
+                try {
+                    $statusObject = $kubernetesStatus | ConvertFrom-Json
+                    $target.PvcName = [string](Get-Prop $statusObject 'pvcName')
+                    $target.Namespace = [string](Get-Prop $statusObject 'namespace')
+                }
+                catch { }
+            }
+            $accessMode = [string](Get-Prop $labels 'longhorn.io/volume-access-mode')
+            if ($accessMode) { $target.AccessModes = @(ConvertFrom-LonghornAccessMode -Mode $accessMode) }
+        }
+    }
+
+    if (-not $target.Capacity -and $Candidate.BackupSize) { $target.Capacity = [string]$Candidate.BackupSize }
+    if (-not $target.Capacity) { $target.Capacity = '1Gi' }
+
+    if ($target.Namespace -and $target.PvcName) {
+        $target.StatefulSet = Get-PvcStatefulSetOwner -Namespace $target.Namespace -PvcName $target.PvcName
+    }
+
+    return $target
+}
+
+function New-LonghornRestoreVolumeManifest {
+    <#
+    .SYNOPSIS
+        Builds the Longhorn Volume manifest that restores one volume from backup.
+
+    .DESCRIPTION
+        Built as an explicit list of lines joined with newlines rather than an interpolated
+        here-string. The earlier here-string carried no trailing newline, so the optional
+        'dataLocality'/'size' lines were welded onto the 'frontend' line - every restore
+        manifest was invalid YAML ("line 12: did not find expected key").
+    #>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param(
+        [Parameter(Mandatory)][string]$VolumeName,
+        [Parameter(Mandatory)][string]$BackupUrl,
+        [Parameter(Mandatory)][string]$BackupName,
+        [Parameter(Mandatory)][int]$ReplicaCount,
+        [Parameter()][string]$AccessMode = 'rwo',
+        [Parameter()][string]$DataLocality = '',
+        [Parameter()][string]$Size = ''
+    )
+
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('apiVersion: longhorn.io/v1beta2')
+    $lines.Add('kind: Volume')
+    $lines.Add('metadata:')
+    $lines.Add("  name: $VolumeName")
+    $lines.Add("  namespace: $StorageNamespace")
+    $lines.Add('  labels:')
+    $lines.Add("    restored-from-backup: `"$BackupName`"")
+    $lines.Add('spec:')
+    $lines.Add("  fromBackup: `"$BackupUrl`"")
+    $lines.Add("  numberOfReplicas: $ReplicaCount")
+    $lines.Add('  replicaSoftAntiAffinity: "disabled"')
+    $lines.Add("  accessMode: `"$AccessMode`"")
+    $lines.Add('  frontend: "blockdev"')
+    if ($DataLocality) { $lines.Add("  dataLocality: `"$DataLocality`"") }
+    if ($Size) { $lines.Add("  size: `"$Size`"") }
+
+    return (($lines -join "`n") + "`n")
+}
+
+function Wait-K8sObjectAbsent {
+    <#
+    .SYNOPSIS
+        Polls until a namespaced or cluster-scoped object disappears, or the timeout elapses.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$Kind,
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter()][string]$Namespace = '',
+        [Parameter()][int]$TimeoutSeconds = 90
+    )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        Test-Budget "waiting for $Kind $Name to disappear"
+        $kubectlArgs = @('get', $Kind, $Name)
+        if ($Namespace) { $kubectlArgs += @('-n', $Namespace) }
+        if (@(Get-K8sJson -KubectlArgs $kubectlArgs).Count -eq 0) { return $true }
+        Start-Sleep -Seconds 4
+    }
+    return $false
+}
+
+function Restore-LonghornVolumePvPvc {
+    <#
+    .SYNOPSIS
+        Recreates the PV and PVC for a volume restored from backup.
+
+    .DESCRIPTION
+        Deleting the Longhorn volume also deletes its PV/PVC, so the same-name restore has to
+        put them back. The PV is stamped with ReclaimPolicy Retain (and the PVC is pinned to it
+        with claimRef/volumeName) so a later volume deletion cannot cascade into the claim
+        again. If the old PV/PVC linger in Terminating, their finalizers are cleared first. If a
+        StatefulSet already re-provisioned an empty PVC, it is forced away so the restored
+        volume wins.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param([Parameter(Mandatory)]$Target)
+
+    if (-not $Target.PvcName -or -not $Target.Namespace) {
+        Add-Finding "Restored volume $($Target.VolumeName) could not be rebound: the original PVC namespace/name is unknown."
+        return $false
+    }
+
+    $existing = @(Get-K8sJson -KubectlArgs @('get', 'pvc', $Target.PvcName, '-n', $Target.Namespace))
+    if ($existing.Count -gt 0) {
+        $phase = [string](Get-Prop (Get-Prop $existing[0] 'status') 'phase')
+        $boundVolume = [string](Get-Prop (Get-Prop $existing[0] 'spec') 'volumeName')
+        $terminating = $null -ne (Get-Prop (Get-Prop $existing[0] 'metadata') 'deletionTimestamp')
+        if ($phase -eq 'Bound' -and $boundVolume -eq $Target.VolumeName -and -not $terminating) {
+            return $true
+        }
+        # Wrong volume (a StatefulSet re-provisioned an empty one) or already terminating:
+        # remove it so the restored PV/PVC can be created cleanly.
+        $null = Invoke-KubectlMutation -Description "delete stale PVC $($Target.Namespace)/$($Target.PvcName) before rebinding" `
+            -KubectlArgs @('delete', 'pvc', $Target.PvcName, '-n', $Target.Namespace, '--wait=false') `
+            -ActionType 'volume-restore-force' -Target $Target.PvcName -AllowFailure
+    }
+
+    if (-not (Wait-K8sObjectAbsent -Kind 'pv' -Name $Target.VolumeName -TimeoutSeconds 60)) {
+        $null = Invoke-KubectlMutation -Description "clear finalizers on stale PV $($Target.VolumeName)" `
+            -KubectlArgs @('patch', 'pv', $Target.VolumeName, '--type=merge', '-p', '{"metadata":{"finalizers":[]}}') `
+            -ActionType 'volume-restore-force' -Target $Target.VolumeName -AllowFailure
+        $null = Wait-K8sObjectAbsent -Kind 'pv' -Name $Target.VolumeName -TimeoutSeconds 30
+    }
+    if (-not (Wait-K8sObjectAbsent -Kind 'pvc' -Name $Target.PvcName -Namespace $Target.Namespace -TimeoutSeconds 60)) {
+        $null = Invoke-KubectlMutation -Description "clear finalizers on stale PVC $($Target.Namespace)/$($Target.PvcName)" `
+            -KubectlArgs @('patch', 'pvc', $Target.PvcName, '-n', $Target.Namespace, '--type=merge', '-p', '{"metadata":{"finalizers":[]}}') `
+            -ActionType 'volume-restore-force' -Target $Target.PvcName -AllowFailure
+        $null = Wait-K8sObjectAbsent -Kind 'pvc' -Name $Target.PvcName -Namespace $Target.Namespace -TimeoutSeconds 30
+    }
+
+    $modes = ($Target.AccessModes -join ', ')
+    $lines = [System.Collections.Generic.List[string]]::new()
+    $lines.Add('apiVersion: v1')
+    $lines.Add('kind: PersistentVolume')
+    $lines.Add('metadata:')
+    $lines.Add("  name: $($Target.VolumeName)")
+    $lines.Add('spec:')
+    $lines.Add('  capacity:')
+    $lines.Add("    storage: $($Target.Capacity)")
+    $lines.Add("  accessModes: [$modes]")
+    $lines.Add('  persistentVolumeReclaimPolicy: Retain')
+    $lines.Add("  storageClassName: $($Target.StorageClass)")
+    $lines.Add('  volumeMode: Filesystem')
+    $lines.Add('  csi:')
+    $lines.Add('    driver: driver.longhorn.io')
+    $lines.Add("    volumeHandle: $($Target.VolumeName)")
+    $lines.Add("    fsType: $($Target.FsType)")
+    $lines.Add('    volumeAttributes:')
+    $lines.Add('      numberOfReplicas: "3"')
+    $lines.Add('      staleReplicaTimeout: "30"')
+    $lines.Add('  claimRef:')
+    $lines.Add('    apiVersion: v1')
+    $lines.Add('    kind: PersistentVolumeClaim')
+    $lines.Add("    namespace: $($Target.Namespace)")
+    $lines.Add("    name: $($Target.PvcName)")
+    $lines.Add('---')
+    $lines.Add('apiVersion: v1')
+    $lines.Add('kind: PersistentVolumeClaim')
+    $lines.Add('metadata:')
+    $lines.Add("  name: $($Target.PvcName)")
+    $lines.Add("  namespace: $($Target.Namespace)")
+    $lines.Add('spec:')
+    $lines.Add("  accessModes: [$modes]")
+    $lines.Add("  storageClassName: $($Target.StorageClass)")
+    $lines.Add("  volumeName: $($Target.VolumeName)")
+    $lines.Add('  resources:')
+    $lines.Add('    requests:')
+    $lines.Add("      storage: $($Target.Capacity)")
+    $manifest = (($lines -join "`n") + "`n")
+
+    $manifestPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "longhorn-restore-pvpvc-$($Target.VolumeName).yaml"
+    Set-Content -Path $manifestPath -Value $manifest -Encoding utf8
+    $applied = Invoke-KubectlMutation -Description "recreate PV/PVC for restored volume $($Target.VolumeName) ($($Target.Namespace)/$($Target.PvcName))" `
+        -KubectlArgs @('apply', '-f', $manifestPath) -ActionType 'volume-restore-rebind' -Target $Target.VolumeName -AllowFailure
+    Remove-Item -Path $manifestPath -Force -ErrorAction SilentlyContinue
+
+    if (-not $applied) {
+        Add-Finding "Restored volume $($Target.VolumeName) is back but its PV/PVC could not be recreated; its pods will stay Pending."
+        return $false
+    }
+    return $true
+}
+
+function Wait-LonghornVolumeAbsent {
+    <#
+    .SYNOPSIS
+        Polls until a Longhorn Volume CR disappears, or the timeout elapses.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$VolumeName,
+        [Parameter(Mandatory)][int]$TimeoutSeconds
+    )
+
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    while ($sw.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
+        Test-Budget "waiting for Longhorn volume $VolumeName to disappear"
+        Start-Sleep -Seconds 5
+        if (@(Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', $VolumeName, '-n', $StorageNamespace)).Count -eq 0) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Remove-LonghornVolumeForRestore {
+    <#
+    .SYNOPSIS
+        Deletes a faulted Longhorn Volume CR so it can be recreated from backup under the SAME
+        name.
+
+    .DESCRIPTION
+        Longhorn refuses to restore a backup while a volume of that name already exists, so
+        removing the dead CR is what makes the same-name restore work.
+
+        IMPORTANT: Longhorn also deletes the PV and PVC tied to the volume when the volume is
+        deleted ("If Longhorn detects that a volume is tied to a PersistentVolume or
+        PersistentVolumeClaim, then these resources will also be deleted"). The PV/PVC are
+        therefore NOT left intact - Restore-LonghornVolumePvPvc rebuilds them afterwards.
+
+        If a replica lives on an offline node the CR can sit in Terminating forever waiting for
+        cleanup. After the timeout the finalizers are cleared so the dead CR goes away - safe
+        here precisely because the volume is faulted and its content is being replaced.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][string]$VolumeName,
+        [Parameter()][int]$TimeoutSeconds = 120
+    )
+
+    if ($script:DryRun) {
+        Write-Info "[DRY-RUN] delete faulted Longhorn volume $VolumeName (then recreate it from backup and rebuild its PV/PVC)"
+        Add-Action -Type 'dry-run' -Target $VolumeName `
+            -Detail "delete volumes.longhorn.io/$VolumeName before same-name restore"
+        return $true
+    }
+
+    $null = Invoke-KubectlMutation -Description "delete faulted Longhorn volume $VolumeName before restore" `
+        -KubectlArgs @('delete', 'volumes.longhorn.io', $VolumeName, '-n', $StorageNamespace,
+            '--ignore-not-found', '--wait=false') `
+        -ActionType 'volume-restore-delete' -Target $VolumeName -AllowFailure
+
+    if (Wait-LonghornVolumeAbsent -VolumeName $VolumeName -TimeoutSeconds $TimeoutSeconds) { return $true }
+
+    Write-Warn "Longhorn volume $VolumeName still terminating after ${TimeoutSeconds}s (a replica on the down node is blocking cleanup) - clearing finalizers."
+    $null = Invoke-KubectlMutation -Description "clear finalizers on stuck Longhorn volume $VolumeName" `
+        -KubectlArgs @('patch', 'volumes.longhorn.io', $VolumeName, '-n', $StorageNamespace,
+            '--type=merge', '-p', '{"metadata":{"finalizers":[]}}') `
+        -ActionType 'volume-restore-force' -Target $VolumeName -AllowFailure
+
+    if (Wait-LonghornVolumeAbsent -VolumeName $VolumeName -TimeoutSeconds 60) { return $true }
+
+    Write-Bad "Longhorn volume $VolumeName could not be removed; skipping its restore."
+    Add-Finding "Faulted-volume restore: $VolumeName is stuck Terminating and could not be replaced."
+    return $false
+}
+
+function Start-FaultedLonghornVolumeRestore {
+    <#
+    .SYNOPSIS
+        Deletes one faulted Longhorn volume and recreates it from its newest backup under the
+        SAME name. Does not wait for the restore to finish.
+
+    .DESCRIPTION
+        Detection already established the volume has no live replica, so its current content is
+        unrecoverable; the backup is the only recovery, and every write made after the backup is
+        lost - which is what -Force acknowledges before this runs.
+
+        Deleting the volume makes Longhorn delete its PV/PVC too, so those are captured up front
+        (Get-FaultedVolumeRestoreTarget) and rebuilt after the volume is recreated
+        (Restore-LonghornVolumePvPvc). The restore manifest is validated against the API server
+        before anything is deleted. StatefulSet-owned claims are scaled down around the swap so
+        the controller cannot race in an empty replacement.
+
+        Started restores run in parallel and are waited on once by
+        Wait-FaultedLonghornVolumeRestore, so 19 volumes do not serialize their sync time.
+    #>
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)]$Candidate,
+        [Parameter(Mandatory)][int]$ReplicaCount
+    )
+
+    $volumeName = [string]$Candidate.Name
+
+    # Refuse to touch a volume that is still attached: a live consumer means the volume may
+    # still be in use, and deleting it would be worse than reporting it.
+    $volumeObjects = @(Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', $volumeName, '-n', $StorageNamespace))
+    $currentState = ''
+    $oldAccessMode = 'rwo'
+    $oldDataLocality = ''
+    if ($volumeObjects.Count -gt 0) {
+        $currentState = [string](Get-Prop (Get-Prop $volumeObjects[0] 'status') 'state')
+        $oldSpec = Get-Prop $volumeObjects[0] 'spec'
+        $oldAccessMode = [string](Get-Prop $oldSpec 'accessMode')
+        if (-not $oldAccessMode) { $oldAccessMode = 'rwo' }
+        $oldDataLocality = [string](Get-Prop $oldSpec 'dataLocality')
+    }
+    if ($currentState -eq 'attached') {
+        Write-Warn "skipping $volumeName restore: the volume is still attached."
+        Add-Finding "Faulted-volume restore skipped for ${volumeName}: volume still attached."
+        return $false
+    }
+
+    if (-not $Candidate.BackupName -or -not $Candidate.BackupUrl) {
+        Write-Bad "$volumeName has no completed backup - it cannot be restored and must be rebuilt."
+        Add-Finding "Faulted volume $volumeName has no usable backup; restore impossible."
+        return $false
+    }
+
+    # Longhorn deletes the PV/PVC along with the volume, so capture how to rebuild them first.
+    $target = Get-FaultedVolumeRestoreTarget -VolumeName $volumeName -Candidate $Candidate
+    if (-not $target.PvcName -or -not $target.Namespace) {
+        Write-Bad "${volumeName}: could not determine the PVC it was bound to; refusing to delete it."
+        Add-Finding "Faulted-volume restore for $volumeName skipped: the original PVC identity is unknown."
+        return $false
+    }
+
+    $manifest = New-LonghornRestoreVolumeManifest -VolumeName $volumeName -BackupUrl $Candidate.BackupUrl `
+        -BackupName $Candidate.BackupName -ReplicaCount $ReplicaCount -AccessMode $oldAccessMode `
+        -DataLocality $oldDataLocality -Size ([string]$Candidate.BackupSize)
+    $manifestPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "longhorn-restore-$volumeName.yaml"
+    Set-Content -Path $manifestPath -Value $manifest -Encoding utf8
+
+    if ($script:DryRun) {
+        Write-Info "[DRY-RUN] would delete $volumeName, recreate it from $($Candidate.BackupUrl), and rebuild PV/PVC $($target.Namespace)/$($target.PvcName)"
+        Add-Action -Type 'dry-run' -Target $volumeName `
+            -Detail "restore from $($Candidate.BackupUrl) + rebuild PV/PVC $($target.Namespace)/$($target.PvcName)"
+        Remove-Item -Path $manifestPath -Force -ErrorAction SilentlyContinue
+        return $true
+    }
+
+    # Validate BEFORE deleting anything. The earlier version deleted the volume first and only
+    # then discovered the manifest was invalid YAML - leaving the volume with no replacement.
+    $validation = Invoke-Kubectl -KubectlArgs @('apply', '--dry-run=server', '-f', $manifestPath) -AllowFailure
+    if (-not $validation.Ok) {
+        Remove-Item -Path $manifestPath -Force -ErrorAction SilentlyContinue
+        Write-Bad "${volumeName}: restore manifest failed server validation; leaving the volume untouched."
+        Add-Finding "Faulted-volume restore for $volumeName aborted before deletion (manifest failed server validation)."
+        return $false
+    }
+
+    Write-Info "starting restore of $volumeName from backup $($Candidate.BackupName) (replicas=$ReplicaCount, size=$($Candidate.BackupSize))"
+
+    # A StatefulSet recreates its volumeClaimTemplate PVC (bound to a fresh empty volume) the
+    # instant the old one disappears. Scale it to 0 across the delete/rebuild so it cannot win
+    # that race, then scale it back afterwards.
+    $originalReplicas = 0
+    if ($target.StatefulSet) {
+        $stsObjects = @(Get-K8sJson -KubectlArgs @('get', 'statefulset', $target.StatefulSet, '-n', $target.Namespace))
+        if ($stsObjects.Count -gt 0) { $originalReplicas = [int](Get-Prop (Get-Prop $stsObjects[0] 'spec') 'replicas') }
+        $ordinal = ''
+        if ($target.PvcName -match '-(\d+)$') { $ordinal = $Matches[1] }
+        $null = Invoke-KubectlMutation -Description "scale StatefulSet $($target.Namespace)/$($target.StatefulSet) to 0 before restoring $volumeName" `
+            -KubectlArgs @('scale', 'statefulset', $target.StatefulSet, '-n', $target.Namespace, '--replicas=0') `
+            -ActionType 'volume-restore-sts-scale' -Target $target.StatefulSet -AllowFailure
+        if ($ordinal) {
+            $null = Wait-K8sObjectAbsent -Kind 'pod' -Name "$($target.StatefulSet)-$ordinal" -Namespace $target.Namespace -TimeoutSeconds 150
+        }
+    }
+
+    Add-Finding "Restore started for faulted volume $volumeName from backup $($Candidate.BackupName)."
+    $restoreOk = $false
+    if (Remove-LonghornVolumeForRestore -VolumeName $volumeName) {
+        if (Invoke-KubectlMutation -Description "recreate Longhorn volume $volumeName from backup $($Candidate.BackupName)" `
+                -KubectlArgs @('apply', '-f', $manifestPath) -ActionType 'volume-restore' -Target $volumeName -AllowFailure) {
+            $null = Restore-LonghornVolumePvPvc -Target $target
+            $restoreOk = $true
+        }
+        else {
+            Write-Bad "Failed to apply the restore manifest for $volumeName."
+            Add-Finding "Faulted-volume restore failed to apply for $volumeName."
+        }
+    }
+    Remove-Item -Path $manifestPath -Force -ErrorAction SilentlyContinue
+
+    if ($target.StatefulSet -and $originalReplicas -gt 0) {
+        $null = Invoke-KubectlMutation -Description "scale StatefulSet $($target.Namespace)/$($target.StatefulSet) back to $originalReplicas after restoring $volumeName" `
+            -KubectlArgs @('scale', 'statefulset', $target.StatefulSet, '-n', $target.Namespace, "--replicas=$originalReplicas") `
+            -ActionType 'volume-restore-sts-scale' -Target $target.StatefulSet -AllowFailure
+    }
+
+    return $restoreOk
+}
+
+function Wait-FaultedLonghornVolumeRestore {
+    <#
+    .SYNOPSIS
+        Polls every just-started restore until each volume has replicas again, or the wait
+        window elapses.
+
+    .DESCRIPTION
+        One loop for all volumes, so a batch of restores shares a single budget instead of
+        each one waiting its turn. A volume counts as restored once Longhorn is no longer
+        pulling the backup and has at least one replica on a Ready node.
+    #>
+    [CmdletBinding()]
+    [OutputType([bool])]
+    param(
+        [Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Started,
+        [Parameter(Mandatory)][int]$WaitSeconds
+    )
+
+    if ($Started.Count -eq 0) { return $true }
+
+    $pending = @{}
+    foreach ($item in $Started) { $pending[[string]$item.Name] = $item }
+
+    $deadline = (Get-Date).AddSeconds($WaitSeconds)
+    while ($pending.Count -gt 0 -and (Get-Date) -lt $deadline) {
+        Test-Budget 'waiting for Longhorn volume restores'
+        Start-Sleep -Seconds 10
+        foreach ($name in @($pending.Keys)) {
+            $live = @(Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', $name, '-n', $StorageNamespace))
+            if ($live.Count -eq 0) { continue }
+            $status = Get-Prop $live[0] 'status'
+            $state = [string](Get-Prop $status 'state')
+            $robustness = [string](Get-Prop $status 'robustness')
+            $conditions = @(Get-Prop $status 'conditions')
+            $restorePending = @($conditions | Where-Object {
+                    (Get-Prop $_ 'type') -eq 'Restore' -and (Get-Prop $_ 'status') -eq 'True'
+                }).Count -gt 0
+            $replicas = @(Get-K8sJson -KubectlArgs @('get', 'replicas.longhorn.io', '-n', $StorageNamespace,
+                    '-l', "longhornvolume=$name"))
+
+            if ($restorePending) {
+                Write-Info "  ${name}: pulling backup (state=$state, replicas=$($replicas.Count))"
+                continue
+            }
+            if ($robustness -in @('healthy', 'degraded') -and $replicas.Count -ge 1) {
+                Write-Ok "restored $name from backup $($pending[$name].BackupName) (state=$state, replicas=$($replicas.Count))."
+                Add-Action -Type 'volume-restored' -Target $name `
+                    -Detail "from $($pending[$name].BackupName) ($($pending[$name].BackupUrl))"
+                $pending.Remove($name)
+            }
+            else {
+                Write-Info "  ${name}: state=$state robustness=$robustness replicas=$($replicas.Count)"
+            }
+        }
+        if ($pending.Count -gt 0) {
+            Write-Info "restore progress: $($Started.Count - $pending.Count)/$($Started.Count) volume(s) have replicas."
+        }
+    }
+
+    foreach ($name in @($pending.Keys)) {
+        Write-Warn "$name restore did not converge within ${WaitSeconds}s; Longhorn will keep working on it."
+        Add-Finding "Faulted-volume restore for $name was still in progress when the wait timed out."
+    }
+    return ($pending.Count -eq 0)
+}
 
 # ── Preflight ──────────────────────────────────────────────────────────
 Write-Host "========================================" -ForegroundColor Cyan
@@ -2062,6 +2812,7 @@ $phasePlan = @(
     "multipathd remediation          : $(if ($DoMultipathRepair) { 'ON' } else { 'SKIPPED (-SkipMultipathRepair)' })"
     "purge stranded/zombie pods      : ON (always)"
     "repair Longhorn + recycle CSI   : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
+    "restore faulted volumes (backup): $(if ($DoFaultedVolumeRestore) { 'ON (-Force)' } elseif ($SkipFaultedVolumeRestore) { 'SKIPPED (-SkipFaultedVolumeRestore)' } elseif (-not $DoStorageRepair) { 'SKIPPED (-SkipStorageRepair)' } else { 'DETECT-ONLY (add -Force to restore)' })"
     "engine-frontend recovery        : $(if ($DoHostMountRepair) { 'ON' } else { 'SKIPPED (-SkipHostMountRepair)' })"
     "serialized workload reconcile   : $(if ($DoRestartWorkloads) { 'ON' } else { 'SKIPPED' })"
     "restart Deployments on degraded storage : $(if ($ForceRestartWithDegradedStorage) { 'YES (-ForceRestartWithDegradedStorage)' } else { 'no (skipped while Longhorn is degraded)' })"
@@ -2105,6 +2856,8 @@ Write-Verbose ("Parameters: SkipStorageRepair={0} SkipRestartWorkloads={1} SkipR
         $SkipStorageRepair, $SkipRestartWorkloads, $SkipRebalance, $RolloutTimeout)
 Write-Verbose ("Effective: DoStorageRepair={0} DoRestartWorkloads={1} DoRebalance={2} MaxDurationMinutes={3} " -f `
         $DoStorageRepair, $DoRestartWorkloads, $DoRebalance, $MaxDurationMinutes)
+Write-Verbose ("Effective: DoFaultedVolumeRestore={0} RestoreReplicaCount={1} RestoreWaitSeconds={2} Force={3} " -f `
+        $DoFaultedVolumeRestore, $RestoreReplicaCount, $RestoreWaitSeconds, $Force)
 Write-Verbose ("Parameters: WaitForNodesMinutes={0} StuckTerminatingMinutes={1} DryRun={2} FailOnDegraded={3} SkipRestart={4} " -f `
         $WaitForNodesMinutes, $StuckTerminatingMinutes, $DryRun, $FailOnDegraded, $SkipRestart)
 Write-Verbose "Legacy opt-in switches supplied: $(if ($LegacyOptInSwitches.Count -gt 0) { $LegacyOptInSwitches -join ', ' } else { 'none' })"
@@ -2451,6 +3204,63 @@ try {
                 -KubectlArgs @('delete', 'pod', '-n', $StorageNamespace, $lhName, '--grace-period=0', '--force') `
                 -ActionType 'storage-repair' -Target $lhName -AllowFailure
             if ($ok) { $repairedSomething = $true }
+        }
+    }
+
+    # 4a-2 - Restore faulted volumes from backup when a kubernetes1..kubernetes6 worker is down.
+    #      A faulted volume has exhausted its replays, so a retry cannot fix it; when its last
+    #      replica sits on the down worker there is nothing live left to rebuild from and the
+    #      newest Longhorn backup is the only recovery. Mutation happens only with -Force,
+    #      because every write made after that backup is discarded.
+    if ($DoStorageRepair -and $storageStatus.Available) {
+        $triggerNodes = @(Get-FaultedVolumeRestoreTriggerNodes -Names $FaultedVolumeRestoreNodes)
+        $downTriggerNodes = @($triggerNodes | Where-Object { $nodeState.Contains($_) -and -not $nodeState[$_].Ready })
+
+        if ($downTriggerNodes.Count -eq 0) {
+            Write-Info "Faulted-volume restore: no restore-trigger node is down ($($triggerNodes -join ', '))."
+        }
+        else {
+            Write-Warn "Faulted-volume restore: restore-trigger node(s) down - $($downTriggerNodes -join ', ')"
+            $restoreCandidates = @(Get-FaultedVolumeRestoreCandidate -NodeState $nodeState -DownTriggerNodes $downTriggerNodes)
+
+            if ($restoreCandidates.Count -eq 0) {
+                Write-Ok 'No faulted volume depends solely on those node(s); nothing to restore.'
+            }
+            else {
+                Write-Warn "$($restoreCandidates.Count) faulted volume(s) have no live replica and need a restore from backup:"
+                foreach ($candidate in $restoreCandidates) {
+                    $downText = if ($candidate.DownNodes.Count -gt 0) { $candidate.DownNodes -join ', ' } else { 'no replica records' }
+                    $backupText = if ($candidate.BackupName) { $candidate.BackupName } else { 'NO BACKUP - rebuild required' }
+                    Write-Info "  $($candidate.Name): replica(s) on [$downText], newest backup $backupText"
+                }
+
+                if (-not $DoFaultedVolumeRestore) {
+                    if ($SkipFaultedVolumeRestore) {
+                        Write-Warn 'Restore phase skipped (-SkipFaultedVolumeRestore); these volumes stay faulted.'
+                    }
+                    else {
+                        Write-Warn 'Re-run with -Force to restore them from backup. That discards every write made after each backup.'
+                    }
+                    foreach ($candidate in $restoreCandidates) {
+                        Add-Finding "Faulted volume $($candidate.Name) needs a restore from backup $($candidate.BackupName) (re-run with -Force)."
+                    }
+                }
+                else {
+                    $startedRestores = [System.Collections.Generic.List[object]]::new()
+                    foreach ($candidate in $restoreCandidates) {
+                        Test-Budget "starting restore of faulted volume $($candidate.Name)"
+                        if (Start-FaultedLonghornVolumeRestore -Candidate $candidate -ReplicaCount $RestoreReplicaCount) {
+                            $repairedSomething = $true
+                            $startedRestores.Add($candidate)
+                        }
+                    }
+                    # All restores are already running in parallel; wait for the batch once so
+                    # 19 volumes do not serialize their sync time against the global budget.
+                    if ($startedRestores.Count -gt 0 -and -not $script:DryRun) {
+                        $null = Wait-FaultedLonghornVolumeRestore -Started @($startedRestores) -WaitSeconds $RestoreWaitSeconds
+                    }
+                }
+            }
         }
     }
 
@@ -3104,7 +3914,13 @@ function Get-ManagedResource {
     # A faulted volume is a data-plane fault: no amount of retrying fixes it, so name the
     # restore point instead of leaving the operator with "volume X is broken".
     if ($storageAfter.Faulted.Count -gt 0) {
-        Write-Bad "$($storageAfter.Faulted.Count) faulted Longhorn volume(s) - these need a restore, not a retry:"
+        $restoreHint = if ($DoFaultedVolumeRestore) {
+            'the restore phase ran but these did not converge - check the log above'
+        }
+        else {
+            're-run with -Force to restore them from backup (writes after the backup are lost)'
+        }
+        Write-Bad "$($storageAfter.Faulted.Count) faulted Longhorn volume(s) - these need a restore, not a retry; $restoreHint :"
         foreach ($faultedVolume in $storageAfter.Faulted) {
             $backupName = Get-LatestVolumeBackupName -VolumeName $faultedVolume.Name
             $claimRef = ''
