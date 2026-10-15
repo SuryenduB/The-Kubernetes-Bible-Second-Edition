@@ -835,3 +835,5 @@ function Test-K3sClusterHealth {
     Write-Host "Diagnostic compiled successfully. Initiating visual interface..." -ForegroundColor Green
     Invoke-Item -Path $reportPath
 }
+
+Test-K3sClusterHealth
