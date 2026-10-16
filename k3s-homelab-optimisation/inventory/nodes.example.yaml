@@ -1,0 +1,72 @@
+# inventory/nodes.example.yaml: Example sanitized inventory template for K3s homelab
+all:
+  vars:
+    ansible_port: 22
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=accept-new'
+    k3s_version: "v1.34.6+k3s1"
+    k3s_cluster_cidr: "10.42.0.0/16"
+    k3s_service_cidr: "10.43.0.0/16"
+    k3s_cluster_dns: "10.43.0.10"
+  children:
+    k3s_cluster:
+      children:
+        control_plane:
+          hosts:
+            server1:
+              ansible_host: 192.0.2.10
+              ansible_user: k3sadmin
+              k3s_node_role: server
+              hardware_model: "Generic x86_64 (2 cores)"
+              ram_gb: 8
+              storage_type: "SSD (120GB)"
+              is_etcd_member: true
+        workers:
+          hosts:
+            worker1:
+              ansible_host: 192.0.2.11
+              ansible_user: k3sadmin
+              k3s_node_role: agent
+              hardware_model: "Generic x86_64 (4 cores)"
+              ram_gb: 16
+              storage_type: "HDD (500GB)"
+              longhorn_storage: true
+            worker2:
+              ansible_host: 192.0.2.12
+              ansible_user: k3sadmin
+              k3s_node_role: agent
+              hardware_model: "Generic x86_64 (4 cores)"
+              ram_gb: 16
+              storage_type: "NVMe SSD (1TB)"
+              longhorn_storage: true
+            worker3:
+              ansible_host: 192.0.2.13
+              ansible_user: k3sadmin
+              k3s_node_role: agent
+              hardware_model: "Generic x86_64 (4 cores)"
+              ram_gb: 16
+              storage_type: "SSD (120GB)"
+              longhorn_storage: true
+            worker4:
+              ansible_host: 192.0.2.14
+              ansible_user: k3sadmin
+              k3s_node_role: agent
+              hardware_model: "Generic x86_64 (4 cores)"
+              ram_gb: 8
+              storage_type: "SSD (256GB)"
+              longhorn_storage: true
+            worker5:
+              ansible_host: 192.0.2.15
+              ansible_user: k3sadmin
+              k3s_node_role: agent
+              hardware_model: "Generic x86_64 (4 cores)"
+              ram_gb: 8
+              storage_type: "HDD (1TB)"
+              longhorn_storage: true
+            worker6:
+              ansible_host: 192.0.2.16
+              ansible_user: k3sadmin
+              k3s_node_role: agent
+              hardware_model: "Generic x86_64 (4 cores)"
+              ram_gb: 16
+              storage_type: "HDD (500GB)"
+              longhorn_storage: true

@@ -1,0 +1,325 @@
+apiVersion: v1
+kind: Node
+metadata:
+  annotations:
+    alpha.kubernetes.io/provided-node-ip: 192.168.0.27,2a02:8109:f700:3000:7c8a:f08a:6828:386
+    csi.volume.kubernetes.io/nodeid: '{"driver.longhorn.io":"kubernetes8-debian"}'
+    flannel.alpha.coreos.com/backend-data: '{"VNI":1,"VtepMAC":"1a:1c:b6:8e:ed:4a"}'
+    flannel.alpha.coreos.com/backend-type: vxlan
+    flannel.alpha.coreos.com/kube-subnet-manager: "true"
+    flannel.alpha.coreos.com/public-ip: 192.168.0.27
+    k3s.io/hostname: kubernetes8-debian
+    k3s.io/internal-ip: 192.168.0.27,2a02:8109:f700:3000:7c8a:f08a:6828:386
+    k3s.io/node-args: '["agent"]'
+    k3s.io/node-config-hash: QDG7Z7SQK76EJSX7JTQYAEVXBCO4B6LGMF4WRVFT5EBHGVRMQFSQ====
+    k3s.io/node-env: '{"K3S_NODE_NAME":"kubernetes8-debian","K3S_TOKEN":"********","K3S_URL":"https://192.168.0.21:6443"}'
+    node.alpha.kubernetes.io/ttl: "0"
+    volumes.kubernetes.io/controller-managed-attach-detach: "true"
+  creationTimestamp: "2026-10-14T18:40:51Z"
+  finalizers:
+  - wrangler.cattle.io/managed-etcd-controller
+  - wrangler.cattle.io/node
+  labels:
+    beta.kubernetes.io/arch: amd64
+    beta.kubernetes.io/instance-type: k3s
+    beta.kubernetes.io/os: linux
+    kubernetes.io/arch: amd64
+    kubernetes.io/hostname: kubernetes8-debian
+    kubernetes.io/os: linux
+    node.kubernetes.io/instance-type: k3s
+  name: kubernetes8-debian
+  resourceVersion: "5125092"
+  uid: a6eb9c82-0d45-4414-9669-29d516421184
+spec:
+  podCIDR: 10.42.10.0/24
+  podCIDRs:
+  - 10.42.10.0/24
+  providerID: k3s://kubernetes8-debian
+  taints:
+  - effect: NoSchedule
+    key: node.kubernetes.io/unschedulable
+    timeAdded: "2026-10-15T20:17:00Z"
+  - effect: NoSchedule
+    key: node.kubernetes.io/unreachable
+    timeAdded: "2026-10-15T20:17:54Z"
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    timeAdded: "2026-10-16T14:33:27Z"
+  unschedulable: true
+status:
+  addresses:
+  - address: 192.168.0.27
+    type: InternalIP
+  - address: 2a02:8109:f700:3000:7c8a:f08a:6828:386
+    type: InternalIP
+  - address: kubernetes8-debian
+    type: Hostname
+  allocatable:
+    cpu: "2"
+    ephemeral-storage: "294205343514"
+    hugepages-2Mi: "0"
+    memory: 4006684Ki
+    pods: "110"
+  capacity:
+    cpu: "2"
+    ephemeral-storage: 302431480Ki
+    hugepages-2Mi: "0"
+    memory: 4006684Ki
+    pods: "110"
+  conditions:
+  - lastHeartbeatTime: "2026-10-15T20:15:46Z"
+    lastTransitionTime: "2026-10-15T20:17:54Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: MemoryPressure
+  - lastHeartbeatTime: "2026-10-15T20:15:46Z"
+    lastTransitionTime: "2026-10-15T20:17:54Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: DiskPressure
+  - lastHeartbeatTime: "2026-10-15T20:15:46Z"
+    lastTransitionTime: "2026-10-15T20:17:54Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: PIDPressure
+  - lastHeartbeatTime: "2026-10-15T20:15:46Z"
+    lastTransitionTime: "2026-10-15T20:17:54Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: Ready
+  daemonEndpoints:
+    kubeletEndpoint:
+      Port: 10250
+  features:
+    supplementalGroupsPolicy: true
+  images:
+  - names:
+    - ghcr.io/open-webui/open-webui@sha256:f179b139e120666eb9ca0fb4af0cfd12a8872f4e1b7bde25f53f099527a5f0aa
+    - ghcr.io/open-webui/open-webui:latest
+    sizeBytes: 1619177364
+  - names:
+    - 192.168.0.236:5000/sailpoint-iiq@sha256:a572c48e596a99d48c728a9897d03e34ecd95ba5b8822f6d3abbfa95d36bc1a7
+    - 192.168.0.236:5000/sailpoint-iiq:8.5
+    sizeBytes: 1207278493
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:b255f3279dd9d830ea153e9369928646dee519fd853036388926dddb5c66094b
+    - docker.io/longhornio/longhorn-instance-manager:v1.12.1
+    sizeBytes: 498107704
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:4f77955fb842bee21cf4724b19ddce144f485cfd477f2a38cf61615e138f88f7
+    - docker.io/longhornio/longhorn-instance-manager:v1.8.1
+    sizeBytes: 357605156
+  - names:
+    - quay.io/argoproj/argocd@sha256:ca0042d1a68b2508b5daed4bb6093b6baaf2a1bc1c6c9340ac7de4fa55d857a9
+    - quay.io/argoproj/argocd:latest
+    sizeBytes: 228640902
+  - names:
+    - ghcr.io/immich-app/postgres@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    - ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    sizeBytes: 205302009
+  - names:
+    - docker.io/longhornio/longhorn-engine@sha256:9b1b720b56df6612c9589cbc156acbca6419fa61de818d05db7226b0722f2868
+    - docker.io/longhornio/longhorn-engine:v1.12.1
+    sizeBytes: 175039107
+  - names:
+    - docker.io/longhornio/longhorn-engine@sha256:d86f66710e85b0165e18606edc215aa384368c8f0763a676e8e9a9ac16f7ae18
+    - docker.io/longhornio/longhorn-engine:v1.8.1
+    sizeBytes: 156399824
+  - names:
+    - docker.io/longhornio/longhorn-manager@sha256:83b79f57043fe1405e68bc0d4c7987accbc6bb512def3e0db12b31966c070801
+    - docker.io/longhornio/longhorn-manager:v1.12.1
+    sizeBytes: 134264362
+  - names:
+    - docker.io/longhornio/longhorn-share-manager@sha256:efaf47aeb4e8615e312f0880df860bf2e5b9fa53006fe075f057c6dd4089f47d
+    - docker.io/longhornio/longhorn-share-manager:v1.12.1
+    sizeBytes: 125642384
+  - names:
+    - docker.io/longhornio/longhorn-manager@sha256:f936764ef7a3df93893d7d454e2a0879979305c7d6b71a36ffecc5b4d1208abb
+    - docker.io/longhornio/longhorn-manager:v1.8.1
+    sizeBytes: 119475837
+  - names:
+    - docker.io/library/postgres@sha256:e013e867e712fec275706a6c51c966f0bb0c93cfa8f51000f85a15f9865a28cb
+    - docker.io/library/postgres:16-alpine
+    sizeBytes: 116039346
+  - names:
+    - docker.io/library/postgres@sha256:0a58464f336f8fcd62def41d7b1649dcb0a728ea78e7894f507be58c3d550091
+    - docker.io/library/postgres:15-alpine
+    sizeBytes: 115217612
+  - names:
+    - docker.io/osixia/phpldapadmin@sha256:9831569a2f3d1d764aabcb5abe6e463771b9595f1565fe3007fe77c4c3979043
+    - docker.io/osixia/phpldapadmin:latest
+    sizeBytes: 110740906
+  - names:
+    - docker.io/apache/activemq-artemis@sha256:48a689e5a8bd8999e276ac069748039d2fa7e7f153d33134c72c056794319f9e
+    - docker.io/apache/activemq-artemis:2.31.0-alpine
+    sizeBytes: 106638974
+  - names:
+    - docker.io/library/mariadb@sha256:5a5c675881ef3fd1c1da9b0a3bfd6ee82edbe39cd9e32e06be18034c37235e0e
+    - docker.io/library/mariadb:10.11
+    sizeBytes: 104103550
+  - names:
+    - docker.io/drosenbauer/docker-ssh-host@sha256:9e11723f284f0ba220b4624f7d48be828a07a1fc740f1feb5a8a1a3b2b8aef09
+    - docker.io/drosenbauer/docker-ssh-host:latest
+    sizeBytes: 95251598
+  - names:
+    - docker.io/longhornio/longhorn-share-manager@sha256:30d0eacff5f54e25e70294815f212eb0dcfa556a30e00aee9d3d62c1383ad7d2
+    - docker.io/longhornio/longhorn-share-manager:v1.8.1
+    sizeBytes: 87810493
+  - names:
+    - ghcr.io/gethomepage/homepage@sha256:a0b71c8e757298d02560186bab9fbe3fc2d375c523a62cc1019177b37e48aa28
+    - ghcr.io/gethomepage/homepage:latest
+    sizeBytes: 84480065
+  - names:
+    - 192.168.0.236:5000/ai-language-learning@sha256:b81318213a0132d1e698214a1b136f3d8952d3157fff0979455d96087bbe1eb8
+    - 192.168.0.236:5000/ai-language-learning:latest
+    sizeBytes: 83402501
+  - names:
+    - docker.io/longhornio/longhorn-ui@sha256:03a3ce6673df6e948c261fe978a695adaa8fb190d68bfe5c358af8ee3d3fbef5
+    - docker.io/longhornio/longhorn-ui:v1.12.1
+    sizeBytes: 75535572
+  - names:
+    - docker.io/longhornio/longhorn-ui@sha256:1ef898c4431eb5772f9f778f8031eb0b6dbd53fc1e331abb1764eef8f0f9c1ca
+    - docker.io/longhornio/longhorn-ui:v1.8.1
+    sizeBytes: 73388900
+  - names:
+    - docker.io/tailscale/tailscale@sha256:95e528798bebe75f39b10e74e7051cf51188ee615934f232ba7ad06a3390ffa1
+    - docker.io/tailscale/tailscale:v1.94.2
+    sizeBytes: 55806975
+  - names:
+    - docker.io/rancher/mirrored-library-traefik@sha256:c549d482c55d7a797398562064f35428cc53e748d84d7190997930e7b31bcc32
+    - docker.io/rancher/mirrored-library-traefik:3.6.10
+    sizeBytes: 52516176
+  - names:
+    - docker.io/rancher/mirrored-library-traefik@sha256:9004e1cd1e33c5eb0b6ec02bc6cfda61fe9caca36751114b1c9c6662f01b264a
+    - docker.io/rancher/mirrored-library-traefik:3.6.9
+    sizeBytes: 52411428
+  - names:
+    - docker.io/library/python@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
+    - docker.io/library/python:3.12-slim
+    sizeBytes: 43277070
+  - names:
+    - ghcr.io/dexidp/dex@sha256:b08a58c9731c693b8db02154d7afda798e1888dc76db30d34c4a0d0b8a26d913
+    - ghcr.io/dexidp/dex:v2.43.0
+    sizeBytes: 43032839
+  - names:
+    - docker.io/tailscale/k8s-operator@sha256:7956bd50dca9dc804b98720df94d112b54af85449ed0bf8cc7fad0346b225067
+    - docker.io/tailscale/k8s-operator:v1.94.2
+    sizeBytes: 41349885
+  - names:
+    - docker.io/longhornio/csi-snapshotter@sha256:2bca9ac55170efa61dc50e5cc8d9550373db2e3e5161d82d3fdaac5c25150360
+    - docker.io/longhornio/csi-snapshotter:v8.6.0
+    sizeBytes: 38897543
+  - names:
+    - docker.io/longhornio/csi-attacher@sha256:a814aa4784197116983ea13e376fc691e000a390de9d0b9fca2bc4a2fb7c4a1f
+    - docker.io/longhornio/csi-attacher:v4.12.0
+    sizeBytes: 38607714
+  - names:
+    - docker.io/longhornio/csi-resizer@sha256:63d0aef25114d4a682b25afa6d9623a3cfcc19aca910269124408476bbe2c6fd
+    - docker.io/longhornio/csi-resizer:v2.2.1
+    sizeBytes: 38544199
+  - names:
+    - docker.io/longhornio/csi-provisioner@sha256:1bbb7b11d8087130e722e3249f364d0ab49ee3545e847c2f299e87b7e1ce5c4f
+    - docker.io/longhornio/csi-provisioner:v5.3.0
+    sizeBytes: 35708854
+  - names:
+    - docker.io/longhornio/csi-provisioner@sha256:d8ce17ca633b8af494e6607743b63631df3d7dafda808fe42555e646093c70d5
+    - docker.io/longhornio/csi-provisioner:v5.2.0
+    sizeBytes: 34138869
+  - names:
+    - docker.io/longhornio/csi-resizer@sha256:0594a761e1cf0b07c1cbe12a11046f448c0bfe27a846ead597e73f93e856a8cb
+    - docker.io/longhornio/csi-resizer:v1.13.2
+    sizeBytes: 32421078
+  - names:
+    - docker.io/longhornio/csi-attacher@sha256:33c7ec2ede81280a76c7e65947523777691eff7a021a7c52b45969692a230e56
+    - docker.io/longhornio/csi-attacher:v4.8.1
+    sizeBytes: 32251257
+  - names:
+    - docker.io/longhornio/csi-snapshotter@sha256:dff0c369ad0dbea80f9c657ae817122c036d2775e3c98c2c62ab6138d2a9d6ec
+    - docker.io/longhornio/csi-snapshotter:v8.2.0
+    sizeBytes: 31142597
+  - names:
+    - ghcr.io/codebude/librislog/librislog@sha256:bb2f50f1f4f64df09f7dcb41a25354b3f7943fd12a4efab4214a5eb08ebbe5c5
+    - ghcr.io/codebude/librislog/librislog:v1.9.0
+    sizeBytes: 31027689
+  - names:
+    - docker.io/library/ubuntu@sha256:c4a8d5503dfb2a3eb8ab5f807da5bc69a85730fb49b5cfca2330194ebcc41c7b
+    - docker.io/library/ubuntu:24.04
+    sizeBytes: 29742141
+  - names:
+    - docker.io/rancher/mirrored-metrics-server@sha256:b2d2efaf5ac3b366ed0f839d2412a2c4279d4fc2a2a733f12c52133faed36c41
+    - docker.io/rancher/mirrored-metrics-server:v0.8.1
+    sizeBytes: 22550016
+  - names:
+    - docker.io/rancher/local-path-provisioner@sha256:34ff0847cc47ebf69656ba44a3de9324596d0036b66ffd323b21614dd8221530
+    - docker.io/rancher/local-path-provisioner:v0.0.35
+    sizeBytes: 21844283
+  - names:
+    - docker.io/rancher/local-path-provisioner@sha256:6ff68ebe98bc623b45ad22c28be84f8a08214982710f3247d5862e9bccce73ef
+    - docker.io/rancher/local-path-provisioner:v0.0.34
+    sizeBytes: 21600592
+  - names:
+    - docker.io/nginxinc/nginx-unprivileged@sha256:65e3e85dbaed8ba248841d9d58a899b6197106c23cb0ff1a132b7bfe0547e4c0
+    - docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+    sizeBytes: 20986061
+  - names:
+    - docker.io/library/python@sha256:1b668429b3511ab407d8e00648891631b0b1a4d7e15e3ca70f38ab5b91ad4ab4
+    - docker.io/library/python:3.12-alpine
+    sizeBytes: 20643193
+  - names:
+    - public.ecr.aws/docker/library/redis@sha256:ddd16a9b1575a774c7e62956be8daa1de5b32cfb5c25b7a216aefed8e0919f9b
+    - public.ecr.aws/docker/library/redis:7.2.7-alpine
+    sizeBytes: 16844051
+  - names:
+    - docker.io/library/redis@sha256:dfa18828cbc07b3ae6a95ec7343f6c214fdee2d836197b4be8e9904420762cd8
+    - docker.io/library/redis:7.2-alpine
+    sizeBytes: 15881859
+  - names:
+    - docker.io/longhornio/livenessprobe@sha256:8ced2d04e57e44cfba0b9901e984d8f063c72133a1fde3eb607cc634cd2c8244
+    - docker.io/longhornio/livenessprobe:v2.15.0
+    sizeBytes: 14995918
+  - names:
+    - docker.io/longhornio/csi-node-driver-registrar@sha256:69cd0517dcd5ca916ad9c8297d3d5370df93c84619cec3d977e8770edf70874f
+    - docker.io/longhornio/csi-node-driver-registrar:v2.13.0
+    sizeBytes: 14780983
+  - names:
+    - docker.io/longhornio/livenessprobe@sha256:d0cb76b565ba9d36da0dc2b38e2b6a49a0ae4fe067b03086110682f32c600318
+    - docker.io/longhornio/livenessprobe:v2.19.0
+    sizeBytes: 14770279
+  - names:
+    - docker.io/longhornio/csi-node-driver-registrar@sha256:29f7cfd519008fe8f8dff5e79db43f70d65c43a89c08f1bafbb199ca90df79f0
+    - docker.io/longhornio/csi-node-driver-registrar:v2.17.0
+    sizeBytes: 14640199
+  - names:
+    - docker.io/axllent/mailpit@sha256:956d688cbd13dca36c72d8e94c34d6d1cdf4a005aa6aa4ff6edaaac56c34d8df
+    - docker.io/axllent/mailpit:latest
+    sizeBytes: 14133756
+  nodeInfo:
+    architecture: amd64
+    bootID: 934f8a4c-a648-4141-8829-092c053c84eb
+    containerRuntimeVersion: containerd://2.2.2-bd1.34
+    kernelVersion: 6.12.74+deb13+1-amd64
+    kubeProxyVersion: ""
+    kubeletVersion: v1.34.6+k3s1
+    machineID: 44931b56f9f4469e8668e84671d78e54
+    operatingSystem: linux
+    osImage: Debian GNU/Linux 13 (trixie)
+    swap:
+      capacity: 4283428864
+    systemUUID: 00dcd807-2977-dd11-abd7-c96acbdc3599
+  runtimeHandlers:
+  - features:
+      recursiveReadOnlyMounts: true
+      userNamespaces: true
+    name: ""
+  - features:
+      recursiveReadOnlyMounts: true
+      userNamespaces: true
+    name: runc
+  - features:
+      recursiveReadOnlyMounts: false
+      userNamespaces: false
+    name: runhcs-wcow-process

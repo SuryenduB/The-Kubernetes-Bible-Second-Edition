@@ -1,0 +1,21 @@
+---
+# ansible/playbooks/etcd-snapshot.yaml: Trigger online etcd snapshot on control-plane
+- name: Trigger and Verify Online K3s etcd Snapshot
+  hosts: control_plane
+  gather_facts: no
+  tasks:
+    - name: Create online etcd snapshot via k3s CLI
+      ansible.builtin.command: /usr/local/bin/k3s etcd-snapshot save
+      register: snap_result
+
+    - name: Display snapshot result
+      ansible.builtin.debug:
+        msg: "{{ snap_result.stdout_lines }}"
+
+    - name: List snapshots
+      ansible.builtin.command: /usr/local/bin/k3s etcd-snapshot list
+      register: snap_list
+
+    - name: Display snapshot list
+      ansible.builtin.debug:
+        msg: "{{ snap_list.stdout_lines }}"

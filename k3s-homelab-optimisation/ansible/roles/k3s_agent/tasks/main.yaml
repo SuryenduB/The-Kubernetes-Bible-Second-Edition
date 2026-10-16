@@ -1,0 +1,16 @@
+---
+# ansible/roles/k3s_agent/tasks/main.yaml: Agent node verification
+- name: Verify K3s agent service is active
+  ansible.builtin.systemd:
+    name: k3s-agent
+    state: started
+    enabled: yes
+
+- name: Check root filesystem space availability
+  ansible.builtin.command: df -h /
+  register: root_df
+  changed_when: false
+
+- name: Display root filesystem status
+  ansible.builtin.debug:
+    msg: "{{ root_df.stdout_lines }}"

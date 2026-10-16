@@ -1,0 +1,299 @@
+apiVersion: v1
+kind: Node
+metadata:
+  annotations:
+    alpha.kubernetes.io/provided-node-ip: 192.168.0.26,2a02:8109:f700:3000:c0a7:1d5c:ec9e:d247
+    csi.volume.kubernetes.io/nodeid: '{"driver.longhorn.io":"kubernetes7"}'
+    flannel.alpha.coreos.com/backend-data: '{"VNI":1,"VtepMAC":"0e:db:32:06:68:29"}'
+    flannel.alpha.coreos.com/backend-type: vxlan
+    flannel.alpha.coreos.com/kube-subnet-manager: "true"
+    flannel.alpha.coreos.com/public-ip: 192.168.0.26
+    k3s.io/hostname: kubernetes7
+    k3s.io/internal-ip: 192.168.0.26,2a02:8109:f700:3000:c0a7:1d5c:ec9e:d247
+    k3s.io/node-args: '["agent"]'
+    k3s.io/node-config-hash: K2ONHSZSH3WFTEPKGEEP3LEWC373HITIEN4WWUHVWRJHTWBP6FPA====
+    k3s.io/node-env: '{"K3S_TOKEN":"********","K3S_URL":"https://192.168.0.21:6443"}'
+    node.alpha.kubernetes.io/ttl: "0"
+    volumes.kubernetes.io/controller-managed-attach-detach: "true"
+  creationTimestamp: "2026-03-30T15:33:48Z"
+  finalizers:
+  - wrangler.cattle.io/node
+  - wrangler.cattle.io/managed-etcd-controller
+  labels:
+    beta.kubernetes.io/arch: amd64
+    beta.kubernetes.io/instance-type: k3s
+    beta.kubernetes.io/os: linux
+    kubernetes.io/arch: amd64
+    kubernetes.io/hostname: kubernetes7
+    kubernetes.io/os: linux
+    kubernetes.io/role: worker
+    node-role.kubernetes.io/worker: "true"
+    node.kubernetes.io/instance-type: k3s
+  name: kubernetes7
+  resourceVersion: "5126337"
+  uid: 5b72f692-b39a-4d88-a9eb-b11eb82df237
+spec:
+  podCIDR: 10.42.7.0/24
+  podCIDRs:
+  - 10.42.7.0/24
+  providerID: k3s://kubernetes7
+  taints:
+  - effect: NoSchedule
+    key: node.kubernetes.io/unreachable
+    timeAdded: "2026-10-14T18:41:51Z"
+  - effect: NoExecute
+    key: node.kubernetes.io/unreachable
+    timeAdded: "2026-10-16T14:33:47Z"
+status:
+  addresses:
+  - address: 192.168.0.26
+    type: InternalIP
+  - address: 2a02:8109:f700:3000:c0a7:1d5c:ec9e:d247
+    type: InternalIP
+  - address: kubernetes7
+    type: Hostname
+  allocatable:
+    cpu: "4"
+    ephemeral-storage: "300641582869"
+    hugepages-1Gi: "0"
+    hugepages-2Mi: "0"
+    memory: 8058012Ki
+    pods: "110"
+  capacity:
+    cpu: "4"
+    ephemeral-storage: 309047680Ki
+    hugepages-1Gi: "0"
+    hugepages-2Mi: "0"
+    memory: 8058012Ki
+    pods: "110"
+  conditions:
+  - lastHeartbeatTime: "2026-10-09T20:27:02Z"
+    lastTransitionTime: "2026-10-14T18:41:50Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: MemoryPressure
+  - lastHeartbeatTime: "2026-10-09T20:27:02Z"
+    lastTransitionTime: "2026-10-14T18:41:50Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: DiskPressure
+  - lastHeartbeatTime: "2026-10-09T20:27:02Z"
+    lastTransitionTime: "2026-10-14T18:41:50Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: PIDPressure
+  - lastHeartbeatTime: "2026-10-09T20:27:02Z"
+    lastTransitionTime: "2026-10-14T18:41:50Z"
+    message: Kubelet stopped posting node status.
+    reason: NodeStatusUnknown
+    status: Unknown
+    type: Ready
+  daemonEndpoints:
+    kubeletEndpoint:
+      Port: 10250
+  features:
+    supplementalGroupsPolicy: true
+  images:
+  - names:
+    - docker.io/ollama/ollama@sha256:0455f166da85b1d07f694c33ba09278ca649603c0611ba8e46272b16eed7fccd
+    - docker.io/ollama/ollama:latest
+    sizeBytes: 3647550770
+  - names:
+    - ghcr.io/open-webui/open-webui@sha256:1a6399d237dc392a2313e0ca826020b3fd5d22536357840eb63393d18dc8b924
+    sizeBytes: 1822259809
+  - names:
+    - ghcr.io/open-webui/open-webui@sha256:8b432fe0a65b91116afc7961365c6cca5379cc923171386a96691f3471f3cae9
+    - ghcr.io/open-webui/open-webui:latest
+    sizeBytes: 1656076851
+  - names:
+    - ghcr.io/linuxserver/calibre@sha256:8c7b77ada7133cbac1519791035ac7e305e37adae5cd06038270a90f99f4b4d6
+    - ghcr.io/linuxserver/calibre:latest
+    sizeBytes: 1313450183
+  - names:
+    - ghcr.io/linuxserver/calibre@sha256:63631e9a99f6cbf532759b096d9b51dde8659deb7950ee7d2ee17af0d025c07e
+    sizeBytes: 1310719878
+  - names:
+    - ghcr.io/linuxserver/calibre@sha256:9c153bd9915c9748863e8c452426e99e23ec0a961ca351195acb3b1662b59e7b
+    sizeBytes: 1310011718
+  - names:
+    - 192.168.0.236:5000/sailpoint-iiq@sha256:a572c48e596a99d48c728a9897d03e34ecd95ba5b8822f6d3abbfa95d36bc1a7
+    - 192.168.0.236:5000/sailpoint-iiq:8.5
+    sizeBytes: 1207278493
+  - names:
+    - ghcr.io/simjanos-dev/linguacafe-python-service@sha256:5bb4358fe498c8ca62a80835c9c107583c3c86d4585ad7e9ce9263faa122d45f
+    - ghcr.io/simjanos-dev/linguacafe-python-service:latest
+    sizeBytes: 751989527
+  - names:
+    - docker.io/louislam/uptime-kuma@sha256:c74379ac4509ce2d2c2633f509e67003ee2e45b6e995c5e43fc101f45a0e1fbe
+    - docker.io/louislam/uptime-kuma:2
+    sizeBytes: 602307911
+  - names:
+    - mcr.microsoft.com/mssql/server@sha256:d7f2c670f0cd807b4dc466b8887bd2b39a4561f624c154896f5564ea38efd13a
+    - mcr.microsoft.com/mssql/server:2019-CU28-ubuntu-20.04
+    sizeBytes: 520651482
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:b255f3279dd9d830ea153e9369928646dee519fd853036388926dddb5c66094b
+    - docker.io/longhornio/longhorn-instance-manager:v1.12.1
+    sizeBytes: 498107704
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:596f589b61ea42dc571c705295c2453fd258853c91921dba6ea685c8eb5f95d2
+    - docker.io/longhornio/longhorn-instance-manager:v1.11.3
+    sizeBytes: 489300895
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:0657866bb9cf4a378a8ff27d1f2cca9bcc4491361873c5380cd1d5b70f00853b
+    - docker.io/longhornio/longhorn-instance-manager:v1.10.2
+    sizeBytes: 475513675
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:b0d45a6fadbef8f16ac168e06cbae7ae02e46eae9359b95e16ef1ce537069d81
+    - docker.io/longhornio/longhorn-instance-manager:v1.9.2
+    sizeBytes: 458906852
+  - names:
+    - docker.io/mozzo/booklogr@sha256:f442678f8a8084488ffdb519d3ff9e33446bb16072735b5d4f6fde30369b6df1
+    - docker.io/mozzo/booklogr:v1.12.0
+    sizeBytes: 426343747
+  - names:
+    - docker.io/longhornio/longhorn-instance-manager@sha256:4f77955fb842bee21cf4724b19ddce144f485cfd477f2a38cf61615e138f88f7
+    - docker.io/longhornio/longhorn-instance-manager:v1.8.1
+    sizeBytes: 357605156
+  - names:
+    - ghcr.io/simjanos-dev/linguacafe-webserver@sha256:3dff7868071e694c5de46b49625ca981b41e2937d0b808cb3660ef3b11acfa02
+    - ghcr.io/simjanos-dev/linguacafe-webserver:latest
+    sizeBytes: 290444263
+  - names:
+    - 192.168.0.236:5000/openlingo@sha256:68554b17d962c6e57c263397026b7ab7b9564ce36d4b77326c48518d71a3a327
+    - 192.168.0.236:5000/openlingo:v10-dynamic-models
+    sizeBytes: 279586880
+  - names:
+    - ghcr.io/linuxserver/calibre-web@sha256:0767226fcf209d12d93ef1d29711ebc22c1c9db2c8a4b0e4469a8771fe269a52
+    - ghcr.io/linuxserver/calibre-web:0.6.27-ls401
+    sizeBytes: 273335448
+  - names:
+    - ghcr.io/linuxserver/calibre-web@sha256:6e8a8048571fd0f58cbf0eaf7a83c8623a028a159070e2f515e2e26abf91affb
+    - ghcr.io/linuxserver/calibre-web:0.6.25-ls358
+    sizeBytes: 261559397
+  - names:
+    - docker.io/library/mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    - docker.io/library/mysql:8.0
+    sizeBytes: 233594134
+  - names:
+    - quay.io/argoproj/argocd@sha256:8659ed4d13e23faadf9471179e6a976f80a68b1681612ac81d5f5cc4aebe02c1
+    - quay.io/argoproj/argocd:latest
+    sizeBytes: 228601403
+  - names:
+    - quay.io/argoproj/argocd@sha256:c4bb5121502935f190abc6188ce76415bca75f1abb89efabe48b7f316af987b7
+    sizeBytes: 227940311
+  - names:
+    - quay.io/argoproj/argocd@sha256:c35be810ebda62cc718d59887da0b2be31d32bf8516bc6688ec7e0fc8c3faf38
+    sizeBytes: 227906093
+  - names:
+    - quay.io/argoproj/argocd@sha256:49e1ea25f4e8754a8eb1bbf0880230af7c7bc6b483093924340e0cb7bb229f54
+    sizeBytes: 227905229
+  - names:
+    - quay.io/argoproj/argocd@sha256:18b57fed0553ceace3099f2ada2679f082234a2b8f0cfa8c5dedd1dffe86e793
+    sizeBytes: 227905127
+  - names:
+    - quay.io/argoproj/argocd@sha256:589105734ac63a450e3fb2b0dd9d4f9c037d521708ecdc263b457c1e22294f2d
+    sizeBytes: 227904877
+  - names:
+    - quay.io/argoproj/argocd@sha256:a9ba6419344be2ab591e467825559480dbffc908e1136c728d5195c166cff735
+    sizeBytes: 227904630
+  - names:
+    - quay.io/argoproj/argocd@sha256:8bc8b2017a2be2690a116292c4503791ec291c130548a9d9b8dd8e26e9b64155
+    sizeBytes: 227904368
+  - names:
+    - quay.io/argoproj/argocd@sha256:f33ec708869094ba32ec7ab0b56a20f85e8b045e0040fb27f7ffe30bae1e386c
+    sizeBytes: 227898127
+  - names:
+    - quay.io/argoproj/argocd@sha256:2f137f3a4084978a4068b07e1bce3daa5753f33c1a2503f5b401bb61f6a6a114
+    sizeBytes: 227895570
+  - names:
+    - quay.io/argoproj/argocd@sha256:b7231678989bb11991c698cd52d8740f15533bdf5b1d36bd67b1110e850298dc
+    sizeBytes: 227894983
+  - names:
+    - quay.io/argoproj/argocd@sha256:bb4be4ccb537b3dd13650628c6c69ed037da4bdb2f3e4637338c45217585ec91
+    sizeBytes: 227891621
+  - names:
+    - quay.io/argoproj/argocd@sha256:f14866ee819aa6de6fcdc428c722055a4de2692a9f8ed0967fecbb573408447f
+    sizeBytes: 227885986
+  - names:
+    - quay.io/argoproj/argocd@sha256:164f4fae757687ce09695eb38eb23be5c54717c5e919ea767cd43bc0b5852b06
+    sizeBytes: 227882801
+  - names:
+    - quay.io/argoproj/argocd@sha256:e88d8be3ce133106d5a169f6ad4fe8da36fae82f516394e9727cfabce93728e7
+    sizeBytes: 227882762
+  - names:
+    - quay.io/argoproj/argocd@sha256:7aa58f3fd519db17f47822826b250375a5319542f64fb29fb85c7d4dcf01d550
+    sizeBytes: 227882612
+  - names:
+    - quay.io/argoproj/argocd@sha256:6d5c9c0ddaae5594508516f6fe47e5ad61a5225f3381fdcfef259c28997b5f21
+    sizeBytes: 227881471
+  - names:
+    - quay.io/argoproj/argocd@sha256:b3d403ffa84be8407f8a8f19d5819186bdd03740fdc232ff44ff079627c78765
+    sizeBytes: 227877112
+  - names:
+    - quay.io/argoproj/argocd@sha256:a93b27cda74eb67cafe3a9a42a0b57c9fe2819521aee586144cb599b5f58ce14
+    sizeBytes: 227860324
+  - names:
+    - quay.io/argoproj/argocd@sha256:f267a5e71a4fd27bf84b33fcbe4ba5b033f7291dabe33d9cacb709d825ed8749
+    sizeBytes: 227860300
+  - names:
+    - quay.io/argoproj/argocd@sha256:287fa0f36341e4f2ac473441f442410be19e2651d2cfedf7ce1a12236ff2e258
+    sizeBytes: 227856768
+  - names:
+    - quay.io/argoproj/argocd@sha256:27cf909c141a030990a7416ab6a1ef0c861f5c52e1529be2c9df6b2ae5ad6481
+    sizeBytes: 227856482
+  - names:
+    - quay.io/argoproj/argocd@sha256:337e92ad3fb7c7a74cdfa0f676d1e7039873b2531e1004db9a4954bae1d8afae
+    sizeBytes: 227855514
+  - names:
+    - quay.io/argoproj/argocd@sha256:c5ee5e2cd5ccd16cdf7e7331b3028cef364c2468e3a173926e5dfa21fe5e608f
+    sizeBytes: 227854310
+  - names:
+    - quay.io/argoproj/argocd@sha256:9663becdcc9f7d0ff0bad88d581cb09c3cf74dd238def05ccff4beade7559db9
+    sizeBytes: 227854245
+  - names:
+    - quay.io/argoproj/argocd@sha256:842ab0424a42dd29d0a300be2a30a7c69bc86edd16874ca8e9df71e27659ed0c
+    sizeBytes: 227852755
+  - names:
+    - quay.io/argoproj/argocd@sha256:c5d56d929ebd0c0087feb0c70777cf5010cd7aecc1054fb04abc63183465a793
+    sizeBytes: 227851799
+  - names:
+    - quay.io/argoproj/argocd@sha256:c29ad76fa9ee76a2c0b1a5515765b96dc0f9875ef44fcd5dbad94f2b1b86d083
+    sizeBytes: 227849709
+  - names:
+    - quay.io/argoproj/argocd@sha256:d99a127fb70873a42f50cd8a797bbd44f4bc1da74409a5132ef482627ba8c966
+    sizeBytes: 227849656
+  nodeInfo:
+    architecture: amd64
+    bootID: 84245846-0c08-4b8c-b06f-fa5cb1c8addb
+    containerRuntimeVersion: containerd://2.2.2-bd1.34
+    kernelVersion: 7.0.0-34-generic
+    kubeProxyVersion: ""
+    kubeletVersion: v1.34.6+k3s1
+    machineID: 7748fedc7a21484895bbc20c1fcb5588
+    operatingSystem: linux
+    osImage: Ubuntu 24.04.2 LTS
+    swap:
+      capacity: 4294963200
+    systemUUID: a7f49dd4-a6f2-e311-b2a0-6cc217e9a4e5
+  runtimeHandlers:
+  - features:
+      recursiveReadOnlyMounts: true
+      userNamespaces: true
+    name: ""
+  - features:
+      recursiveReadOnlyMounts: true
+      userNamespaces: true
+    name: runc
+  - features:
+      recursiveReadOnlyMounts: false
+      userNamespaces: false
+    name: runhcs-wcow-process
+  volumesInUse:
+  - kubernetes.io/csi/driver.longhorn.io^pvc-845af60a-6017-4007-a40f-078c0293a7b2
+  - kubernetes.io/csi/driver.longhorn.io^pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe
+  - kubernetes.io/csi/driver.longhorn.io^pvc-af55db3a-726b-4ffa-a517-754872b7d828
+  - kubernetes.io/csi/driver.longhorn.io^pvc-d22b272d-cbb9-4bcc-b98e-7b8156135225

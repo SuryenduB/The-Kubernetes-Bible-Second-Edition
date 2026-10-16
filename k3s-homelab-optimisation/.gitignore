@@ -1,0 +1,18 @@
+# Ignore raw outputs and sensitive credentials
+*.key
+*.pem
+*.token
+*.kubeconfig
+kubeconfig*
+.vault_pass*
+*.env
+*.env.*
+*.secret.yaml
+*secrets-raw*
+*.raw.txt
+*.raw.json
+reports/*.raw*
+reports/*.txt
+reports/*.log
+inventory/generated/*
+!inventory/generated/.gitkeep

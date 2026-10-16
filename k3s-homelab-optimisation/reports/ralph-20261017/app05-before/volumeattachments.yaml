@@ -1,0 +1,794 @@
+apiVersion: v1
+items:
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:13:28Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-03e504ed2dc37cece48875e755b55265aacfc951f4bf9d06124939cd0b0be2a0
+    resourceVersion: "5214708"
+    uid: 71e037f2-25a9-4309-9522-50c1f5dd8a0e
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-6a2968b1-fa32-45fc-8397-130e0a2b9dae
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:02:39Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-0c916e2293658246a8cc786efd48077515760860620dbdb4128c0b3727c8c172
+    resourceVersion: "5204006"
+    uid: 609eea49-7e4f-4774-bf91-318addb68c85
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-dcaa17c7-d861-4321-9fb0-4876884b90e1
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes4
+    creationTimestamp: "2026-10-16T15:20:13Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-0ed97999944a74e80df17b915379f3a90a324991a16a18967580e1d469e83c69
+    resourceVersion: "5220747"
+    uid: b8af8240-a4ac-4a8d-8b9c-3f771f38b220
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes4
+    source:
+      persistentVolumeName: pvc-9cf5194e-c66a-410d-a5dc-203687471289
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:16:39Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-0feaf56ea9495c8306389aa17861530884dbc61a0f85150e0a570b36d4a40075
+    resourceVersion: "5217354"
+    uid: 74fdb7b1-0bce-46fe-83b9-cee5c2b90917
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-ba26f71c-32ea-4205-8d3e-91480a87fa7f
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:20:05Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-18925f30bc28b97090bd51e11c9e51c1c5e14fa6d133a05dac7247fc9b9c98ff
+    resourceVersion: "5220581"
+    uid: 96480598-086c-4ef0-819e-db6bdeaa7842
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-40a0d9d2-79e1-445c-b8de-62617d05727c
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes7
+    creationTimestamp: "2026-09-18T21:17:39Z"
+    deletionGracePeriodSeconds: 0
+    deletionTimestamp: "2026-09-22T13:40:15Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-1a3b0d0f3b1899e456a9911a4bdb0e3230e286e67c97a668663f28747ba23784
+    resourceVersion: "5408878"
+    uid: bf9891a2-542c-4918-a90e-28221099fcac
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes7
+    source:
+      persistentVolumeName: pvc-af6bb19d-b87a-4f61-951c-392a8af9ca87
+  status:
+    attached: true
+    detachError:
+      message: persistentvolume "pvc-af6bb19d-b87a-4f61-951c-392a8af9ca87" not found
+      time: "2026-10-16T23:21:51Z"
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-22b94d28ebc5763349c72f10c403eb0fe14780598216e6fcde897e4f9c8e8781
+    resourceVersion: "5205192"
+    uid: af4296e5-1507-46a9-a63c-dca67e964928
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-2923f753-83f3-4785-8b1e-0aa38a8b7cff
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:02:58Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-2343f0e722b5205cc94d841c1ea79402fb1a947da93b78aac667fe8c7fdf5c6a
+    resourceVersion: "5206180"
+    uid: 3aa014dd-6990-43c5-9293-23d253fdc2a1
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-64db145d-5580-4dfa-85cb-f29f059027d0
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:20:05Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-27c6b1ea892f919ca6ca3208bac177041e611687759ede5bc6c798dec5073ce5
+    resourceVersion: "5220544"
+    uid: 88a509d9-d76b-464a-8535-b3483bb91bab
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-f84aa0fa-aacd-48d3-95c3-2bb8a6864be1
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:20:12Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-28bb0549e82be73a1a324aeefc0c38eb71699d5577624f1dd5f441ff13797b94
+    resourceVersion: "5220740"
+    uid: c7261d8b-657c-4888-a68c-50f353ba0c17
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-5f60f5b5-a120-43a6-892a-24ddb8f84fb9
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:02:54Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-2abc820f9bdd81b9f66fdfc5e9a529808f90067a0c5c6e5f7faef5bfc5b997de
+    resourceVersion: "5204340"
+    uid: e0c3545e-70d1-438f-87fa-4250b02541ba
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-de16cc2a-a9ec-4df6-8bf7-8d68a3385bc4
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:20:19Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-3104a703b4a1b5d0f265df6eca697105ebd6c63dce99669826540996b32ca1ff
+    resourceVersion: "5220794"
+    uid: 732c2431-210e-472a-8ae9-155f97ba10f3
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-1c2e910a-c840-4fe4-8edb-058b7651459f
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:20:09Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-379316bfa1b7d4c4fe88bb7f3ac0905a00e03919f29df005ea21a3e475e76980
+    resourceVersion: "5220801"
+    uid: 308c947d-dad7-4fa4-b7a2-b5de9123c4e2
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-3784f169-93f7-49e9-bb9b-07b5cbb139ab
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:13:28Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-4d140e6327bc403e42d6efb7e798c895c43fd9624a3223ab63ce6bc5c15fa721
+    resourceVersion: "5214732"
+    uid: 75d636fb-2da3-4067-9431-f00a453fb650
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-309f5f37-5923-4294-bbb1-17c58a858e98
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes4
+    creationTimestamp: "2026-10-16T15:04:46Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-5b0ca9efb979ae5befe9b349773e8b02d3a24edb683583e65788f8c6277692e2
+    resourceVersion: "5205509"
+    uid: de4e5b1e-2377-41a4-893a-2fa83d7e2ea6
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes4
+    source:
+      persistentVolumeName: pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-5c2067190b14a117eeadcbc487ca0c931ad4cc6524a0c87b7660f512175b701f
+    resourceVersion: "5205472"
+    uid: 5b015f0c-2f4f-4a91-9c9a-32fd46fed161
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-8b78aa08-1ec3-4aa8-b6dc-eb6811c89118
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:03:37Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-62d99b094c52a5f61987c1b6af17e7f90110b9bd38c65d145c1788df1cb6daa2
+    resourceVersion: "5207540"
+    uid: 949bedb8-aa06-41bc-8eb0-ddec0b1d7dcb
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-e074a21a-5f75-4860-bd7e-029ce3cca2c4
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes1
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-6620c3f796f4e86d3920b745cfec5ed5250f962a5721e8076c0542c775841cd2
+    resourceVersion: "5199432"
+    uid: cd790ec9-34bb-4726-af4e-b9f3bd33d3fd
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes1
+    source:
+      persistentVolumeName: pvc-1b8b0cd5-2d01-48bc-a87a-234826326600
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:05:31Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-70aa1ea01924e72e4897996eb5d659573313db53e3ca2d75f64f2c6f8d8a6f3e
+    resourceVersion: "5208093"
+    uid: 1907382e-8a53-4d35-9e77-273a7388673e
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-d22b272d-cbb9-4bcc-b98e-7b8156135225
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-78851759882d682b9e623e5a1afdfff813909a08d64edb667ef9ece647b68bc1
+    resourceVersion: "5205347"
+    uid: abd26f80-5fd0-49e5-aad0-43b6a1e6a7cc
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-5dc25aed-f9c6-4ced-b0e5-50bbffba6fdc
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:20:07Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-7f76a298ea5a1e6d135e44d9bca39482467c5d5f16a4cae48c52455ed9498492
+    resourceVersion: "5220546"
+    uid: 15cbd8ac-32d5-49e7-aebc-93d412cb084d
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-9a8f1fb8-8cb5-41e5-8bea-e32fd29e9e7a
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:20:15Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-83f8041ee0ead527335e0b3ce586b61e8a464d7237c7acef363ac2ee0c120400
+    resourceVersion: "5220735"
+    uid: e143cdfd-ba84-4870-847e-4df801dd1a7b
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-85e01c0d-3d87-4342-989f-d4e910716e47
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes4
+    creationTimestamp: "2026-10-16T15:05:02Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-862a3ff4bfccea3943e4cc1dc40ef11bebd9df6e8445758ab6e7065e0146fe23
+    resourceVersion: "5206384"
+    uid: 5358e35a-3c33-4876-91f7-ce601811c2ec
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes4
+    source:
+      persistentVolumeName: pvc-4a422cda-b1b0-4feb-adbf-3e26967890cd
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:16:39Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-9e11ae929a2911e76a20538604f02d71872dee448f13739157e585babfbecdaf
+    resourceVersion: "5217353"
+    uid: 9f4c3c8a-3f31-45ca-a0d5-aeb1f700d3bd
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-3d8c69a3-90ae-4b64-97cf-cf7bccd1f723
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:13:28Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-a094f2a81c0ea4e22612afd0e6d3edfe1b7062d6f5292a52ac4242233d951463
+    resourceVersion: "5214685"
+    uid: eb2003a3-a42b-4558-ba77-008bd6ebab47
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-a6d5bcce-a085-42a4-9923-d3bfe1fdf451
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes1
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-a254a4da36d290f7ce40b638653dfb744b1687ee9a88b7d46f6e80e5cf428892
+    resourceVersion: "5204074"
+    uid: 06c9eb9d-a72c-4dd4-a368-8fe4115d7a71
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes1
+    source:
+      persistentVolumeName: pvc-845af60a-6017-4007-a40f-078c0293a7b2
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes1
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-ac94b19761bb67dc18491007bdcce2ee970a6c5e84bdca3b7c533ac2bdd22f3f
+    resourceVersion: "5198547"
+    uid: d48dace5-1e18-4b44-b7dc-fdf68dd85f6b
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes1
+    source:
+      persistentVolumeName: pvc-37639bba-1044-419c-895c-59b5c0bf27cf
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes4
+    creationTimestamp: "2026-10-16T15:04:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-b70595115cc2b0a4573a0a05a2efaf9e245f9beb7868b8d3cdee4c158142f716
+    resourceVersion: "5207369"
+    uid: 3c81ae35-d3f0-4f3a-bb02-7af8b32c4116
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes4
+    source:
+      persistentVolumeName: pvc-3fc59c8f-5b52-40d1-9249-4f3b8a7cf33a
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes4
+    creationTimestamp: "2026-10-16T15:16:41Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-b743eab32c30a738c2e476b7900c27ea695e5e2caea33b1f989154271c9f2632
+    resourceVersion: "5217373"
+    uid: d73afe64-d089-467d-a971-4dd97a4893ab
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes4
+    source:
+      persistentVolumeName: pvc-407215d8-b747-4061-81b0-1ce889215bca
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:01:59Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-b86dba886d3f687007f2c4ebeff0d2b66be24966446b9a9600b0c136277d2af6
+    resourceVersion: "5205400"
+    uid: d36d1f11-dc8e-44c9-a143-54f4537368e6
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-8dfcb65e-4eeb-4cd9-9591-52175b2e309a
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes7
+    creationTimestamp: "2026-09-18T22:15:33Z"
+    deletionGracePeriodSeconds: 0
+    deletionTimestamp: "2026-09-22T13:28:58Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-b96efc90b5ec981cd6d5fd8e688e2001e06c793a80f26793b599470f3e3c37d0
+    resourceVersion: "5408879"
+    uid: 42ca25fb-6457-496d-84c9-f64610fe4f21
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes7
+    source:
+      persistentVolumeName: pvc-c42102f2-51c5-44e4-81c4-66f81325fdaa
+  status:
+    attached: true
+    detachError:
+      message: persistentvolume "pvc-c42102f2-51c5-44e4-81c4-66f81325fdaa" not found
+      time: "2026-10-16T23:21:51Z"
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:20:10Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-bae7670d7413ea79505672b9087c7422cda6029f0f619c6f4f604d2851ccd256
+    resourceVersion: "5220669"
+    uid: a93f97cb-be78-4200-8df0-16c6fba6c5f8
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-fa2b33d0-bae0-4e26-9413-b352106a7c34
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:20:08Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-bc53b0118a79fe956b291537bd2245e7b47d081aaef3859ae9fd6ffe10e7df59
+    resourceVersion: "5220582"
+    uid: 462508e5-cde8-47bb-bff9-f8764fe15080
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-72406f23-bcb2-4f05-a7ba-38f2053cfc43
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:10:19Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-bcf52f8cd77c9b8104561a193de807d1095b5b16af1d1fc79f74ef76dd6e5106
+    resourceVersion: "5213029"
+    uid: 15493443-054a-4a64-b561-0db45f256d4b
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes7
+    creationTimestamp: "2026-09-18T22:17:32Z"
+    deletionGracePeriodSeconds: 0
+    deletionTimestamp: "2026-09-22T13:28:58Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-c38df88191b736c5aaadfa72a254666faada9ef9170b140108df83efd6efb39a
+    resourceVersion: "5408877"
+    uid: 1f1a6d77-0039-42f1-bef4-f89dbd791acb
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes7
+    source:
+      persistentVolumeName: pvc-108121d9-0cd4-4396-95b0-b76a912b10d7
+  status:
+    attached: true
+    detachError:
+      message: persistentvolume "pvc-108121d9-0cd4-4396-95b0-b76a912b10d7" not found
+      time: "2026-10-16T23:21:51Z"
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:05:02Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-cf2b9096519902eb25a1c95fd6808010956295fa5f93ebcfe2660539dd88fa58
+    resourceVersion: "5206897"
+    uid: 6f04febd-943c-4d2e-b8fc-84629d3c1739
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-36679608-b04d-4604-91c9-e91531f9e29b
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:03:01Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-d0635c13a2ce7c1eb76f8bb5d491ead51377c1c07739fec2486a2b0752418b9f
+    resourceVersion: "5206129"
+    uid: ac3cce5c-4710-4618-bca0-dd1e1b35db52
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-784beb59-d5e8-496e-b7c5-1a2d1a6b8458
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes1
+    creationTimestamp: "2026-10-16T15:02:13Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-d7568792ce711f5dd8a3ef752f54e7e081340410633fed03f5262fa302c9d26d
+    resourceVersion: "5200183"
+    uid: c57d8b66-c2bb-46d0-88c9-8c969dee372e
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes1
+    source:
+      persistentVolumeName: pvc-cde27019-53b7-48e6-a6aa-b73133e7dcc6
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:13:28Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-dad87fe499617f6c10679ef20d1e518f4762e17954dbb87e5b7921e997a6e2f0
+    resourceVersion: "5214733"
+    uid: 50721aab-cc6e-4832-8c71-68130c50e7ff
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-18e786bf-44f5-495c-8179-9febb4d48a3f
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-dcf68a80196a2cb866679dea6102089c231571ad4ee27d0f4c79bd742caeb608
+    resourceVersion: "5205222"
+    uid: c5219816-66f4-4722-bf58-d6b7dddbad8e
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-8128f724-790c-475b-aae3-32f0176ed5af
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes5
+    creationTimestamp: "2026-10-16T15:02:35Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-debc5679c760ee11f5f86964077e5d395cbc982b9a76b6f06274e5d8058f305a
+    resourceVersion: "5203477"
+    uid: 7d2bfc60-8311-4129-a587-854ca828e7b4
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes5
+    source:
+      persistentVolumeName: pvc-8ed467c0-85cb-4f70-9216-36f95b3339fb
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes2
+    creationTimestamp: "2026-10-16T15:02:00Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-e6f6f87fe071eec698be6f15e50685fba31cd44fe1956d0f9cef0270967a91b6
+    resourceVersion: "5205345"
+    uid: 9c418206-791e-48f5-9196-1497c13a2b29
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes2
+    source:
+      persistentVolumeName: pvc-4e9846ee-6c73-4edc-b9cb-e358f6159900
+  status:
+    attached: true
+- apiVersion: storage.k8s.io/v1
+  kind: VolumeAttachment
+  metadata:
+    annotations:
+      csi.alpha.kubernetes.io/node-id: kubernetes6
+    creationTimestamp: "2026-10-16T15:02:10Z"
+    finalizers:
+    - external-attacher/driver-longhorn-io
+    name: csi-f3b7c2d47ac14e1c1eb51e48df3a8f228ea3a5cefab10e5d631fcee0fec6acec
+    resourceVersion: "5203842"
+    uid: dafebf90-25c4-4df2-aae0-52b055d98ec4
+  spec:
+    attacher: driver.longhorn.io
+    nodeName: kubernetes6
+    source:
+      persistentVolumeName: pvc-af55db3a-726b-4ffa-a517-754872b7d828
+  status:
+    attached: true
+kind: List
+metadata:
+  resourceVersion: ""

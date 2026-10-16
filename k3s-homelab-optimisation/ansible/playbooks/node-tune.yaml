@@ -1,0 +1,7 @@
+---
+# ansible/playbooks/node-tune.yaml: Apply sysctl and system performance tuning
+- name: Apply Linux Performance Tuning Across Cluster Nodes
+  hosts: all
+  gather_facts: yes
+  roles:
+    - common

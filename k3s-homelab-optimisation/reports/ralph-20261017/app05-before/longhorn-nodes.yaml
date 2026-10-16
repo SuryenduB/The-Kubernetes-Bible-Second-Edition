@@ -1,0 +1,1337 @@
+apiVersion: v1
+items:
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:38Z"
+    finalizers:
+    - longhorn.io
+    generation: 2
+    name: kubernetes1
+    namespace: longhorn-system
+    resourceVersion: "5408991"
+    uid: bce8725f-d37f-4624-bc1f-6338305b1b82
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-1942d4e2865cd9de:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 146526152294
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes1
+    tags:
+    - beszel-recovery
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-15T13:16:19Z"
+      message: Node kubernetes1 is ready
+      reason: ""
+      status: "True"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:01:57Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-18T19:27:48Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:38Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:38Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:11:08Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:21Z"
+      message: All required packages [nfs-common open-iscsi cryptsetup dmsetup] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-1942d4e2865cd9de:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-15T13:16:19Z"
+          message: Disk default-disk-1942d4e2865cd9de(/var/lib/longhorn/) on node
+            kubernetes1 is ready
+          reason: ""
+          status: "True"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-15T13:16:19Z"
+          message: Disk default-disk-1942d4e2865cd9de(/var/lib/longhorn/) on node
+            kubernetes1 is schedulable
+          reason: ""
+          status: "True"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-1942d4e2865cd9de
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: b1e1998c-076c-4fff-8c6b-47c1264b418c
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-16T23:22:10Z"
+        instanceManagerName: instance-manager-f695193a99e0b374e9ff8b28dcd2a2f1
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-1a05dbf3-c9eb-48d3-8b02-9a39645a884e-r-fabff555: 10737418240
+          pvc-1b8b0cd5-2d01-48bc-a87a-234826326600-r-c32d21e9: 10737418240
+          pvc-1c2e910a-c840-4fe4-8edb-058b7651459f-r-97ca3c06: 2147483648
+          pvc-4a422cda-b1b0-4feb-adbf-3e26967890cd-r-0b1aca2a: 2147483648
+          pvc-4e9846ee-6c73-4edc-b9cb-e358f6159900-r-28caf0b7: 5368709120
+          pvc-5dc25aed-f9c6-4ced-b0e5-50bbffba6fdc-r-37dc6fd2: 2147483648
+          pvc-5f60f5b5-a120-43a6-892a-24ddb8f84fb9-r-f9339246: 2147483648
+          pvc-8ed467c0-85cb-4f70-9216-36f95b3339fb-r-a3811a88: 1073741824
+          pvc-9a8f1fb8-8cb5-41e5-8bea-e32fd29e9e7a-r-c24e736f: 5368709120
+          pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe-r-09fdf77b: 21474836480
+          pvc-9cf5194e-c66a-410d-a5dc-203687471289-r-947cf724: 5368709120
+          pvc-40a0d9d2-79e1-445c-b8de-62617d05727c-r-4326f1a6: 2147483648
+          pvc-64db145d-5580-4dfa-85cb-f29f059027d0-r-ddac3bce: 10737418240
+          pvc-6a2968b1-fa32-45fc-8397-130e0a2b9dae-r-fbfbd2f8: 2147483648
+          pvc-85e01c0d-3d87-4342-989f-d4e910716e47-r-9c1b5e66: 5368709120
+          pvc-309f5f37-5923-4294-bbb1-17c58a858e98-r-2b74d2df: 2147483648
+          pvc-3d8c69a3-90ae-4b64-97cf-cf7bccd1f723-r-e0dc415c: 2147483648
+          pvc-3fc59c8f-5b52-40d1-9249-4f3b8a7cf33a-r-8f1594f6: 1073741824
+          pvc-784beb59-d5e8-496e-b7c5-1a2d1a6b8458-r-d34cc6fd: 5368709120
+          pvc-845af60a-6017-4007-a40f-078c0293a7b2-r-5b64c14d: 32212254720
+          pvc-2923f753-83f3-4785-8b1e-0aa38a8b7cff-r-4746c437: 5368709120
+          pvc-3784f169-93f7-49e9-bb9b-07b5cbb139ab-r-a6f03003: 5368709120
+          pvc-8128f724-790c-475b-aae3-32f0176ed5af-r-99539d04: 2147483648
+          pvc-37639bba-1044-419c-895c-59b5c0bf27cf-r-30e1bac1: 10737418240
+          pvc-72406f23-bcb2-4f05-a7ba-38f2053cfc43-r-675fa1e2: 8589934592
+          pvc-407215d8-b747-4061-81b0-1ce889215bca-r-1fa80656: 1073741824
+          pvc-36679608-b04d-4604-91c9-e91531f9e29b-r-691bfa51: 5368709120
+          pvc-a6d5bcce-a085-42a4-9923-d3bfe1fdf451-r-40576be9: 5368709120
+          pvc-ba26f71c-32ea-4205-8d3e-91480a87fa7f-r-92f4b049: 5368709120
+          pvc-cde27019-53b7-48e6-a6aa-b73133e7dcc6-r-bc6159e2: 1073741824
+          pvc-dcaa17c7-d861-4321-9fb0-4876884b90e1-r-825e12d5: 2147483648
+          pvc-de16cc2a-a9ec-4df6-8bf7-8d68a3385bc4-r-4a8b6d3d: 5368709120
+          pvc-e074a21a-5f75-4860-bd7e-029ce3cca2c4-r-6b18a0de: 2147483648
+        storageAvailable: 146905497600
+        storageMaximum: 488420507648
+        storageScheduled: 192199786496
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:25Z"
+    finalizers:
+    - longhorn.io
+    generation: 2
+    name: kubernetes2
+    namespace: longhorn-system
+    resourceVersion: "5409420"
+    uid: c35a3bb2-adc4-43d0-81fe-894c567934cd
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-864209375f0cabd5:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 31526778470
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes2
+    tags:
+    - beszel-recovery
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:02:41Z"
+      message: Node kubernetes2 is ready
+      reason: ""
+      status: "True"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T20:42:05Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-18T19:28:35Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:25Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:25Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:55Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:20Z"
+      message: All required packages [nfs-common open-iscsi cryptsetup dmsetup] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-864209375f0cabd5:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:19Z"
+          message: Disk default-disk-864209375f0cabd5(/var/lib/longhorn/) on node
+            kubernetes2 is ready
+          reason: ""
+          status: "True"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:19Z"
+          message: Disk default-disk-864209375f0cabd5(/var/lib/longhorn/) on node
+            kubernetes2 is schedulable
+          reason: ""
+          status: "True"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-864209375f0cabd5
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: eee40789-71b4-44ef-a8ae-bc32962c4a9d
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-16T23:23:19Z"
+        instanceManagerName: instance-manager-1cf8e0e543f3543ae6d7205669b190b1
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-18e786bf-44f5-495c-8179-9febb4d48a3f-r-bdf77d83: 10737418240
+          pvc-1c2e910a-c840-4fe4-8edb-058b7651459f-r-78a048af: 2147483648
+          pvc-3d8c69a3-90ae-4b64-97cf-cf7bccd1f723-r-62941e60: 2147483648
+          pvc-4e9846ee-6c73-4edc-b9cb-e358f6159900-r-09ad45e5: 5368709120
+          pvc-5dc25aed-f9c6-4ced-b0e5-50bbffba6fdc-r-5a5389d6: 2147483648
+          pvc-85e01c0d-3d87-4342-989f-d4e910716e47-r-81f1c2e8: 5368709120
+          pvc-845af60a-6017-4007-a40f-078c0293a7b2-r-52ec567a: 32212254720
+          pvc-8dfcb65e-4eeb-4cd9-9591-52175b2e309a-r-4dc9f1ad: 5368709120
+          pvc-2923f753-83f3-4785-8b1e-0aa38a8b7cff-r-134dbba5: 5368709120
+          pvc-8128f724-790c-475b-aae3-32f0176ed5af-r-32c6e9e9: 2147483648
+          pvc-8b78aa08-1ec3-4aa8-b6dc-eb6811c89118-r-68a147f4: 5368709120
+          pvc-37639bba-1044-419c-895c-59b5c0bf27cf-r-377c415b: 10737418240
+          pvc-407215d8-b747-4061-81b0-1ce889215bca-r-e19a5150: 1073741824
+          pvc-36679608-b04d-4604-91c9-e91531f9e29b-r-ef8f41fe: 5368709120
+          pvc-a6d5bcce-a085-42a4-9923-d3bfe1fdf451-r-962f6dc6: 5368709120
+          pvc-d22b272d-cbb9-4bcc-b98e-7b8156135225-r-6d15b360: 2147483648
+        storageAvailable: 148163788800
+        storageMaximum: 210779168768
+        storageScheduled: 103079215104
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:13Z"
+    finalizers:
+    - longhorn.io
+    generation: 1
+    name: kubernetes3
+    namespace: longhorn-system
+    resourceVersion: "5408951"
+    uid: e8adbfc5-d934-4057-8f00-bf2a44b9a0db
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-90d2baf2b46904d9:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 34260362035
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes3
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-15T12:33:04Z"
+      message: Node kubernetes3 is ready
+      reason: ""
+      status: "True"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:20:30Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-18T19:27:56Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:13Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:14Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:43Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:14Z"
+      message: All required packages [nfs-common open-iscsi cryptsetup dmsetup] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-90d2baf2b46904d9:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-15T12:33:34Z"
+          message: Disk default-disk-90d2baf2b46904d9(/var/lib/longhorn/) on node
+            kubernetes3 is ready
+          reason: ""
+          status: "True"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T19:30:34Z"
+          message: Disk default-disk-90d2baf2b46904d9(/var/lib/longhorn/) on node
+            kubernetes3 is schedulable
+          reason: ""
+          status: "True"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-90d2baf2b46904d9
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: f94d5983-370c-4ef0-a94b-ecfee3a30207
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-16T23:22:04Z"
+        instanceManagerName: instance-manager-511b63a66ec7504c50462d498ae29196
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-1b8b0cd5-2d01-48bc-a87a-234826326600-r-843f9f38: 10737418240
+          pvc-3d8c69a3-90ae-4b64-97cf-cf7bccd1f723-r-35b10d09: 2147483648
+          pvc-6a2968b1-fa32-45fc-8397-130e0a2b9dae-r-a3cd1cdf: 2147483648
+          pvc-8dfcb65e-4eeb-4cd9-9591-52175b2e309a-r-c640006d: 5368709120
+          pvc-9a8f1fb8-8cb5-41e5-8bea-e32fd29e9e7a-r-e4043f4d: 5368709120
+          pvc-9cf5194e-c66a-410d-a5dc-203687471289-r-8fa07c86: 5368709120
+          pvc-18e786bf-44f5-495c-8179-9febb4d48a3f-r-b7ba2df0: 10737418240
+          pvc-64db145d-5580-4dfa-85cb-f29f059027d0-r-8fc4054b: 10737418240
+          pvc-784beb59-d5e8-496e-b7c5-1a2d1a6b8458-r-2b778aea: 5368709120
+          pvc-72406f23-bcb2-4f05-a7ba-38f2053cfc43-r-1b2aa825: 8589934592
+          pvc-af55db3a-726b-4ffa-a517-754872b7d828-r-64bf0a90: 5368709120
+          pvc-f84aa0fa-aacd-48d3-95c3-2bb8a6864be1-r-440cf449: 2147483648
+          pvc-fa2b33d0-bae0-4e26-9413-b352106a7c34-r-dd827994: 5368709120
+        storageAvailable: 30723276800
+        storageMaximum: 114201206784
+        storageScheduled: 79456894976
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:20Z"
+    finalizers:
+    - longhorn.io
+    generation: 1
+    name: kubernetes4
+    namespace: longhorn-system
+    resourceVersion: "5409458"
+    uid: 224f7d0e-2d2c-4b9c-8f86-fc5a661c3bdd
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-6c5b44263fc2cca9:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 31526778470
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes4
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:02:54Z"
+      message: Node kubernetes4 is ready
+      reason: ""
+      status: "True"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:01:59Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-18T19:28:18Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:20Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:20Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:50Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:17Z"
+      message: All required packages [nfs-common open-iscsi cryptsetup dmsetup] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-6c5b44263fc2cca9:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:27Z"
+          message: Disk default-disk-6c5b44263fc2cca9(/var/lib/longhorn/) on node
+            kubernetes4 is ready
+          reason: ""
+          status: "True"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:27Z"
+          message: Disk default-disk-6c5b44263fc2cca9(/var/lib/longhorn/) on node
+            kubernetes4 is schedulable
+          reason: ""
+          status: "True"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-6c5b44263fc2cca9
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: 53d90511-519e-4b21-886c-02a6844e313c
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-16T23:23:27Z"
+        instanceManagerName: instance-manager-657ed3ad3c948581ad83f8ea4e10a8c4
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-1c2e910a-c840-4fe4-8edb-058b7651459f-r-564ce9da: 2147483648
+          pvc-3fc59c8f-5b52-40d1-9249-4f3b8a7cf33a-r-428bc7e5: 1073741824
+          pvc-4a422cda-b1b0-4feb-adbf-3e26967890cd-r-012cdcfb: 2147483648
+          pvc-5f60f5b5-a120-43a6-892a-24ddb8f84fb9-r-96703fdb: 2147483648
+          pvc-8b78aa08-1ec3-4aa8-b6dc-eb6811c89118-r-5455674a: 5368709120
+          pvc-8ed467c0-85cb-4f70-9216-36f95b3339fb-r-6d6e8964: 1073741824
+          pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe-r-916ef1a7: 21474836480
+          pvc-40a0d9d2-79e1-445c-b8de-62617d05727c-r-afa9f0d2: 2147483648
+          pvc-309f5f37-5923-4294-bbb1-17c58a858e98-r-6533f465: 2147483648
+          pvc-3784f169-93f7-49e9-bb9b-07b5cbb139ab-r-e452cad0: 5368709120
+          pvc-af55db3a-726b-4ffa-a517-754872b7d828-r-3d6d92e4: 5368709120
+          pvc-ba26f71c-32ea-4205-8d3e-91480a87fa7f-r-9adb7a2b: 5368709120
+          pvc-cde27019-53b7-48e6-a6aa-b73133e7dcc6-r-2c3e80b8: 1073741824
+          pvc-d22b272d-cbb9-4bcc-b98e-7b8156135225-r-3a30dde2: 2147483648
+          pvc-dcaa17c7-d861-4321-9fb0-4876884b90e1-r-6a89dbc4: 2147483648
+          pvc-de16cc2a-a9ec-4df6-8bf7-8d68a3385bc4-r-f957f93d: 5368709120
+          pvc-fa2b33d0-bae0-4e26-9413-b352106a7c34-r-4dae9e06: 5368709120
+        storageAvailable: 36175872000
+        storageMaximum: 105089261568
+        storageScheduled: 71940702208
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:34Z"
+    finalizers:
+    - longhorn.io
+    generation: 2
+    name: kubernetes5
+    namespace: longhorn-system
+    resourceVersion: "5409295"
+    uid: 34f42743-3716-4980-a413-36089e76c3e8
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-bae9a94627ae9954:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 31526778470
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes5
+    tags:
+    - beszel-recovery
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:01:06Z"
+      message: Node kubernetes5 is ready
+      reason: ""
+      status: "True"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T20:42:22Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-18T19:28:29Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:34Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:34Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:11:04Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:31Z"
+      message: All required packages [cryptsetup dmsetup nfs-common open-iscsi] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-bae9a94627ae9954:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:00Z"
+          message: Disk default-disk-bae9a94627ae9954(/var/lib/longhorn/) on node
+            kubernetes5 is ready
+          reason: ""
+          status: "True"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:05:34Z"
+          message: Disk default-disk-bae9a94627ae9954(/var/lib/longhorn/) on node
+            kubernetes5 is schedulable
+          reason: ""
+          status: "True"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-bae9a94627ae9954
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: 347bb07c-54fe-489e-b9ab-bc544e282ec9
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-16T23:23:00Z"
+        instanceManagerName: instance-manager-c93c520274bcdb8c4fb5ab397025604d
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-1a05dbf3-c9eb-48d3-8b02-9a39645a884e-r-a2074a2a: 10737418240
+          pvc-1b8b0cd5-2d01-48bc-a87a-234826326600-r-82695a96: 10737418240
+          pvc-3fc59c8f-5b52-40d1-9249-4f3b8a7cf33a-r-12b9f243: 1073741824
+          pvc-4a422cda-b1b0-4feb-adbf-3e26967890cd-r-72df2352: 2147483648
+          pvc-8dfcb65e-4eeb-4cd9-9591-52175b2e309a-r-3bc77b60: 5368709120
+          pvc-8ed467c0-85cb-4f70-9216-36f95b3339fb-r-e77bd213: 1073741824
+          pvc-9a8f1fb8-8cb5-41e5-8bea-e32fd29e9e7a-r-5fa85d66: 5368709120
+          pvc-9cf5194e-c66a-410d-a5dc-203687471289-r-b1712a22: 5368709120
+          pvc-18e786bf-44f5-495c-8179-9febb4d48a3f-r-0d1c197c: 10737418240
+          pvc-72406f23-bcb2-4f05-a7ba-38f2053cfc43-r-7ba9de94: 8589934592
+          pvc-af55db3a-726b-4ffa-a517-754872b7d828-r-03739da4: 5368709120
+          pvc-d22b272d-cbb9-4bcc-b98e-7b8156135225-r-2869704a: 2147483648
+          pvc-e074a21a-5f75-4860-bd7e-029ce3cca2c4-r-3643ea87: 2147483648
+          pvc-f84aa0fa-aacd-48d3-95c3-2bb8a6864be1-r-1208c481: 2147483648
+        storageAvailable: 137887744000
+        storageMaximum: 210779168768
+        storageScheduled: 73014444032
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:30Z"
+    finalizers:
+    - longhorn.io
+    generation: 1
+    name: kubernetes6
+    namespace: longhorn-system
+    resourceVersion: "5409352"
+    uid: 24f3a420-bc1d-4d1d-a48c-24bc5fcb2b57
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-ade96e2ba6692596:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 31526778470
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes6
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:02:39Z"
+      message: Node kubernetes6 is ready
+      reason: ""
+      status: "True"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-16T15:02:01Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-18T19:28:01Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:31Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:31Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:11:01Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:36Z"
+      message: All required packages [dmsetup nfs-common open-iscsi cryptsetup] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-ade96e2ba6692596:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:09Z"
+          message: Disk default-disk-ade96e2ba6692596(/var/lib/longhorn/) on node
+            kubernetes6 is ready
+          reason: ""
+          status: "True"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-16T15:03:09Z"
+          message: Disk default-disk-ade96e2ba6692596(/var/lib/longhorn/) on node
+            kubernetes6 is schedulable
+          reason: ""
+          status: "True"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-ade96e2ba6692596
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: 7f828968-952f-4f51-9429-4b518f65be57
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-16T23:23:09Z"
+        instanceManagerName: instance-manager-fa718672b7bbe01581f98326c216443a
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-4e9846ee-6c73-4edc-b9cb-e358f6159900-r-ffa71b94: 5368709120
+          pvc-5dc25aed-f9c6-4ced-b0e5-50bbffba6fdc-r-b589aa6c: 2147483648
+          pvc-5f60f5b5-a120-43a6-892a-24ddb8f84fb9-r-556f1f10: 2147483648
+          pvc-6a2968b1-fa32-45fc-8397-130e0a2b9dae-r-5b847efd: 2147483648
+          pvc-8b78aa08-1ec3-4aa8-b6dc-eb6811c89118-r-a9edf833: 5368709120
+          pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe-r-3d690577: 21474836480
+          pvc-40a0d9d2-79e1-445c-b8de-62617d05727c-r-fc0aa93c: 2147483648
+          pvc-64db145d-5580-4dfa-85cb-f29f059027d0-r-aabb36a2: 10737418240
+          pvc-85e01c0d-3d87-4342-989f-d4e910716e47-r-8316aa8c: 5368709120
+          pvc-309f5f37-5923-4294-bbb1-17c58a858e98-r-46a60cc0: 2147483648
+          pvc-784beb59-d5e8-496e-b7c5-1a2d1a6b8458-r-cb420245: 5368709120
+          pvc-845af60a-6017-4007-a40f-078c0293a7b2-r-19d25446: 32212254720
+          pvc-2923f753-83f3-4785-8b1e-0aa38a8b7cff-r-d7dedd81: 5368709120
+          pvc-3784f169-93f7-49e9-bb9b-07b5cbb139ab-r-6b618d60: 5368709120
+          pvc-8128f724-790c-475b-aae3-32f0176ed5af-r-6ab60642: 2147483648
+          pvc-37639bba-1044-419c-895c-59b5c0bf27cf-r-a8405c35: 10737418240
+          pvc-407215d8-b747-4061-81b0-1ce889215bca-r-8fa78b63: 1073741824
+          pvc-36679608-b04d-4604-91c9-e91531f9e29b-r-20b22a17: 5368709120
+          pvc-a6d5bcce-a085-42a4-9923-d3bfe1fdf451-r-e3b9ff5c: 5368709120
+          pvc-ba26f71c-32ea-4205-8d3e-91480a87fa7f-r-eb974839: 5368709120
+          pvc-cde27019-53b7-48e6-a6aa-b73133e7dcc6-r-baddfbb2: 1073741824
+          pvc-dcaa17c7-d861-4321-9fb0-4876884b90e1-r-0142ac38: 2147483648
+          pvc-de16cc2a-a9ec-4df6-8bf7-8d68a3385bc4-r-1e2695e1: 5368709120
+          pvc-e074a21a-5f75-4860-bd7e-029ce3cca2c4-r-d2c63a2f: 2147483648
+          pvc-f84aa0fa-aacd-48d3-95c3-2bb8a6864be1-r-b9db75b8: 2147483648
+          pvc-fa2b33d0-bae0-4e26-9413-b352106a7c34-r-68f704b4: 5368709120
+        storageAvailable: 139146035200
+        storageMaximum: 316464824320
+        storageScheduled: 155692564480
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-04-04T14:10:43Z"
+    finalizers:
+    - longhorn.io
+    generation: 7
+    name: kubernetes7
+    namespace: longhorn-system
+    resourceVersion: "4688189"
+    uid: 7e3583d5-c1dc-4747-a248-6d42e2ebf985
+  spec:
+    allowScheduling: false
+    disks:
+      default-disk-53f1ca514594ee10:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 31526778470
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes7
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:41:57Z"
+      message: 'Kubernetes node kubernetes7 not ready: NodeStatusUnknown'
+      reason: KubernetesNodeNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-05T20:51:31Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:44Z"
+      message: multipathd is running with a known issue that affects Longhorn. See
+        description and solution at https://longhorn.io/kb/troubleshooting-volume-with-multipath
+      reason: MultipathdIsRunning
+      status: "False"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:44Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:10:44Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-04-04T14:11:14Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:16:46Z"
+      message: All required packages [nfs-common open-iscsi cryptsetup dmsetup] are
+        installed
+      reason: ""
+      status: "True"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-53f1ca514594ee10:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-14T18:40:11Z"
+          message: Waiting for disk default-disk-53f1ca514594ee10 (/var/lib/longhorn/)
+            on node kubernetes7 to be ready
+          reason: NodeNotReady
+          status: "False"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-14T18:40:11Z"
+          message: Waiting for disk default-disk-53f1ca514594ee10 (/var/lib/longhorn/)
+            on node kubernetes7 to be schedulable
+          reason: NodeNotReady
+          status: "False"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-53f1ca514594ee10
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: 9de8e4a7-97e3-47be-b2a0-4681bb869571
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-09T20:23:07Z"
+        instanceManagerName: instance-manager-46814c1175d883cca41b4059744fd79e
+        scheduledBackingImage: {}
+        scheduledReplica: {}
+        storageAvailable: 145227776000
+        storageMaximum: 316464824320
+        storageScheduled: 0
+    region: ""
+    snapshotCheckStatus:
+      lastPeriodicCheckedAt: "2026-10-08T00:00:00Z"
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    creationTimestamp: "2026-10-14T18:48:40Z"
+    finalizers:
+    - longhorn.io
+    generation: 1
+    name: kubernetes8-debian
+    namespace: longhorn-system
+    resourceVersion: "5076187"
+    uid: 9a1be473-1950-4805-8df0-9fbdabf8ebd0
+  spec:
+    allowScheduling: true
+    disks:
+      default-disk-16c80ccbd509c5ec:
+        allowScheduling: true
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 61937967104
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: kubernetes8-debian
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-15T20:17:54Z"
+      message: 'Kubernetes node kubernetes8-debian not ready: NodeStatusUnknown'
+      reason: KubernetesNodeNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-15T20:17:00Z"
+      message: Node kubernetes8-debian is cordoned
+      reason: KubernetesNodeCordoned
+      status: "False"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:48:41Z"
+      message: 'Missing packages: [cryptsetup]'
+      reason: PackagesNotInstalled
+      status: "False"
+      type: RequiredPackages
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:48:41Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:48:43Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:48:43Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:49:13Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    cpuPolicy: none
+    diskStatus:
+      default-disk-16c80ccbd509c5ec:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-15T20:17:54Z"
+          message: Waiting for disk default-disk-16c80ccbd509c5ec (/var/lib/longhorn/)
+            on node kubernetes8-debian to be ready
+          reason: NodeNotReady
+          status: "False"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-15T20:17:54Z"
+          message: Waiting for disk default-disk-16c80ccbd509c5ec (/var/lib/longhorn/)
+            on node kubernetes8-debian to be schedulable
+          reason: NodeNotReady
+          status: "False"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-16c80ccbd509c5ec
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: 5eb95dd5-bf60-4db1-bb40-72c97efec8db
+        filesystemType: ext2/ext3
+        healthData:
+          default-disk-16c80ccbd509c5ec:
+            attributes:
+            - id: 1
+              name: Raw_Read_Error_Rate
+              rawString: "0"
+              rawValue: 0
+              threshold: 51
+              value: 200
+              worst: 200
+            - id: 3
+              name: Spin_Up_Time
+              rawString: "1691"
+              rawValue: 1691
+              threshold: 21
+              value: 186
+              worst: 148
+            - id: 4
+              name: Start_Stop_Count
+              rawString: "40201"
+              rawValue: 40201
+              value: 60
+              worst: 60
+            - id: 5
+              name: Reallocated_Sector_Ct
+              rawString: "0"
+              rawValue: 0
+              threshold: 140
+              value: 200
+              worst: 200
+            - id: 7
+              name: Seek_Error_Rate
+              rawString: "0"
+              rawValue: 0
+              value: 100
+              worst: 253
+            - id: 9
+              name: Power_On_Hours
+              rawString: "5530"
+              rawValue: 5530
+              value: 93
+              worst: 93
+            - id: 10
+              name: Spin_Retry_Count
+              rawString: "0"
+              rawValue: 0
+              threshold: 51
+              value: 100
+              worst: 100
+            - id: 11
+              name: Calibration_Retry_Count
+              rawString: "0"
+              rawValue: 0
+              value: 100
+              worst: 100
+            - id: 12
+              name: Power_Cycle_Count
+              rawString: "2849"
+              rawValue: 2849
+              value: 98
+              worst: 98
+            - id: 191
+              name: G-Sense_Error_Rate
+              rawString: "2666"
+              rawValue: 2666
+              value: 1
+              worst: 1
+            - id: 192
+              name: Power-Off_Retract_Count
+              rawString: "102"
+              rawValue: 102
+              value: 200
+              worst: 200
+            - id: 193
+              name: Load_Cycle_Count
+              rawString: "829521"
+              rawValue: 829521
+              value: 1
+              worst: 1
+            - id: 194
+              name: Temperature_Celsius
+              rawString: "41"
+              rawValue: 41
+              value: 106
+              worst: 93
+            - id: 196
+              name: Reallocated_Event_Count
+              rawString: "0"
+              rawValue: 0
+              value: 200
+              worst: 200
+            - id: 197
+              name: Current_Pending_Sector
+              rawString: "0"
+              rawValue: 0
+              value: 200
+              worst: 200
+            - id: 198
+              name: Offline_Uncorrectable
+              rawString: "0"
+              rawValue: 0
+              value: 100
+              worst: 253
+            - id: 199
+              name: UDMA_CRC_Error_Count
+              rawString: "0"
+              rawValue: 0
+              value: 200
+              worst: 200
+            - id: 200
+              name: Multi_Zone_Error_Rate
+              rawString: "0"
+              rawValue: 0
+              threshold: 51
+              value: 100
+              worst: 253
+            capacity: 320072933376
+            diskName: /dev/sda
+            diskType: sat
+            firmwareVersion: 01.01A01
+            healthStatus: PASSED
+            modelName: WDC WD3200BEVT-22A0RT0
+            serialNumber: WD-WX61A30C5915
+            source: SMART
+            temperature: 41
+        healthDataLastCollectedAt: "2026-10-15T20:09:18Z"
+        instanceManagerName: instance-manager-a5b3ed7233b2fbc5745e0ed1dd9b824f
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-5dc25aed-f9c6-4ced-b0e5-50bbffba6fdc-r-a94c28ad: 2147483648
+          pvc-5f60f5b5-a120-43a6-892a-24ddb8f84fb9-r-151e16e9: 2147483648
+          pvc-9b89f2df-748b-4619-8f98-abf1b93c32fe-r-0f551ee1: 21474836480
+          pvc-40a0d9d2-79e1-445c-b8de-62617d05727c-r-9b3d3bdc: 2147483648
+          pvc-85e01c0d-3d87-4342-989f-d4e910716e47-r-8ed05f12: 5368709120
+          pvc-845af60a-6017-4007-a40f-078c0293a7b2-r-83c2b805: 32212254720
+          pvc-3784f169-93f7-49e9-bb9b-07b5cbb139ab-r-3c595bdd: 5368709120
+          pvc-8128f724-790c-475b-aae3-32f0176ed5af-r-4cfc6566: 2147483648
+          pvc-37639bba-1044-419c-895c-59b5c0bf27cf-r-9fec3dbb: 10737418240
+          pvc-407215d8-b747-4061-81b0-1ce889215bca-r-fdbc7ffb: 1073741824
+          pvc-36679608-b04d-4604-91c9-e91531f9e29b-r-89a82872: 5368709120
+          pvc-a6d5bcce-a085-42a4-9923-d3bfe1fdf451-r-e8a6348f: 5368709120
+          pvc-ba26f71c-32ea-4205-8d3e-91480a87fa7f-r-cc013eaa: 5368709120
+          pvc-cde27019-53b7-48e6-a6aa-b73133e7dcc6-r-28f91efd: 1073741824
+          pvc-dcaa17c7-d861-4321-9fb0-4876884b90e1-r-8d99b249: 2147483648
+          pvc-de16cc2a-a9ec-4df6-8bf7-8d68a3385bc4-r-f187c663: 5368709120
+        storageAvailable: 245995929600
+        storageMaximum: 309689835520
+        storageScheduled: 109521666048
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"longhorn.io/v1beta2","kind":"Node","metadata":{"annotations":{},"name":"server-236","namespace":"longhorn-system"},"spec":{"allowScheduling":false,"disks":{"default-disk-187e48d0a42cd1ce":{"allowScheduling":false,"evictionRequested":false,"path":"/var/lib/longhorn/","storageReserved":10281818521,"tags":[]}},"evictionRequested":false,"name":"server-236"}}
+    creationTimestamp: "2026-09-19T18:00:57Z"
+    finalizers:
+    - longhorn.io
+    generation: 2
+    name: server-236
+    namespace: longhorn-system
+    resourceVersion: "4869908"
+    uid: 5531f82a-1562-4d6f-a5b3-5f3f0fb7584c
+  spec:
+    allowScheduling: false
+    disks:
+      default-disk-187e48d0a42cd1ce:
+        allowScheduling: false
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 10281818521
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: server-236
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:41:01Z"
+      message: 'Kubernetes node server-236 not ready: NodeStatusUnknown'
+      reason: KubernetesNodeNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:41:01Z"
+      message: Node server-236 is cordoned
+      reason: KubernetesNodeCordoned
+      status: "False"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-19T18:00:57Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-19T18:00:57Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-19T18:00:57Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-19T18:01:27Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:26Z"
+      message: 'Missing packages: [cryptsetup]'
+      reason: PackagesNotInstalled
+      status: "False"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-187e48d0a42cd1ce:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-14T20:54:30Z"
+          message: Waiting for disk default-disk-187e48d0a42cd1ce (/var/lib/longhorn/)
+            on node server-236 to be ready
+          reason: NodeNotReady
+          status: "False"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-10-14T20:54:30Z"
+          message: Waiting for disk default-disk-187e48d0a42cd1ce (/var/lib/longhorn/)
+            on node server-236 to be schedulable
+          reason: NodeNotReady
+          status: "False"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-187e48d0a42cd1ce
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: dab31329-9017-421c-9452-aa3a92083777
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-10-14T20:53:11Z"
+        instanceManagerName: instance-manager-98ef3a29e6ea327c15124263e916dbe2
+        scheduledBackingImage: {}
+        scheduledReplica: {}
+        storageAvailable: 20552089600
+        storageMaximum: 51409092608
+        storageScheduled: 0
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+- apiVersion: longhorn.io/v1beta2
+  kind: Node
+  metadata:
+    annotations:
+      kubectl.kubernetes.io/last-applied-configuration: |
+        {"apiVersion":"longhorn.io/v1beta2","kind":"Node","metadata":{"annotations":{},"name":"server-252","namespace":"longhorn-system"},"spec":{"allowScheduling":false,"disks":{"default-disk-10e64250fc5e6051":{"allowScheduling":false,"evictionRequested":false,"path":"/var/lib/longhorn/","storageReserved":26618961100,"tags":[]}},"evictionRequested":false,"name":"server-252"}}
+    creationTimestamp: "2026-09-20T12:37:15Z"
+    finalizers:
+    - longhorn.io
+    generation: 2
+    name: server-252
+    namespace: longhorn-system
+    resourceVersion: "4685669"
+    uid: 416e41e1-577d-4e98-b04f-1e2c054c0ed8
+  spec:
+    allowScheduling: false
+    disks:
+      default-disk-10e64250fc5e6051:
+        allowScheduling: false
+        diskDriver: ""
+        diskType: filesystem
+        evictionRequested: false
+        path: /var/lib/longhorn/
+        storageReserved: 26618961100
+        tags: []
+    evictionRequested: false
+    instanceManagerCPURequest: 0
+    name: server-252
+    tags: []
+  status:
+    autoEvicting: false
+    conditions:
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-25T21:24:42Z"
+      message: 'Kubernetes node server-252 not ready: NodeStatusUnknown'
+      reason: KubernetesNodeNotReady
+      status: "False"
+      type: Ready
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-10-14T18:40:34Z"
+      message: Node server-252 is cordoned
+      reason: KubernetesNodeCordoned
+      status: "False"
+      type: Schedulable
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-20T12:37:16Z"
+      message: multipathd is running with a known issue that affects Longhorn. See
+        description and solution at https://longhorn.io/kb/troubleshooting-volume-with-multipath
+      reason: MultipathdIsRunning
+      status: "False"
+      type: Multipathd
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-20T12:37:16Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: NFSClientInstalled
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-20T12:37:16Z"
+      message: Kernel modules [dm_crypt] are not loaded
+      reason: KernelModulesNotLoaded
+      status: "False"
+      type: KernelModulesLoaded
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-20T12:37:46Z"
+      message: ""
+      reason: ""
+      status: "True"
+      type: MountPropagation
+    - lastProbeTime: ""
+      lastTransitionTime: "2026-09-22T13:12:19Z"
+      message: 'Missing packages: [nfs-common]'
+      reason: PackagesNotInstalled
+      status: "False"
+      type: RequiredPackages
+    cpuPolicy: none
+    diskStatus:
+      default-disk-10e64250fc5e6051:
+        conditions:
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-09-25T21:24:42Z"
+          message: Waiting for disk default-disk-10e64250fc5e6051 (/var/lib/longhorn/)
+            on node server-252 to be ready
+          reason: NodeNotReady
+          status: "False"
+          type: Ready
+        - lastProbeTime: ""
+          lastTransitionTime: "2026-09-25T21:24:42Z"
+          message: Waiting for disk default-disk-10e64250fc5e6051 (/var/lib/longhorn/)
+            on node server-252 to be schedulable
+          reason: NodeNotReady
+          status: "False"
+          type: Schedulable
+        diskDriver: ""
+        diskName: default-disk-10e64250fc5e6051
+        diskPath: /var/lib/longhorn/
+        diskType: filesystem
+        diskUUID: df3cde8a-ee61-4e1a-8b8a-174ba49d29f4
+        filesystemType: ext2/ext3
+        healthDataLastCollectedAt: "2026-09-25T21:18:10Z"
+        instanceManagerName: instance-manager-e932f4f1d78759201ced76947a32f451
+        scheduledBackingImage: {}
+        scheduledReplica:
+          pvc-6a2968b1-fa32-45fc-8397-130e0a2b9dae-r-dee6e193: 2147483648
+          pvc-a6d5bcce-a085-42a4-9923-d3bfe1fdf451-r-f3b8fcaf: 5368709120
+          pvc-d22b272d-cbb9-4bcc-b98e-7b8156135225-r-5081d219: 2147483648
+        storageAvailable: 108527616000
+        storageMaximum: 133094805504
+        storageScheduled: 9663676416
+    region: ""
+    snapshotCheckStatus: {}
+    zone: ""
+kind: List
+metadata:
+  resourceVersion: ""

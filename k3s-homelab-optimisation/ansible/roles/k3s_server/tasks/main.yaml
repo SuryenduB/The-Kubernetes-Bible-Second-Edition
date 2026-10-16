@@ -1,0 +1,24 @@
+---
+# ansible/roles/k3s_server/tasks/main.yaml: Server and etcd maintenance tasks (APPROVAL-GATED)
+- name: Verify K3s server service is active
+  ansible.builtin.systemd:
+    name: k3s
+    state: started
+    enabled: yes
+
+- name: Deploy non-disruptive atomic etcd and identity backup script
+  ansible.builtin.copy:
+    src: ../../../scripts/k3s-etcd-safe-backup.sh
+    dest: /usr/local/bin/k3s-etcd-safe-backup.sh
+    mode: '0750'
+    owner: root
+    group: root
+
+- name: Schedule online atomic etcd snapshot every 6 hours (APPROVAL REQUIRED)
+  ansible.builtin.cron:
+    name: "K3s Online etcd Snapshot"
+    minute: "0"
+    hour: "*/6"
+    job: "/usr/local/bin/k3s-etcd-safe-backup.sh >> /var/log/k3s-etcd-backup.log 2>&1"
+    user: root
+    state: present

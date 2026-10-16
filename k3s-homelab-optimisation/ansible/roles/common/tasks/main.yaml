@@ -1,0 +1,32 @@
+---
+# ansible/roles/common/tasks/main.yaml: Common Linux kernel and system tuning for K3s nodes
+- name: Ensure required kernel modules exist in modules-load.d
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k3s-tuning.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Apply sysctl tuning parameters for K3s performance and stability
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+    sysctl_file: /etc/sysctl.d/99-k3s-tuning.conf
+  loop: "{{ sysctl_settings }}"
+
+- name: Ensure optimal file descriptor limits in limits.d
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/99-k3s.conf
+    content: |
+      * soft nofile 1048576
+      * hard nofile 1048576
+      root soft nofile 1048576
+      root hard nofile 1048576
+    mode: '0644'
+    owner: root
+    group: root

@@ -53,3 +53,23 @@ WindowsLab/0
 # Python bytecode cache from local tooling
 __pycache__/
 *.pyc
+
+# K3s Homelab Secrets, Keys, and Raw Diagnostics
+*.key
+*.pem
+id_rsa*
+id_ed25519*
+*.token
+*.kubeconfig
+kubeconfig*
+.vault_pass*
+*.env
+*.env.*
+*.secret.yaml
+*secrets-raw*
+*.raw.txt
+*.raw.json
+k3s-homelab-optimisation/reports/*.raw*
+k3s-homelab-optimisation/reports/*.txt
+k3s-homelab-optimisation/inventory/generated/*
+!k3s-homelab-optimisation/inventory/generated/.gitkeep

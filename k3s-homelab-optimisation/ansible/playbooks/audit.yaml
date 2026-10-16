@@ -1,0 +1,27 @@
+---
+# ansible/playbooks/audit.yaml: Non-destructive cluster node audit
+- name: Audit All K3s Homelab Nodes
+  hosts: all
+  gather_facts: yes
+  tasks:
+    - name: Record kernel version and architecture
+      ansible.builtin.debug:
+        msg: "Host {{ inventory_hostname }}: Kernel {{ ansible_kernel }}, Arch {{ ansible_architecture }}, OS {{ ansible_distribution }} {{ ansible_distribution_version }}"
+
+    - name: Query active sysctl values
+      ansible.builtin.command: sysctl vm.swappiness fs.inotify.max_user_instances fs.inotify.max_user_watches net.ipv4.ip_forward
+      register: sysctl_out
+      changed_when: false
+
+    - name: Display sysctl settings
+      ansible.builtin.debug:
+        msg: "{{ sysctl_out.stdout_lines }}"
+
+    - name: Check memory and swap usage
+      ansible.builtin.command: free -h
+      register: mem_out
+      changed_when: false
+
+    - name: Display memory statistics
+      ansible.builtin.debug:
+        msg: "{{ mem_out.stdout_lines }}"

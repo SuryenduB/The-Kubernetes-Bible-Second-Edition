@@ -1,0 +1,25 @@
+# ansible/inventory.example.yaml: Example sanitized Ansible inventory template
+all:
+  vars:
+    ansible_port: 22
+    ansible_user: "k3sadmin"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=accept-new"
+  children:
+    control_plane:
+      hosts:
+        server1:
+          ansible_host: 192.0.2.10
+    workers:
+      hosts:
+        worker1:
+          ansible_host: 192.0.2.11
+        worker2:
+          ansible_host: 192.0.2.12
+        worker3:
+          ansible_host: 192.0.2.13
+        worker4:
+          ansible_host: 192.0.2.14
+        worker5:
+          ansible_host: 192.0.2.15
+        worker6:
+          ansible_host: 192.0.2.16
