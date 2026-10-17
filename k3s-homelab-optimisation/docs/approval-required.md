@@ -185,3 +185,8 @@ Each proposed change includes technical rationale grounded in measured evidence,
 - **Context (discovered 2026-10-17 ~03:50):** T-09 added host-level node-down detection (7 SSH port monitors); Kuma's `notification` table contains **0 channels**, so ALL monitoring (incl. new backup freshness / robustness beats) is dashboard-only. Nothing pages when a node drops, a backup beat goes down, or a monitor fails.
 - **Staged Action (owner decision needed):** create notification channel(s) in the Kuma UI (endpoint/API-key owned by user), wire to the node-*, longhorn-backup-daily, etcd-nas-backup, and build health monitors; set `default notification` for new monitors if desired. Cron-managed monitors are unaffected — channels attach to existing monitors.
 - **Approval gate:** requires owner-issued credentials for any external pager (NTFY/Telegram/Discord/email target) — out of agent scope.
+
+### APP-09: openlingo image availability (P3 — app owner build action)
+- **Context (observed 2026-10-17 ~04:00 CEST):** `openlingo` (openlingo ns) has been `ImagePullBackOff` for ~9 h pulling `192.168.0.236:5000/openlingo:v10-dynamic-models`; the private registry is reachable and healthy (Kuma `registry-docker-tcp` monitor up), so the tag is simply not built/pushed yet. Kuma monitor `openlingo` correctly reports DOWN — detection works.
+- **Staged Action:** build & push the tag (per shipped flow `k3s-build` to the private registry or equivalent), then the deployment self-recovers on the next pull.
+- **Approval gate:** user-owned build/change of their dev application — deliberately out of this reliability mission's scope.
