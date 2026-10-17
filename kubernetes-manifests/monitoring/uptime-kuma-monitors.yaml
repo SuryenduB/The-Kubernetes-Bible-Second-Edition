@@ -232,7 +232,8 @@ data:
       # -----------------------------------------------------------------------
       # Longhorn backup freshness push monitor.
       # The backup-daily-check CronJob (longhorn-backup-monitor.yaml) runs at
-      # 04:00 UTC (30 min after backup-daily starts), checks that a Completed
+      # 04:00 CEST (observed empirically; fires ~24 h after the previous
+      # nightly Longhorn backup window), checks that a Completed
       # backup younger than 26 h exists, and pushes status=up to this monitor.
       # If the push is not received within 2× the interval (3600 s), the
       # monitor goes DOWN, meaning the backup-daily cron never finished.
