@@ -31,6 +31,12 @@ spec:
     spec:
       hostNetwork: true
       dnsPolicy: ClusterFirstWithHostNet
+      # The backend entrypoint cleans its /data/.startup-lock via a shell trap;
+      # a SIGKILL (pod eviction, OOM, kubelet restart) skips the trap and leaves
+      # an empty lock dir on the PVC that deadlocks forever the next backend
+      # ("Waiting for another LanGuard container to finish startup
+      # migrations..."). Give the trap a fair chance to run.
+      terminationGracePeriodSeconds: 60
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -39,6 +45,41 @@ spec:
                   - key: kubernetes.io/hostname
                     operator: NotIn
                     values: [kubernetes4]
+      initContainers:
+        # strategy: Recreate guarantees the previous pod is fully terminated
+        # before this pod starts, and the scheduler container's k8s command
+        # overrides the image ENTRYPOINT (so it never holds the lock). It is
+        # therefore always safe to clear /data/.startup-lock at pod start here.
+        # Running the migrations in this init container also removes the
+        # scheduler startup race where it crashes on missing tables until
+        # migrations complete.
+        - name: db-init
+          image: ghcr.io/hillaliy/languard-backend:latest
+          securityContext:
+            privileged: true
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              if [ -d /data/.startup-lock ]; then
+                echo "Removing stale /data/.startup-lock left by a killed container..."
+                rm -rf /data/.startup-lock
+              fi
+              python -u manage.py migrate --fake-initial --no-input
+          env:
+            - name: SECRET_KEY
+              value: "languard-k3s-production-secret-2026-change-me"
+            - name: ALLOWED_HOSTS
+              value: "languard.tail35421d.ts.net,192.168.0.25,127.0.0.1,localhost"
+            - name: BACKEND_LISTEN_PORT
+              value: "8000"
+            - name: DB_PATH
+              value: /data/db.sqlite3
+            - name: STATIC_ROOT
+              value: /static
+          volumeMounts:
+            - name: data
+              mountPath: /data
       containers:
         - name: backend
           image: ghcr.io/hillaliy/languard-backend:latest

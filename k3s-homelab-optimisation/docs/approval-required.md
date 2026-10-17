@@ -163,3 +163,20 @@ Each proposed change includes technical rationale grounded in measured evidence,
 
 #### Execution Result (2026-10-17)
 ✅ **Applied & verified.** `kubernetes7`: 68 stuck pods force-deleted, 3 stale VolumeAttachments finalizer-cleared, Longhorn + Kubernetes node objects removed. `kubernetes8-debian`: 16 stopped replicas verified redundant (3 running replicas elsewhere per affected volume) before deletion, then pods purged and both node objects removed (the Longhorn node required `allowScheduling: false` first — v1.12 only forgets a down/unschedulable/empty node once its Kubernetes object is gone; it was then auto-removed within 10 s). `server-236`/`server-252` untouched. Post-checks: 7 Ready nodes, 39/40 Longhorn volumes healthy, 0 leftover pods/replicas/VolumeAttachments. See change-log §9.
+
+---
+
+## 3. New Approval-Required Items (from session, 2026-10-17)
+
+### APP-06: Upstream languard fix — staleness-tolerant migration lock (P3)
+- **Context:** This session mitigated the languard outage (F-08 / change-log §10) **inside the cluster manifests** with an initContainer that clears a stale `/data/.startup-lock` and pre-runs migrations. The underlying defect is in `ghcr.io/hillaliy/languard-backend:latest` `/entrypoint.sh` (mkdir-based lock, removed only via trap; no staleness handling) and in the shipped k8s guidance (scheduler container bypassing ENTRYPOINT via k8s `command`, relying on crash-retry to wait for migrations).
+- **Why not done now:** Fixing it means changing image content (fork/patch image and pin a digest, or upstream PR) — outside the authorized change scope (no image swaps/pinning in this mission).
+- **Staged Action (owner decision needed):**
+  1. Report the entrypoint lock issue upstream (hillaliy/LanGuard) attaching the empty-folder scenario; propose `mkdir`+`flock`/pidfile with staleness check or lock-dir mtime/TTL.
+  2. If upstream is unresponsive, pin a forked image digest with the fixed entrypoint and remove the initContainer accordingly.
+- **Approval gate:** image fork/digest pin + any upstream report publishing cluster details (scrub first).
+
+### APP-07: Languard node pin decision (P3)
+- **Context:** languard runs `hostNetwork` (ports 8000/8080 bound on its node). Since this session's rollout it binds on **kubernetes3** (was kubernetes6). The only placement constraint is "not kubernetes4". Any future workload claiming 8000/8080 on kubernetes3 will make languard unschedulable there; scheduling is otherwise node-agnostic.
+- **Staged Action:** owner decides whether to pin languard to a fixed worker (nodeSelector) or reserve ports 8000/8080 catalog-wide; if pinned, update ALLOWED_HOSTS (`192.168.0.25` currently hardcodes the *old* node IP — after this rollout the live node IP is `192.168.0.22`).
+- **Approval gate:** deliberate workload placement change (placement decisions are owner-controlled in this homelab).

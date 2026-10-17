@@ -125,3 +125,17 @@
   - `kubernetes7`: 68 stuck pods force-deleted; 3 stale VolumeAttachments (stuck in `deleting` since 2026-09-22 on a dead `external-attacher/driver-longhorn-io` finalizer, with PVs already deleted) finalizer-cleared and removed; Longhorn node object removed; Kubernetes node object removed.
   - `kubernetes8-debian`: all 16 stopped replicas verified redundant first (every affected volume already held **3 running replicas on active nodes**), then deleted; pods purged; Kubernetes node object removed; Longhorn node object cleaned (direct deletion is refused while a node is down — after `allowScheduling: false`, Longhorn v1.12 auto-removed the object within 10 s once its Kubernetes object was gone).
   - Post-checks: 7 Ready nodes (`nuc` + `kubernetes1`–`kubernetes6`); Longhorn nodes = `kubernetes1`–`kubernetes6` + retained `server-236`/`server-252`; 39/40 Longhorn volumes healthy (the 1 detached/unknown volume pre-dates this change); 0 pods / 0 replicas / 0 stale VolumeAttachments left on the decommissioned nodes; DNS smoke query resolved.
+
+---
+
+### Finding F-08: languard migration-lock deadlock after killed container (P2 — discovered live, 2026-10-17)
+- **Finding ID:** F-08 (new during session; not part of the original audit set)
+- **Area:** Workload Reliability / Shared-PVC Startup Coordination
+- **Observed Live State:** `languard` (monitoring) stuck `CrashLoopBackOff` — 223 restarts, ~9 h. Backend forever printed `Waiting for another LanGuard container to finish startup migrations...`; scheduler crashed with `no such table: core_schedulerruntimestate`.
+- **Root Cause (verified by exec into image, read-only):** `/entrypoint.sh` (`ghcr.io/hillaliy/languard-backend:latest`) creates `/data/.startup-lock` with plain `mkdir` and relies solely on an EXIT/INT/TERM trap to remove it. A container killed between `mkdir` and the trap (OOM, eviction, kubelet restart, container restart at grace expiry) leaves an empty lock dir on the PVC that makes `mkdir` fail forever — a permanently poisoned lock with no staleness handling. Secondary defect: the k8s scheduler container's `command:` overrides the image ENTRYPOINT, so it bypasses the entrypoint entirely and hit the missing migrations.
+- **Mitigation Applied:** `kubernetes-manifests/monitoring/languard.yaml` — `initContainer db-init` clears any stale lock at pod start (provably safe under `strategy: Recreate`: no concurrent holder can exist) and runs migrations up front, removing the scheduler startup race; `terminationGracePeriodSeconds: 60`. See change-log §10.
+- **Residual Limitations:**
+  1. The image's entrypoint lock protocol remains stale-lock-prone upstream (`ghcr.io/hillaliy/languard-backend`) — any languard container crash mid-migration will be self-healing only thanks to the initContainer, not the image. Fix belongs upstream.
+  2. Backend + scheduler share the SQLite file over the same PVC from two containers in one pod; SQLite across concurrent writers remains a structural risk (upstream design; not changed in this session).
+  3. Languard uses `hostNetwork` (fixed ports 8000/8080), so its node placement is load-bearing: after this rollout it binds on **kubernetes3** (port conflict would prevent start). No dedicated node pin exists beyond "not kubernetes4".
+- **Runtime State:** **Mitigated & verified live 2026-10-17** — evidence in change-log §10 and task file T-06.
