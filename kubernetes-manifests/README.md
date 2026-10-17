@@ -40,6 +40,11 @@ kubernetes-manifests/
 │   ├── render-abs-auth-proxy.py    # renders the manifest from source; --check fails if stale (CI)
 │   ├── abs-auth-proxy.tmpl         # manifest skeleton with a gate-code placeholder
 │   ├── abs-auth-proxy.yaml         # LIVE: GENERATED from the two files above - do not hand-edit
+│   ├── quick-tunnel-kuma.yaml      # LIVE: Uptime-Kuma Quick Tunnel -> kuma-auth-proxy (monitoring ns)
+│   ├── kuma-gate.py                # Kuma gate source (mirror of abs-gate.py; shared password, own session domain)
+│   ├── render-kuma-auth-proxy.py   # renders kuma-auth-proxy.yaml from source; --check fails if stale (CI)
+│   ├── kuma-auth-proxy.tmpl        # manifest skeleton with a gate-code placeholder
+│   ├── kuma-auth-proxy.yaml        # LIVE: GENERATED, applies to monitoring ns - do not hand-edit
 │   └── permanent-tunnel-homepage.yaml  # standby: named tunnel, needs token + a domain
 ├── monitoring/                     # monitoring ns (observability + notifications)
 │   ├── kustomization.yaml
@@ -81,7 +86,7 @@ kubernetes-manifests/
 | 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
 | 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick, pgweb | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
 | 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
-| 8 | `monitoring` | Beszel, Uptime Kuma, Kuvasz, Lantern, PooML, OmniSight, Dozzle, Logchef, Trove, LAN Sheriff, LanGuard, Homelab Monitor, Gotify, Apprise | `monitoring/` |
+| 8 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), Kuvasz, Lantern, PooML, OmniSight, Dozzle, Logchef, Trove, LAN Sheriff, LanGuard, Homelab Monitor, Gotify, Apprise | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
 | 9 | `dashboard` | Homarr, Cairn | `dashboard/` |
 | 10 | `server-management` | HomeLab Manger, RemotePower | `server-management/` |
 
@@ -108,7 +113,7 @@ annotations:
   tailscale.com/hostname: "my-app"
 ```
 
-## Public Access (Cloudflare Tunnels -> Homepage + Audiobookshelf)
+## Public Access (Cloudflare Tunnels -> Homepage + Audiobookshelf + Uptime Kuma)
 
 Homepage and Audiobookshelf are published via Cloudflare **Quick Tunnels** (no
 token, ephemeral `*.trycloudflare.com` URLs). Read `cloudflare/README.md` before
@@ -116,9 +121,9 @@ changing anything here — it documents the session-cookie gate in front of
 Audiobookshelf, the silent edge-route failure mode, and why CF Access and named
 tunnels are both unavailable without owning a domain.
 
-Audiobookshelf is **gated**; Homepage is not (a dashboard holds no library data).
-Both URLs are ephemeral and can rot — never record one in a document. Get the
-current pair on demand:
+Audiobookshelf and Uptime Kuma are **gated** (session-cookie gate); Homepage is
+not (a dashboard holds no library data). All URLs are ephemeral and can rot —
+never record one in a document. Get the current set on demand:
 
 ```bash
 pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify   # exits 1 if one is dead
@@ -129,9 +134,12 @@ pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify   # exits 1 if one 
 kubectl apply -f cloudflare/cloudflared.yaml                  # Homepage
 kubectl apply -f cloudflare/abs-auth-proxy.yaml               # ABS gate (generated; see below)
 kubectl apply -f cloudflare/quick-tunnel-audiobookshelf.yaml  # ABS Quick Tunnel -> the gate
+kubectl apply -f cloudflare/quick-tunnel-kuma.yaml            # Kuma Quick Tunnel -> its gate (2026-10-17)
+kubectl apply -f cloudflare/kuma-auth-proxy.yaml              # Kuma gate (generated; applies to monitoring ns)
 
-# Regenerate the ABS gate manifest after editing its source
+# Regenerate a gate manifest after editing its source
 cd cloudflare && python3 render-abs-auth-proxy.py && kubectl apply -f abs-auth-proxy.yaml
+cd cloudflare && python3 render-kuma-auth-proxy.py && kubectl apply -f kuma-auth-proxy.yaml
 
 # Permanent named tunnel (needs token AND a domain you own; standby manifest)
 kubectl apply -f cloudflare/permanent-tunnel-homepage.yaml

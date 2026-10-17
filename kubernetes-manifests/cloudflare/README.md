@@ -16,6 +16,7 @@ not reliable enough to be anyone's daily access path.
 |---|---|---|
 | Homepage | `http://homepage.homepage.svc:80` | no — a dashboard holds no library data |
 | Audiobookshelf | `http://abs-auth-proxy.media.svc:80` | **yes** — session-cookie gate, see below |
+| Uptime Kuma | `http://kuma-auth-proxy.monitoring.svc:80` | **yes** — session-cookie gate (added 2026-10-17), see below |
 
 > **The public hostnames are deliberately not recorded here.** They are
 > ephemeral: they change on every connector restart and can rot without warning.
@@ -47,6 +48,10 @@ VPN — nothing more.
 | `render-abs-auth-proxy.py` | Renders `abs-auth-proxy.yaml` from `abs-gate.py` + `abs-auth-proxy.tmpl`. `--check` fails if the committed manifest is stale (use in CI) |
 | `abs-auth-proxy.tmpl` | Manifest skeleton, with a placeholder for the gate source |
 | `abs-auth-proxy.yaml` | **Generated** — the applied manifest. Do not hand-edit; edit `abs-gate.py` or the template and re-render |
+| `quick-tunnel-kuma.yaml` | Uptime-Kuma Quick Tunnel (separate Deployment; origin is `kuma-auth-proxy.monitoring.svc`) |
+| `kuma-gate.py` | Kuma gate application source — mirror of `abs-gate.py` (same shared password, different sessionSecret + cookie name) |
+| `render-kuma-auth-proxy.py` | Renders `kuma-auth-proxy.yaml` from `kuma-gate.py` + `kuma-auth-proxy.tmpl`; `--check` fails if stale |
+| `kuma-auth-proxy.yaml` | **Generated** for the monitoring namespace — do not hand-edit; edit `kuma-gate.py` or the template and re-render |
 | `permanent-tunnel-homepage.yaml` | Token-based tunnel for a real domain, both origins, 2 replicas — dormant until a token is set, **and unusable until a domain is owned** |
 
 ### Changing the gate
@@ -58,6 +63,12 @@ python3 render-abs-auth-proxy.py          # regenerate the manifest
 kubectl apply -f abs-auth-proxy.yaml
 ```
 
+The Uptime-Kuma gate works identically with `kuma-gate.py` +
+`render-kuma-auth-proxy.py` + `kuma-auth-proxy.yaml` (applies to the
+`monitoring` namespace). Rotate only one gate's password by patching
+`monitoring/kuma-gate` or `media/abs-gate` separately - the two
+`passwordEntry` values are deliberately equal-but-independent.
+
 The rendered Deployment carries a `kubernetes-specialist/gate-sha256` pod
 annotation derived from `abs-gate.py`. This matters because **Kubernetes does not
 restart pods when a mounted ConfigMap changes** — without the hash, a gate fix
@@ -68,7 +79,10 @@ sources, which is the CI hook.
 
 ## Security posture
 
-**Published (browser-facing UIs only):** Homepage, Audiobookshelf.
+**Published (browser-facing UIs only):** Homepage, Audiobookshelf, Uptime Kuma
+(added 2026-10-17; the Kuma gate shares the audiobookshelf gate password by
+design, but has its own sessionSecret and `kuma_gate` cookie - independent
+session domain, independently rotatable).
 
 **Never publish here:** `iiq`, `db`, `db-mysql`, `ssh`, every `postgres`/`redis`/
 `mariadb` Service, the K3s API (6443) and Longhorn. Those stay on Tailscale/LAN.

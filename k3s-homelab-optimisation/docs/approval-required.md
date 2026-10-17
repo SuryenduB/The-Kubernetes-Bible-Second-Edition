@@ -183,6 +183,7 @@ Each proposed change includes technical rationale grounded in measured evidence,
 
 ### APP-08: Uptime-Kuma notification channels — alert delivery (P2)
 - **Context (discovered 2026-10-17 ~03:50):** T-09 added host-level node-down detection (7 SSH port monitors); Kuma's `notification` table contains **0 channels**, so ALL monitoring (incl. new backup freshness / robustness beats) is dashboard-only. Nothing pages when a node drops, a backup beat goes down, or a monitor fails.
+- **Refresh (2026-10-17 ~09:05, Kuma mission):** two notification providers **already exist in-cluster and are monitored green**: `gotify` (push server) and `apprise` (relay gateway), both `monitoring` ns, both added to the coverage set (heartbeat status=1). Wiring a channel to them still needs owner-issued app tokens (Gotify app token / Apprise config URL). Kuma gate + tunnel are irrelevant here: agent cannot mint provider credentials.
 - **Staged Action (owner decision needed):** create notification channel(s) in the Kuma UI (endpoint/API-key owned by user), wire to the node-*, longhorn-backup-daily, etcd-nas-backup, and build health monitors; set `default notification` for new monitors if desired. Cron-managed monitors are unaffected — channels attach to existing monitors.
 - **Approval gate:** requires owner-issued credentials for any external pager (NTFY/Telegram/Discord/email target) — out of agent scope.
 

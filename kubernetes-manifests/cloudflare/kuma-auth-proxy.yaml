@@ -1,0 +1,747 @@
+# GENERATED FILE - DO NOT EDIT.
+#
+# Rendered from two sources by render-kuma-auth-proxy.py:
+#   kuma-gate.py            application source (edit this)
+#   kuma-auth-proxy.tmpl    manifest skeleton (edit this)
+#
+#   python3 render-kuma-auth-proxy.py           # regenerate this file
+#   python3 render-kuma-auth-proxy.py --check   # CI: fail if stale
+#
+# The gate source lives in its own file rather than being hand-edited inside a
+# YAML block scalar: application code should be reviewable as code, and the
+# manifest should be reproducible output of a versioned tool.
+#
+# nginx auth proxy -> Uptime Kuma (public, no domain required).
+#
+# WHY THIS EXISTS
+#   Mirror of the proven abs-auth-proxy stack, deployed after the 2026-10-17
+#   Uptime-Kuma mission. Remote devices that cannot run the tailnet VPN need
+#   the monitoring dashboard reachable, and Uptime Kuma holds LAN topology +
+#   service state that must not be public without a gate:
+#
+#     Cloudflare Quick Tunnel (free TLS, no account domain)
+#       -> nginx  session-cookie gate + rate limits
+#       -> uptime-kuma.monitoring.svc:80
+#
+#   Same shared gate password as the Audiobookshelf gate (owner's credentials
+#   unchanged), but a different sessionSecret and cookie name: independent
+#   session domains, one can be rotated without the other.
+#
+# SECURITY MODEL (layered, each layer independent)
+#   1. kuma-gate cookie - PBKDF2-HMAC-SHA256 password check, HMAC-signed
+#      session cookie. Same design as abs-gate (auth_basic was rejected for
+#      the Chrome HTTP/2 endless-rechallenge bug).
+#   2. limit_req        - 10 r/s sustained, 2x burst per client IP for the app,
+#      1 r/s for the login form. Defeats credential stuffing.
+#   3. Uptime Kuma own login - still required, unchanged (admin account
+#      verified working via the uptime-kuma-sync job; no setup wizard).
+#
+# There is no fourth layer to add and no app setting to disable: this Kuma
+# instance has no guest access and public registration does not exist (2.x
+# admin-only accounts).
+#
+# LIMITS, STATED PLAINLY
+#   - The Quick Tunnel URL is ephemeral and rotates on restart (see README
+#     "Known failure mode"). Repair: rollout restart the connector. This
+#     exists for devices that cannot run a VPN; prefer the tailnet
+#     (uptime-kuma tailnet hostname / tailscale-exposed Service) everywhere
+#     else.
+#   - One shared password is weaker than per-user identity. Rotate only this
+#     gate's password with (namespace monitoring, secret kuma-gate):
+#       python3 -c "import hashlib,os;p=b'NEWPASS';s=os.urandom(16);\
+#         d=hashlib.pbkdf2_hmac('sha256',p,s,200000);\
+#         print(f'pbkdf2_sha256$200000${s.hex()}${d.hex()}')"
+#       kubectl -n monitoring patch secret kuma-gate \
+#         -p '{"stringData":{"passwordEntry":"pbkdf2_sha256$200000$<salt>$<hash>"}}'
+#       kubectl -n monitoring rollout restart deploy/kuma-auth-proxy
+#     Rotating `sessionSecret` instead logs out every device without changing
+#     the password. This gate's passwordEntry is intentionally the same value
+#     as media/ns abs-gate; rotating one does NOT rotate the other.
+#   - The gate password is deliberately short so it can be typed on a phone.
+#     That is genuinely weak against offline cracking of this repo, so the
+#     rate limits are the real brake on online guessing, and the password
+#     must never be reused anywhere else.
+#
+# Websockets: the whole reason this file sets proxy_http_version/Upgrade/
+# Connection and long read timeouts. Uptime Kuma's dashboard is socket.io;
+# a missed header here reproduces a stuck "connecting" dashboard.
+#
+# Deploy:
+#   kubectl apply -f kubernetes-manifests/cloudflare/kuma-auth-proxy.yaml
+#   kubectl -n monitoring port-forward svc/kuma-auth-proxy 8091:80   # local test
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kuma-gate
+  namespace: monitoring
+  annotations:
+    kubernetes-specialist/review: "reviewed 2026-10-17; mirrors abs-gate handshake for the Uptime-Kuma quick tunnel"
+type: Opaque
+stringData:
+  # Password for user `absproxy`, held by the repo owner. Deliberately the
+  # SAME pbkdf2 entry as media/abs-gate so the owner uses the same gate
+  # credentials for both public endpoints. PBKDF2-HMAC-SHA256, 200k
+  # iterations, verified in constant time by kuma-gate.py. Rotating THIS does
+  # not rotate the audiobookshelf gate (and vice versa):
+  #   python3 -c "import hashlib,os;p=b'NEWPASS';s=os.urandom(16);\
+  #     d=hashlib.pbkdf2_hmac('sha256',p,s,200000);\
+  #     print(f'pbkdf2_sha256$200000${s.hex()}${d.hex()}')"
+  # Short phone-typeable password, weak against offline cracking of this
+  # repo; rate limits are the primary brake; never reuse elsewhere.
+  passwordEntry: "pbkdf2_sha256$200000$a3b21c7292359aade47684651e2f38ce$6a26e8125a31341d405f347228fa55cc62bb078e14c5f66b3d52f28b074c8f63"
+  # HMAC key for session cookie signatures. Rotating it logs out every device.
+  # Distinct from the audiobookshelf gate on purpose: independent sessions.
+  sessionSecret: "DrIMD5OWWckw9w6g-83bJBDreU3TprBz2QuF2HDAJKE"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuma-auth-proxy
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: kuma-auth-proxy
+data:
+  nginx.conf: |
+    worker_processes auto;
+    error_log /dev/stderr warn;
+    pid /tmp/nginx.pid;
+    events { worker_connections 1024; }
+
+    http {
+      include /etc/nginx/mime.types;
+      default_type application/octet-stream;
+
+      # Log enough to tell a gate 401 from an Uptime-Kuma-issued 401:
+      # $upstream_status is empty when the request never reached Kuma, so
+      # "401 -" means the gate challenged the client while "401 401" means
+      # Kuma itself rejected the request.
+      log_format kumagate '$remote_addr - $remote_user [$time_local] '
+                          '"$request" $status up=$upstream_status '
+                          'ua="$http_user_agent"';
+      access_log /dev/stdout kumagate;
+
+      # Only send "Connection: upgrade" when the client actually asked to
+      # upgrade. Unconditional upgrade headers break keep-alive and make
+      # browsers retry plain asset GETs.
+      map $http_upgrade $kuma_connection_upgrade {
+        default upgrade;
+        ''      close;
+      }
+
+      # Dedicated, slower zone for the login form so password guessing cannot
+      # burn the budget the dashboard needs.
+      limit_req_zone $binary_remote_addr zone=kumalogin:10m rate=1r/s;
+
+      # Emit relative Location headers (Location: /login) instead of absolute
+      # ones. The Quick Tunnel hostname rotates on every connector restart and
+      # nginx has no idea what public hostname the browser used; a relative
+      # redirect keeps the browser on whichever hostname it arrived with.
+      absolute_redirect off;
+
+      # Rate limit by client IP. zone is shared state across workers.
+      limit_req_zone $binary_remote_addr zone=kumareq:10m rate=10r/s;
+      limit_req_status 429;
+      limit_conn_zone $binary_remote_addr zone=kumaconn:10m;
+      limit_conn_status 429;
+
+      # Long timeouts: socket.io dashboards idle a lot and only ping slowly.
+      proxy_connect_timeout 30s;
+      proxy_send_timeout 3600s;
+      proxy_read_timeout 3600s;
+      send_timeout 3600s;
+
+      upstream kuma {
+        server uptime-kuma.monitoring.svc:80;
+        keepalive 32;
+      }
+
+      server {
+        # 8080, not 80: this container is uid 101 with every capability
+        # dropped, so it cannot bind a privileged port. The Service maps
+        # 80 -> 8080 so callers are unaffected.
+        listen 8080;
+        server_name _;
+
+        # Gate order matters: reject floods before spending CPU on PBKDF2.
+        limit_req zone=kumareq burst=20 nodelay;
+        limit_conn kumaconn 20;
+
+        # Health endpoint stays open (no password) so probes can check the
+        # proxy without credentials. Answers locally rather than proxying:
+        # anything behind the gate returns 401 to an anonymous probe.
+        location = /healthz {
+          access_log off;
+          default_type text/plain;
+          return 200 "ok\n";
+        }
+
+        # The gate: the kuma-gate sidecar on loopback validates the signed
+        # session cookie. Internal, so nginx never routes to it from outside.
+        #
+        # 200 = valid session, 401 = no session. nginx distinguishes this
+        # from an Uptime-Kuma-issued 401 with $gate_denied (the auth_request
+        # subrequest status) and redirects only in that case, so a failed
+        # Kuma login shows the Kuma login form rather than looping.
+        location = /_gate_authz {
+          internal;
+          proxy_pass http://127.0.0.1:9001/authz;
+          proxy_pass_request_body off;
+          proxy_set_header Content-Length "";
+          proxy_set_header Cookie $http_cookie;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-Host $http_host;
+          proxy_set_header X-Original-URI $request_uri;
+        }
+
+        # Login form. Rate limited harder than the app itself because it is
+        # the only endpoint that takes a password.
+        location = /login {
+          limit_req zone=kumalogin burst=10 nodelay;
+          proxy_pass http://127.0.0.1:9001;
+          proxy_set_header Host $http_host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_set_header X-Forwarded-Host $http_host;
+        }
+
+        location = /logout {
+          proxy_pass http://127.0.0.1:9001;
+          proxy_set_header Host $http_host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header Cookie $http_cookie;
+          proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location @gate_login {
+          # Only reached for the gate's own 401: Kuma's own 401 leaves
+          # $gate_denied empty, so error_page falls through and Kuma's
+          # response is served as-is.
+          if ($gate_denied) {
+            return 302 /login;
+          }
+          return 401;
+        }
+
+        location / {
+          # Gate first, then proxy to Kuma in the same location: auth_request
+          # runs as an access-phase subrequest, so an invalid cookie never
+          # reaches Uptime Kuma.
+          auth_request /_gate_authz;
+          auth_request_set $gate_denied $upstream_status;
+
+          error_page 401 = @gate_login;
+
+          proxy_pass http://kuma;
+          proxy_http_version 1.1;
+
+          # Websocket upgrade - Uptime Kuma's socket.io dashboard needs these.
+          # The Connection value is mapped, so plain requests get "close".
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection $kuma_connection_upgrade;
+          proxy_set_header Host uptime-kuma.monitoring.svc;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+
+          # Dashboard event/log streams: keep them unbuffered like the ABS
+          # audio stream was.
+          proxy_buffering off;
+        }
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kuma-auth-proxy
+  namespace: monitoring
+  labels:
+    app: kuma-auth-proxy
+    app.kubernetes.io/name: kuma-auth-proxy
+  annotations:
+    kubernetes-specialist/review: "reviewed 2026-10-17; non-root, read-only rootfs, probes, pinned image, resources bounded"
+    # Hash of kuma-gate.py, rewritten by render-kuma-auth-proxy.py.
+    # Without it a gate code change would NOT restart the pods: Kubernetes
+    # does not roll pods when a mounted ConfigMap changes.
+    kubernetes-specialist/gate-sha256: "11707f14b5a2"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: kuma-auth-proxy
+  template:
+    metadata:
+      labels:
+        app: kuma-auth-proxy
+        app.kubernetes.io/name: kuma-auth-proxy
+    spec:
+      # No API access needed.
+      automountServiceAccountToken: false
+      # Keep off kubernetes7 (failing disk); spread across the rest.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: NotIn
+                    values: ["kubernetes7"]
+      # Keep the two replicas on different nodes.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: kuma-auth-proxy
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: nginx
+          # Unprivileged image, runs as uid 101 and listens on 8080 unprivileged.
+          image: docker.io/nginxinc/nginx-unprivileged:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # Template the config so /tmp stays writable under a read-only fs.
+            - name: NGINX_ENVSUBST_OUTPUT_DIR
+              value: /tmp
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 300m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /var/cache/nginx
+            - name: run
+              mountPath: /var/run
+        # Session-cookie gate (mirror of abs-gate).
+        - name: gate
+          image: docker.io/library/python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command: ["python3", "/app/kuma-gate.py"]
+          env:
+            - name: GATE_PASSWORD_ENTRY
+              valueFrom:
+                secretKeyRef:
+                  name: kuma-gate
+                  key: passwordEntry
+            - name: GATE_SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: kuma-gate
+                  key: sessionSecret
+            # Same login username as the audiobookshelf gate so the owner's
+            # credentials are identical on both public endpoints.
+            - name: GATE_USERNAME
+              value: absproxy
+            # Distinct cookie name: no collision with the ABS gate cookie in
+            # the same browser.
+            - name: GATE_COOKIE
+              value: kuma_gate
+            - name: GATE_PORT
+              value: "9001"
+            - name: GATE_TTL_SECONDS
+              value: "604800"
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
+          ports:
+            # Loopback only, but a port must be declared for documentation:
+            # nothing routes to this container; nginx calls it over 127.0.0.1
+            # inside the pod.
+            - name: gate
+              containerPort: 9001
+              protocol: TCP
+          # exec, not httpGet: the gate deliberately binds 127.0.0.1 so nothing
+          # in the cluster can reach it, but kubelet's HTTP probe runs from
+          # outside the pod's network namespace and could never connect.
+          # The probe must be a busybox applet, NOT `python3 -c` (fork startup
+          # under CPU contention exceeded probe timeouts and SIGKILLed healthy
+          # containers - see the abs-auth-proxy template for the full story).
+          readinessProbe:
+            exec:
+              command: ["sh", "-c", "wget -q -O- http://127.0.0.1:9001/healthz >/dev/null 2>&1"]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            exec:
+              command: ["sh", "-c", "wget -q -O- http://127.0.0.1:9001/healthz >/dev/null 2>&1"]
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 24Mi
+            limits:
+              cpu: 200m
+              memory: 96Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: gate-app
+              mountPath: /app
+              readOnly: true
+            - name: gate-tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: kuma-auth-proxy
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
+        - name: cache
+          emptyDir:
+            sizeLimit: 32Mi
+        - name: run
+          emptyDir:
+            sizeLimit: 8Mi
+        - name: gate-app
+          configMap:
+            name: kuma-gate-app
+            defaultMode: 0555
+        - name: gate-tmp
+          emptyDir:
+            sizeLimit: 8Mi
+---
+# The gate sidecar's code, injected by render-kuma-auth-proxy.py from
+# kuma-gate.py. Mounted read-only at /app; see the template header.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kuma-gate-app
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: kuma-auth-proxy
+data:
+  kuma-gate.py: |
+    #!/usr/bin/env python3
+    """
+    kuma-gate: session-cookie login gate for the public Uptime-Kuma endpoint.
+
+    Mirror of abs-gate.py (same design, same proven mechanics), adapted for the
+    Uptime-Kuma quick tunnel. See quick-tunnel-kuma.yaml + README.md.
+
+    Replaces nginx auth_basic, which Chrome re-challenges endlessly over HTTP/2
+    (the public endpoint is HTTP/2 at the Cloudflare edge, and Chrome has a
+    long-standing bug dropping Basic auth credentials on reused h2 connections).
+
+    Runs as a sidecar in the kuma-auth-proxy pod on 127.0.0.1:9001. nginx calls it
+    via auth_request; it never listens on a port the cluster or the internet can
+    reach.
+
+    Routes (all loopback-only, nginx proxies to them):
+      GET  /login   -> HTML login form
+      POST /login   -> verify PBKDF2 password, set signed cookie, redirect
+      GET  /authz   -> auth_request target: 200 = valid session, 401 = no session
+      POST /logout  -> clear the cookie
+
+    Design notes:
+      - Stateless: no session store, so replicas need no shared state and a pod
+        restart logs nobody out.
+      - Cookie is HMAC-signed with SESSION_SECRET over the username + expiry.
+        Cookie contents carry no secrets: it is a bearer credential.
+      - PBKDF2-HMAC-SHA256, 200k iterations, verified in constant time.
+      - Cookie name is separate (GATE_COOKIE=kuma_gate) so it never collides with
+        the Audiobookshelf gate cookie in the same browser.
+      - Shared passwordEntry with the audiobookshelf gate (same value, owner's
+        credentials unchanged); sessionSecret is deliberately a different value
+        so the two gates are independent session domains.
+    """
+
+    import base64
+    import hashlib
+    import hmac
+    import html
+    import os
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from urllib.parse import parse_qs, quote, urlparse
+
+    LISTEN_PORT = int(os.environ.get("GATE_PORT", "9001"))
+    COOKIE_NAME = os.environ.get("GATE_COOKIE", "kuma_gate")
+    SESSION_TTL = int(os.environ.get("GATE_TTL_SECONDS", str(7 * 24 * 3600)))
+
+    SESSION_SECRET = os.environ["GATE_SESSION_SECRET"]
+    # Format: pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>
+    PASSWD_ENTRY = os.environ["GATE_PASSWORD_ENTRY"]
+    GATE_USERNAME = os.environ.get("GATE_USERNAME", "kumaproxy")
+
+
+    def parse_passwd_entry(entry):
+        parts = entry.split("$")
+        if len(parts) != 4 or parts[0] != "pbkdf2_sha256":
+            raise ValueError("GATE_PASSWORD_ENTRY must be pbkdf2_sha256$iter$salt$hash")
+        return int(parts[1]), bytes.fromhex(parts[2]), bytes.fromhex(parts[3])
+
+
+    ITERATIONS, SALT, EXPECTED_HASH = parse_passwd_entry(PASSWD_ENTRY)
+
+
+    def verify_password(candidate):
+        derived = hashlib.pbkdf2_hmac("sha256", candidate.encode(), SALT, ITERATIONS)
+        return hmac.compare_digest(derived, EXPECTED_HASH)
+
+
+    def sign_session(username, expires_at):
+        """Return base64url(expiry.username) + '.' + hex hmac."""
+        payload = f"{expires_at}.{username}".encode()
+        key = base64.urlsafe_b64decode(SESSION_SECRET + "=" * (-len(SESSION_SECRET) % 4))
+        mac = hmac.new(key, payload, hashlib.sha256).hexdigest()[:32]
+        body = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+        return f"{body}.{mac}"
+
+
+    def verify_session(token):
+        """Return the username if the cookie is valid and unexpired, else None."""
+        if not token or "." not in token:
+            return None
+        body, _, mac = token.rpartition(".")
+        try:
+            payload = base64.urlsafe_b64decode(body + "=" * (-len(body) % 4)).decode()
+            expires_at, username = payload.split(".", 1)
+        except Exception:
+            return None
+
+        key = base64.urlsafe_b64decode(SESSION_SECRET + "=" * (-len(SESSION_SECRET) % 4))
+        expected = hmac.new(key, payload.encode(), hashlib.sha256).hexdigest()[:32]
+        # Compare before parsing expiry so a forged token cannot be probed.
+        if not hmac.compare_digest(expected, mac):
+            return None
+        if int(expires_at) < int(time.time()):
+            return None
+        return username
+
+
+    LOGIN_PAGE = """<!DOCTYPE html>
+    <html lang="en"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Uptime Kuma</title>
+    <style>
+     body{{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+       background:#0f1115;color:#e8e8ea;display:flex;align-items:center;
+       justify-content:center;height:100vh;margin:0}}
+     form{{background:#181b21;padding:32px;border-radius:12px;width:300px;
+       border:1px solid #262a33}}
+     h1{{font-size:18px;margin:0 0 20px}}
+     label{{font-size:12px;color:#9aa0aa;display:block;margin-bottom:6px}}
+     input{{width:100%;padding:10px;margin-bottom:16px;border-radius:6px;
+       border:1px solid #333844;background:#0f1115;color:#e8e8ea;font-size:15px;
+       box-sizing:border-box}}
+     button{{width:100%;padding:11px;border:0;border-radius:6px;background:#3b82f6;
+       color:#fff;font-size:15px;font-weight:600;cursor:pointer}}
+     .err{{color:#f87171;font-size:13px;margin-bottom:14px}}
+    </style></head><body>
+    <form method="POST" action="/login">
+     <h1>Uptime Kuma</h1>
+     {error}
+     <label for="u">Username</label>
+     <input id="u" name="username" value="{username}" autocomplete="username"
+            autocapitalize="none" autocorrect="off" required>
+     <label for="p">Password</label>
+     <input id="p" name="password" type="password" autocomplete="current-password"
+            required autofocus>
+     <button type="submit">Sign in</button>
+    </form></body></html>
+    """
+
+
+    class Handler(BaseHTTPRequestHandler):
+        server_version = "kuma-gate"
+        sys_version = ""
+
+        def log_message(self, fmt, *args):
+            # Structured single-line log to stdout; collected by kubectl logs.
+            print("kuma-gate %s %s" % (self.address_string(), fmt % args), flush=True)
+
+        def _send(self, code, body=b"", ctype="text/plain; charset=utf-8", headers=None):
+            self.send_response(code)
+            self.send_header("Content-Type", ctype)
+            self.send_header("Content-Length", str(len(body)))
+            for key, value in (headers or {}).items():
+                self.send_header(key, value)
+            self.end_headers()
+            if body:
+                self.wfile.write(body)
+
+        def _cookie(self):
+            raw = self.headers.get("Cookie", "")
+            for part in raw.split(";"):
+                name, _, value = part.strip().partition("=")
+                if name == COOKIE_NAME:
+                    return value
+            return None
+
+        def _login_page(self, status=200, error="", username=""):
+            page = LOGIN_PAGE.format(error=error, username=html.escape(username))
+            self._send(status, page.encode(), "text/html; charset=utf-8",
+                       {"Cache-Control": "no-store"})
+
+        def do_GET(self):
+            path = urlparse(self.path).path
+
+            if path == "/authz":
+                user = verify_session(self._cookie())
+                if user:
+                    # Attribute the request for the nginx access log.
+                    self._send(200, user.encode())
+                else:
+                    # Plain bodyless 401. nginx distinguishes this from
+                    # Uptime-Kuma's own 401 using $gate_denied (the auth_request
+                    # subrequest status), not by inspecting headers, so no
+                    # Location header is needed here.
+                    self._send(401, b"")
+                return
+
+            if path == "/healthz":
+                self._send(200, b"ok")
+                return
+
+            if path == "/login":
+                if verify_session(self._cookie()):
+                    self._send(302, b"", headers={"Location": "/"})
+                else:
+                    self._login_page()
+                return
+
+            if path == "/logout":
+                self._send(302, b"", headers={
+                    "Location": "/login",
+                    "Set-Cookie": f"{COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; "
+                                  f"SameSite=Lax; Secure",
+                })
+                return
+
+            self._send(404, b"not found")
+
+        def do_POST(self):
+            if urlparse(self.path).path != "/login":
+                self._send(404, b"not found")
+                return
+
+            length = int(self.headers.get("Content-Length", 0) or 0)
+            # Bound the body: this is a login form, nothing legitimate is large.
+            if length > 4096:
+                self._send(413, b"too large")
+                return
+            form = parse_qs(self.rfile.read(length).decode("utf-8", "replace"))
+            username = (form.get("username") or [""])[0]
+            password = (form.get("password") or [""])[0]
+
+            # Do the same work whether the username is wrong or the password is
+            # wrong, so response time does not reveal which usernames exist.
+            ok_user = hmac.compare_digest(username.encode(), GATE_USERNAME.encode())
+            ok_pass = verify_password(password)
+            if not (ok_user and ok_pass):
+                self.log_message("denied user=%r from=%s", username,
+                                 self.headers.get("X-Real-IP", self.address_string()))
+                self._login_page(401, "Incorrect username or password.", username)
+                return
+
+            expires_at = int(time.time()) + SESSION_TTL
+            token = sign_session(GATE_USERNAME, expires_at)
+            self.log_message("issued session for %s from=%s", GATE_USERNAME,
+                             self.headers.get("X-Real-IP", self.address_string()))
+            self._send(302, b"", headers={
+                "Location": "/",
+                "Set-Cookie": f"{COOKIE_NAME}={token}; Max-Age={SESSION_TTL}; Path=/; "
+                              f"HttpOnly; SameSite=Lax; Secure",
+                "Cache-Control": "no-store",
+            })
+
+
+    if __name__ == "__main__":
+        ThreadingHTTPServer(("127.0.0.1", LISTEN_PORT), Handler).serve_forever()
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kuma-auth-proxy
+  namespace: monitoring
+  labels:
+    app: kuma-auth-proxy
+  annotations:
+    # Tailscale stays on Uptime Kuma itself (already exposed there); this
+    # Service exists for the in-cluster tunnel only. Do not expose it on the
+    # tailnet - the tailnet path deliberately skips the shared password.
+    kubernetes-specialist/review: "reviewed 2026-10-17; ClusterIP only, no tailnet exposure"
+spec:
+  type: ClusterIP
+  selector:
+    app: kuma-auth-proxy
+  ports:
+    - protocol: TCP
+      name: http
+      port: 80
+      targetPort: 8080
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: kuma-auth-proxy-pdb
+  namespace: monitoring
+  labels:
+    app: kuma-auth-proxy
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: kuma-auth-proxy

@@ -1,0 +1,127 @@
+# Quick Tunnel -> Uptime Kuma (no token, ephemeral *.trycloudflare.com URL).
+#
+# Mirror of the proven Audiobookshelf quick tunnel (2026-10-17 Kuma mission).
+# Separate Deployment from the other tunnels on purpose: a Quick Tunnel bakes
+# its origin into --url, so publishing a second service means a second
+# connector. Each publishes exactly one origin.
+#
+# Publishes ONLY the Uptime Kuma dashboard. The K3s API, Longhorn, ssh
+# Services and node endpoints stay on Tailscale/LAN - do not add them here.
+#
+# Deploy:
+#   kubectl apply -f quick-tunnel-kuma.yaml
+# Find the URL:
+#   kubectl -n cloudflare logs -l app=cloudflared-kuma-quick --tail=20
+#
+# SECURITY: a Quick Tunnel provides no authentication of its own. The origin is
+# therefore kuma-auth-proxy.monitoring.svc, which enforces a session-cookie
+# login gate plus rate limits (kuma-auth-proxy.yaml, rendered from the
+# abs-gate mirror) - so reaching this URL yields the gate login page, not
+# Uptime Kuma's own login. Kuma's admin login remains the second layer.
+#
+# Host-header rewrite NOT needed here: Uptime Kuma has no virtual-host check,
+# and the auth proxy rewrites Host to its upstream itself.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared-kuma-quick
+  namespace: cloudflare
+  labels:
+    app: cloudflared-kuma-quick
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/component: tunnel
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: cloudflared-kuma-quick
+  template:
+    metadata:
+      labels:
+        app: cloudflared-kuma-quick
+        app.kubernetes.io/name: cloudflared
+    spec:
+      serviceAccountName: cloudflared
+      automountServiceAccountToken: false
+      # Control-plane nodes only, never kubernetes7 (failing disk).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+      tolerations:
+        - key: node-role.kubernetes.io/master
+          operator: Exists
+          effect: NoSchedule
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cloudflared
+          # Pinned (kubernetes-specialist MUST NOT: never :latest in production).
+          image: cloudflare/cloudflared:2026.10.0
+          imagePullPolicy: IfNotPresent
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            # Origin is the nginx session-gate proxy, NOT Uptime Kuma directly.
+            # The proxy enforces the shared gate login + rate limits, so this
+            # public endpoint shows the gate login page first. See
+            # kuma-auth-proxy.yaml.
+            - --url
+            - http://kuma-auth-proxy.monitoring.svc:80
+          ports:
+            - name: metrics
+              containerPort: 2000
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
