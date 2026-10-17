@@ -1,16 +1,28 @@
-# Longhorn backup-daily freshness check → Uptime-Kuma push monitor.
+# Backup freshness monitoring: Longhorn volume backups + K3s online etcd snapshots
+# → Uptime-Kuma push monitor heartbeat.
 #
-# Runs at 04:00 UTC daily (30 min after backup-daily starts at 03:30 UTC).
-# Enough time for the full fleet (~15 min) plus margin.
+# Runs at 04:00 K3s-controller local time daily, shortly after backup-daily
+# completes (Longhorn recurring backup), and independently protects the
+# online etcd NAS backup (cron 0 */6 * * * on nuc — see
+# k3s-homelab-optimisation/scripts/k3s-etcd-safe-backup.sh).
 #
 # Flow:
-#   1. kubectl get backups.longhorn.io → find newest Completed backup age
-#   2. uptime-kuma-api → look up push token for "longhorn-backup-daily" monitor
-#   3. GET /api/push/<token>?status=up|down&msg=...
+#   1. Read backups.longhorn.io → newest Completed backup age (threshold 26 h)
+#   2. Read etcdsnapshotfiles.k3s.cattle.io → newest etcd-snapshot-online-*
+#      age (threshold 13 h = two missed 6-hourly cron runs + margin)
+#   3. Push combined status to Uptime-Kuma push monitor "longhorn-backup-daily"
 #
-# The monitor "longhorn-backup-daily" (type: push, interval: 86400 s) is
-# declared in uptime-kuma-monitors.yaml and created by the sync CronJob.
-# If this job never pushes (or always pushes down), Uptime-Kuma alerts.
+# If a push is not received within the monitor interval (86400 s = daily),
+# the monitor goes DOWN in Uptime-Kuma (dashboard-visible).
+#
+# TOKEN DESYNC RECOVERY (the failure this manifest had in 2026-10):
+#   Uptime-Kuma 2.x can rotate a push monitor's token (e.g. when its backing
+#   store is rebuilt or the monitor is re-created by uptime-kuma-sync after a
+#   fresh Kuma database). Then /api/push/<old-token> returns 404 and this
+#   CronJob fails with an explicit remediation hint in its pod log. Repair:
+#   read the monitor's current push_token from Uptime-Kuma and update Secret
+#   monitoring/longhorn-backup-kuma-push (key "token"), then re-run a manual
+#   Job from this CronJob to confirm a {'ok': True} push response.
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -18,7 +30,7 @@ metadata:
   name: backup-check-sa
   namespace: monitoring
 ---
-# ClusterRole: read Longhorn backup CRs cluster-wide
+# ClusterRole: read Longhorn backup CRs and K3s etcd snapshot-file CRs.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -26,6 +38,9 @@ metadata:
 rules:
   - apiGroups: ["longhorn.io"]
     resources: ["backups"]
+    verbs: ["get", "list"]
+  - apiGroups: ["k3s.cattle.io"]
+    resources: ["etcdsnapshotfiles"]
     verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -49,89 +64,139 @@ metadata:
 data:
   check.py: |
     """
-    Longhorn backup freshness checker + Uptime-Kuma push reporter.
+    Backup freshness checker + Uptime-Kuma push reporter.
 
-    Exits 0  → backup fresh, status=up pushed.
-    Exits 1  → token not found or push error (infrastructure problem).
-    Exits 2  → backup stale or missing, status=down pushed (triggers alert).
+    Covers BOTH independent backup pipelines:
+      1. Longhorn volume backups   (backups.longhorn.io, 26 h threshold)
+      2. K3s online etcd snapshots (etcdsnapshotfiles.k3s.cattle.io with
+         snapshotName prefix "etcd-snapshot-online-", 13 h threshold;
+         the producing cron runs every 6 h)
+
+    Exits 0  → both pipelines fresh; status=up pushed.
+    Exits 1  → Kubernetes API or push failure (infrastructure problem).
+    Exits 2  → one or both pipelines stale → status=down pushed (Kuma alert).
     """
     import os, sys, json, ssl, urllib.request, urllib.parse, datetime
 
-    KUMA_URL  = os.environ["UPTIME_KUMA_URL"].rstrip("/")
+    KUMA_URL = os.environ["UPTIME_KUMA_URL"].rstrip("/")
     PUSH_TOKEN = os.environ["KUMA_PUSH_TOKEN"]
-    MON_NAME  = os.environ.get("MONITOR_NAME", "longhorn-backup-daily")
     MAX_AGE_H = float(os.environ.get("MAX_AGE_HOURS", "26"))
-    MAX_AGE_S = MAX_AGE_H * 3600
+    MAX_ETCD_AGE_H = float(os.environ.get("MAX_ETCD_AGE_HOURS", "13"))
+    now = datetime.datetime.now(datetime.timezone.utc)
 
-    # ── 1. Check Longhorn backup freshness ────────────────────────────────────
-    # Use the in-cluster API directly. The small python image intentionally does
-    # not contain kubectl, and a runtime package install must not be required for
-    # the Kubernetes health check itself.
-    try:
+    def k8s_get(url):
         with open("/var/run/secrets/kubernetes.io/serviceaccount/token") as f:
             token = f.read().strip()
-        api_url = (
+        req = urllib.request.Request(url, headers={"Authorization": f"Bearer {token}"})
+        ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+        with urllib.request.urlopen(req, context=ssl.create_default_context(cafile=ca), timeout=15) as resp:
+            return json.loads(resp.read()).get("items", [])
+
+    def age_s(ds):
+        return (now - datetime.datetime.fromisoformat(ds.replace("Z", "+00:00"))).total_seconds()
+
+    msg_parts = []
+
+    # ── 1. Longhorn volume backup freshness ───────────────────────────────────
+    try:
+        items = k8s_get(
             "https://kubernetes.default.svc/apis/longhorn.io/v1beta2/"
             "namespaces/longhorn-system/backups"
         )
-        req = urllib.request.Request(api_url, headers={"Authorization": f"Bearer {token}"})
-        ca = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-        with urllib.request.urlopen(req, context=ssl.create_default_context(cafile=ca), timeout=15) as resp:
-            items = json.loads(resp.read()).get("items", [])
     except Exception as e:
-        print(f"ERROR: Kubernetes API failed: {e}")
+        print(f"ERROR: Kubernetes API (longhorn backups) failed: {e}")
         items = []
-
-    now = datetime.datetime.now(datetime.timezone.utc)
-    freshest_age_s = None
+    freshest_lh = None
     completed_count = 0
-
     for b in items:
-        if b.get("status", {}).get("state") != "Completed":
+        st = b.get("status", {})
+        if st.get("state") != "Completed":
             continue
         completed_count += 1
-        status = b.get("status", {})
-        done_str = status.get("backupCreatedAt") or status.get("lastSyncedAt") or ""
-        if not done_str:
+        ds = st.get("backupCreatedAt") or st.get("lastSyncedAt") or ""
+        if not ds:
             continue
         try:
-            done_dt = datetime.datetime.fromisoformat(done_str.replace("Z", "+00:00"))
-            age_s = (now - done_dt).total_seconds()
-            if freshest_age_s is None or age_s < freshest_age_s:
-                freshest_age_s = age_s
+            a = age_s(ds)
+            if freshest_lh is None or a < freshest_lh:
+                freshest_lh = a
         except Exception as e:
-            print(f"WARN: could not parse completedAt '{done_str}': {e}")
+            print(f"WARN: unparseable backup timestamp '{ds}': {e}")
 
-    if freshest_age_s is None:
-        backup_ok = False
-        msg = f"NO completed backup found ({completed_count} Completed CRs seen)"
-    elif freshest_age_s > MAX_AGE_S:
-        backup_ok = False
-        age_h = round(freshest_age_s / 3600, 1)
-        msg = f"STALE: newest completed backup is {age_h}h old (threshold {MAX_AGE_H}h)"
+    if freshest_lh is None:
+        lh_ok = False
+        msg_parts.append(f"longhorn: NO completed backup ({completed_count} CRs)")
+    elif freshest_lh > MAX_AGE_H * 3600:
+        lh_ok = False
+        msg_parts.append(f"longhorn: STALE {round(freshest_lh / 3600, 1)}h > {MAX_AGE_H}h")
     else:
-        backup_ok = True
-        age_h = round(freshest_age_s / 3600, 1)
-        msg = f"OK: newest completed backup is {age_h}h old ({completed_count} completed CRs)"
+        lh_ok = True
+        msg_parts.append(f"longhorn: OK {round(freshest_lh / 3600, 1)}h ({completed_count} CRs)")
 
+    # ── 2. K3s online etcd snapshot freshness ─────────────────────────────────
+    try:
+        snaps = k8s_get("https://kubernetes.default.svc/apis/k3s.cattle.io/v1/etcdsnapshotfiles")
+    except Exception as e:
+        print(f"ERROR: Kubernetes API (etcdsnapshotfiles) failed: {e}")
+        snaps = []
+    freshest_etcd = None
+    online_count = 0
+    for s in snaps:
+        name = (s.get("spec") or {}).get("snapshotName", "")
+        if not name.startswith("etcd-snapshot-online-"):
+            continue
+        online_count += 1
+        ds = (s.get("metadata") or {}).get("creationTimestamp", "")
+        if not ds:
+            continue
+        try:
+            a = age_s(ds)
+            if freshest_etcd is None or a < freshest_etcd:
+                freshest_etcd = a
+        except Exception as e:
+            print(f"WARN: unparseable snapshot timestamp '{ds}': {e}")
+
+    if freshest_etcd is None:
+        etcd_ok = False
+        msg_parts.append("etcd: NO online snapshot")
+    elif freshest_etcd > MAX_ETCD_AGE_H * 3600:
+        etcd_ok = False
+        msg_parts.append(f"etcd: STALE {round(freshest_etcd / 3600, 1)}h > {MAX_ETCD_AGE_H}h")
+    else:
+        etcd_ok = True
+        msg_parts.append(f"etcd: OK {round(freshest_etcd / 3600, 1)}h")
+
+    backup_ok = lh_ok and etcd_ok
+    msg = " | ".join(msg_parts)
     print(f"Backup status: {msg}")
 
-    # ── 2. Push heartbeat ─────────────────────────────────────────────────────
+    # ── 3. Push heartbeat (token never logged) ────────────────────────────────
     status = "up" if backup_ok else "down"
-    push_url = (f"{KUMA_URL}/api/push/{PUSH_TOKEN}"
-                f"?status={status}&msg={urllib.parse.quote(msg)}&ping=")
-    print(f"Pushing {status} → {push_url}")
+    push_url = (
+        f"{KUMA_URL}/api/push/{PUSH_TOKEN}"
+        f"?status={status}&msg={urllib.parse.quote(msg)}&ping="
+    )
+    print(f"Pushing {status} → http://uptime-kuma/api/push/*** (token not logged)")
     try:
         resp = urllib.request.urlopen(push_url, timeout=15)
         body = json.loads(resp.read())
         print(f"Uptime-Kuma response: {body}")
     except Exception as e:
-        print(f"ERROR: push failed: {e}")
+        if "HTTP Error 404" in str(e):
+            print("ERROR: push failed 404 — push token desynchronised from Uptime-Kuma.")
+            print(
+                "FIX: read the monitor's current push_token from Uptime-Kuma and "
+                "update Secret monitoring/longhorn-backup-kuma-push (key 'token'), "
+                "then re-run a manual Job from this CronJob (see header of "
+                "longhorn-backup-monitor.yaml)."
+            )
+        else:
+            print(f"ERROR: push failed: {e}")
         sys.exit(1)
 
     if not backup_ok:
         # Exit non-zero so the K8s Job is marked Failed and visible in events
-        print("Exiting 2 — backup stale, status=down pushed.")
+        print("Exiting 2 — one pipeline stale, status=down pushed.")
         sys.exit(2)
 
     print("Done.")
@@ -173,6 +238,8 @@ spec:
                       key: token
                 - name: MAX_AGE_HOURS
                   value: "26"
+                - name: MAX_ETCD_AGE_HOURS
+                  value: "13"
               command: ["python3", "/scripts/check.py"]
               volumeMounts:
                 - name: scripts
