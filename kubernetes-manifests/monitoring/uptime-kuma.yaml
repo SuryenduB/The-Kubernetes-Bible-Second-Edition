@@ -40,27 +40,39 @@ spec:
         fsGroup: 1000
       containers:
       - name: uptime-kuma
-        # Floating major tag per repo decision (upstream recommends `2`;
-        # `:latest` is deprecated). Pin to `2.5.3` later for full repro.
-        image: louislam/uptime-kuma:2
+        # Pinned to the exact version observed running in-cluster (package.json
+        # 2.5.5, image tag 2 previously resolved to it). Same minor line → no
+        # migration involved; data store stays MariaDB-in-PVC (v2 architecture).
+        image: louislam/uptime-kuma:2.5.5
         ports:
         - containerPort: 3001
         resources:
           requests:
             cpu: 100m
-            memory: 128Mi
+            memory: 384Mi
           limits:
             cpu: 500m
             memory: 512Mi
+        # TCP-socket checks are the supported probe for Kuma (no /health HTTP
+        # endpoint in 2.x — SPA catches-all). startupProbe gives a fresh (or
+        # damage-recovered) MariaDB cold start up to 3 min before liveness
+        # counting begins; the socket does NOT depend on monitored services,
+        # so never restarts Kuma because monitored services are down.
+        startupProbe:
+          tcpSocket:
+            port: 3001
+          periodSeconds: 6
+          failureThreshold: 30
+          timeoutSeconds: 2
         livenessProbe:
           tcpSocket:
             port: 3001
-          initialDelaySeconds: 30
+          initialDelaySeconds: 0
           periodSeconds: 60
         readinessProbe:
           tcpSocket:
             port: 3001
-          initialDelaySeconds: 10
+          initialDelaySeconds: 0
           periodSeconds: 30
         volumeMounts:
         - name: uptime-kuma-data

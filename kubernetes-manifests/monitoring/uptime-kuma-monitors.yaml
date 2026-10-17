@@ -174,6 +174,170 @@ data:
         maxretries: 3
         description: IIQ demo SSH host
       # -----------------------------------------------------------------------
+      # Coverage expansion (2026-10-17 mission): cluster infrastructure,
+      # notification path, server-management power API, media/data apps and
+      # their databases, dashboards, and the monitoring stack itself.
+      # Every target pre-flighted from the Kuma pod (curl status verified)
+      # before being added. DB ports monitored directly per repo pattern.
+      # -----------------------------------------------------------------------
+      - name: kubernetes-api
+        type: port
+        hostname: kubernetes.default.svc.cluster.local
+        port: 443
+        interval: 60
+        maxretries: 3
+        description: Kubernetes API service - every controller/tool depends on it
+      - name: nas-nfs
+        type: port
+        hostname: 192.168.0.128
+        port: 2049
+        interval: 60
+        maxretries: 3
+        description: Synology NAS NFS export - media libraries and Ollama models depend on it
+      - name: longhorn-ui
+        type: http
+        url: http://longhorn-frontend.longhorn-system.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Longhorn storage dashboard
+      - name: remotepower
+        type: http
+        url: http://remotepower.server-management.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Remote power-switch API - homelab start/stop scripts depend on it
+      - name: homelab-manger
+        type: http
+        url: http://homelab-manger.server-management.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Homelab node manager API
+      - name: gotify
+        type: http
+        url: http://gotify.monitoring.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Gotify push notification server (alert delivery path)
+      - name: apprise
+        type: http
+        url: http://apprise.monitoring.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Apprise notification gateway (alert delivery path)
+      - name: languard
+        type: http
+        url: http://languard.monitoring.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: LAN watchdog service
+      - name: dozzle
+        type: http
+        url: http://dozzle.monitoring.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Dozzle container log viewer
+      - name: homelab-monitor
+        type: http
+        url: http://homelab-monitor.monitoring.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Homelab monitoring UI (monitoring namespace)
+      - name: homarr
+        type: http
+        url: http://homarr.dashboard.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Homarr dashboard (307 redirect followed to 200)
+      - name: cairn
+        type: http
+        url: http://cairn.dashboard.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Cairn dashboard (302 redirect followed to 200)
+      - name: argocd-server
+        type: port
+        hostname: argocd-server.argocd.svc.cluster.local
+        port: 443
+        interval: 60
+        maxretries: 3
+        description: ArgoCD UI/API (TCP - TLS terminates upstream, 307 on plain HTTP)
+      - name: immich
+        type: http
+        url: http://immich.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Immich photo platform
+      - name: immich-db
+        type: port
+        hostname: immich-db.media.svc.cluster.local
+        port: 5432
+        interval: 60
+        maxretries: 3
+        description: Immich Postgres database
+      - name: flick
+        type: http
+        url: http://flick.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Flick media app
+      - name: flick-db
+        type: port
+        hostname: flick-db.media.svc.cluster.local
+        port: 5432
+        interval: 60
+        maxretries: 3
+        description: Flick Postgres database
+      - name: booklogr
+        type: http
+        url: http://booklogr.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: BookLogr reading tracker
+      - name: bookorbit
+        type: http
+        url: http://bookorbit.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: BookOrbit app
+      - name: bookorbit-db
+        type: port
+        hostname: bookorbit-db.media.svc.cluster.local
+        port: 5432
+        interval: 60
+        maxretries: 3
+        description: BookOrbit Postgres database
+      - name: librislog
+        type: http
+        url: http://librislog.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: LibrisLog library tracker
+      - name: reactive-resume
+        type: http
+        url: http://reactive-resume.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Reactive Resume builder
+      - name: reactive-resume-db
+        type: port
+        hostname: reactive-resume-db.media.svc.cluster.local
+        port: 5432
+        interval: 60
+        maxretries: 3
+        description: Reactive Resume Postgres database
+      - name: chaptarr
+        type: http
+        url: http://chaptarr.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: Chaptarr media app
+      - name: bookhoarder
+        type: http
+        url: http://bookhoarder.media.svc.cluster.local/
+        interval: 60
+        maxretries: 3
+        description: BookHoarder collection app
+      # -----------------------------------------------------------------------
       # Node liveness: SSH port per ACTIVE homelab node. Detached keys down a
       # node ~3 min after SSH stops answering (maxretries x interval) and
       # clears on recovery. server-236/252 (retained NotReady) are NOT listed
