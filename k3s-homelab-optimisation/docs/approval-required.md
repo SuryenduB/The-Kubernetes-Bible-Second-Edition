@@ -180,3 +180,8 @@ Each proposed change includes technical rationale grounded in measured evidence,
 - **Context:** languard runs `hostNetwork` (ports 8000/8080 bound on its node). Since this session's rollout it binds on **kubernetes3** (was kubernetes6). The only placement constraint is "not kubernetes4". Any future workload claiming 8000/8080 on kubernetes3 will make languard unschedulable there; scheduling is otherwise node-agnostic.
 - **Staged Action:** owner decides whether to pin languard to a fixed worker (nodeSelector) or reserve ports 8000/8080 catalog-wide; if pinned, update ALLOWED_HOSTS (`192.168.0.25` currently hardcodes the *old* node IP — after this rollout the live node IP is `192.168.0.22`).
 - **Approval gate:** deliberate workload placement change (placement decisions are owner-controlled in this homelab).
+
+### APP-08: Uptime-Kuma notification channels — alert delivery (P2)
+- **Context (discovered 2026-10-17 ~03:50):** T-09 added host-level node-down detection (7 SSH port monitors); Kuma's `notification` table contains **0 channels**, so ALL monitoring (incl. new backup freshness / robustness beats) is dashboard-only. Nothing pages when a node drops, a backup beat goes down, or a monitor fails.
+- **Staged Action (owner decision needed):** create notification channel(s) in the Kuma UI (endpoint/API-key owned by user), wire to the node-*, longhorn-backup-daily, etcd-nas-backup, and build health monitors; set `default notification` for new monitors if desired. Cron-managed monitors are unaffected — channels attach to existing monitors.
+- **Approval gate:** requires owner-issued credentials for any external pager (NTFY/Telegram/Discord/email target) — out of agent scope.

@@ -193,3 +193,11 @@ file were stored in `/root/k3s-manifests-backup-20261017/`, and workstation copi
 - **Evidence:** rollout success; pods Ready on kubernetes2 + kubernetes6 (distinct nodes); PDB `currentHealthy: 2, disruptionsAllowed: 1`; APIService `v1beta1.metrics.k8s.io` "all checks passed"; `kubectl top nodes` sane. Bounded drill: deleted one pod — `kubectl top node` kept working via the surviving replica; replacement scheduled on kubernetes3; rollout OK.
 - **Rollback:** reinstall `/root/metrics-server-deployment.pre-ha-20261017` over the addon file via `remote-admin.sh` (watcher restores single-replica state within ~20 s; PDB doc would remain unless removed — remove with `kubectl delete pdb metrics-server -n kube-system`).
 - **Residual:** upstream recommends `--enable-aggregator-routing=true` on kube-apiserver to truly load-balance both instances; that is an API-server CLI flag on `nuc` — forbidden (server-node change). Requests are still spread at the Service level.
+
+### 13. T-09 — node-down detection via existing Kuma sync (2026-10-17 ~03:35–03:50 CEST)
+
+- `kubernetes-manifests/monitoring/uptime-kuma-monitors.yaml`: seven `node-<name>-ssh` TCP/22 monitors for the **active** nodes (nuc `192.168.0.21`, kubernetes1–6 `.19/.20/.22/.23/.24/.25`), interval 60 s, maxretries 3 — a node reads DOWN when SSH stops answering ~3 min. server-236/252 deliberately not listed (retained NotReady nodes would sit permanently red; `.236` liveness is already covered by the existing `registry-docker-tcp` monitor).
+- Sync applied via a manual run of the existing `uptime-kuma-sync` CronJob: `created=7 updated=0 unchanged=25` — no pre-existing monitors touched (the previous session's additive-only constraint held).
+- **Evidence:** Uptime-Kuma `heartbeat` table (read-only exec into the running pod's embedded MariaDB): all seven monitors have status=1 rows at 01:06:46–01:07:48 UTC with pings 0–2 ms.
+- **Residual / approval:** Kuma's `notification` table has **0 channels** — this detection surfaces on the dashboard and through any future channel, but nothing pages anyone today. Wiring paging/notification targets needs owner-owned credentials/decisions → `docs/approval-required.md` APP-08.
+- **Rollback:** delete the seven blocks from `monitors.yaml` and drop the monitors in the Kuma UI (sync is additive-only).

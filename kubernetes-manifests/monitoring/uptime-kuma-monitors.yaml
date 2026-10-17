@@ -174,6 +174,62 @@ data:
         maxretries: 3
         description: IIQ demo SSH host
       # -----------------------------------------------------------------------
+      # Node liveness: SSH port per ACTIVE homelab node. Detached keys down a
+      # node ~3 min after SSH stops answering (maxretries x interval) and
+      # clears on recovery. server-236/252 (retained NotReady) are NOT listed
+      # so the dashboard does not show permanent red; registry-docker-tcp
+      # already covers .236 liveness.
+      # -----------------------------------------------------------------------
+      - name: node-nuc-ssh
+        type: port
+        hostname: 192.168.0.21
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: nuc control plane node SSH reachable
+      - name: node-kubernetes1-ssh
+        type: port
+        hostname: 192.168.0.19
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: worker kubernetes1 SSH reachable
+      - name: node-kubernetes2-ssh
+        type: port
+        hostname: 192.168.0.20
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: worker kubernetes2 SSH reachable
+      - name: node-kubernetes3-ssh
+        type: port
+        hostname: 192.168.0.22
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: worker kubernetes3 SSH reachable
+      - name: node-kubernetes4-ssh
+        type: port
+        hostname: 192.168.0.23
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: worker kubernetes4 SSH reachable
+      - name: node-kubernetes5-ssh
+        type: port
+        hostname: 192.168.0.24
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: worker kubernetes5 SSH reachable
+      - name: node-kubernetes6-ssh
+        type: port
+        hostname: 192.168.0.25
+        port: 22
+        interval: 60
+        maxretries: 3
+        description: worker kubernetes6 SSH reachable
+      # -----------------------------------------------------------------------
       # Longhorn backup freshness push monitor.
       # The backup-daily-check CronJob (longhorn-backup-monitor.yaml) runs at
       # 04:00 UTC (30 min after backup-daily starts), checks that a Completed
