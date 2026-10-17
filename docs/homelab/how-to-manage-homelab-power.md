@@ -58,7 +58,7 @@ the same everywhere and Linux usernames are case-sensitive:
 | `server-236` (192.168.0.236) | `SuryenduB` | **Capital S matters** - `suryendub` is rejected |
 | `server-252` (192.168.0.252) | `SuryenduB` | Same Hyper-V/Windows-style account (`SuryenduB`) |
 
-`shutdown_homelab.ps1` (v9.2) resolves the identity per node and *proves* it before powering
+`shutdown_homelab.ps1` (v10.0) resolves the identity per node and *proves* it before powering
 anything off: it tries the registry spelling plus its lowercase and capitalised forms, keeps the
 one that authenticates, and then verifies that the stored sudo password is accepted. A node whose
 credential fails is named in the pre-flight output, in the summary, in the JSON report
@@ -165,25 +165,28 @@ Follow the logs in real-time to track node cordoning, pod eviction, and power-of
 tail -f shutdown.log
 ```
 
-### 3. Flag reference (shutdown_homelab.ps1 v9.2)
+### 3. Flag reference (shutdown_homelab.ps1 v10.0)
 
 | Flag | Effect |
 |---|---|
-| `-Force` | **Definitive shutdown.** Skips the confirmation prompt and no longer aborts on degraded Longhorn volumes, volumes still attached, a failed drain or an unreachable API (an explicit `-Mode Dynamic` now falls back to the registry list instead of exiting). Every poweroff is retried through an escalating ladder - `sudo poweroff` → `sudo shutdown -h now` → `sudo systemctl poweroff -i` - with a bounded SSH connect timeout, and success is judged by **reachability** (TCP 22 closes), so the `255` exit code of a *successful* poweroff is no longer reported as a failure. |
+| `-Force` | **Definitive shutdown.** Skips the confirmation prompt and runs unattended. It still honors the storage gates unless `-AllowDirtyPowerOff` is also given: degraded attached volumes refuse to start, and a node whose cleanliness cannot be proven is skipped and (see the finish gate below) takes the control plane with it. What *is* new since v9: a node whose drain merely overran its budget is no longer skipped blind - the **evidence gate** re-judges the actual safety invariant (below) and the node powers off when it is proven safe. Every poweroff is retried through an escalating ladder - `sudo poweroff` → `sudo shutdown -h now` → `sudo systemctl poweroff -i` - with a bounded SSH connect timeout, and success is judged by **reachability** (TCP 22 closes), so the `255` exit code of a *successful* poweroff is no longer reported as a failure. |
 | `-ForceKernelPowerOff` | With `-Force`: adds a final kernel-level stage - `sysrq` sync + remount-ro + poweroff - for hosts that ignore every graceful stage (a hung systemd shutdown is the usual cause). It bypasses orderly service shutdown, so it is opt-in and only ever reached after the graceful stages fail. |
+| `-CompletePendingNodes` | **Second-run completion mode** (ordinary standalone run, not combinable with other actions): for every registry worker it checks TCP 22 - already down costs nothing; otherwise it runs the evidence gate and powers the node off **only on positive proof of cleanliness** (0 Longhorn devices, 0 data mounts, only system containers running). Anything unproven is refused with the evidence named in the report. Use it when a previous shutdown stranded a worker and the API has since died, so drains can no longer run. Control-plane members are never touched here. |
 | `-DryRun` | Prints the whole plan (read-only kubectl queries, no SSH, no prompts, no changes) - the safe way to rehearse. Lists the login identity that *would* be used per node but does not probe it (no password is resolved). |
 | `-VerifyCredentials` | Credential check only: resolves the per-node login identity from the registry, proves the SSH login and that the stored sudo password is accepted (`sudo -k`, so a cached ticket cannot fake a pass), writes the transcript + JSON report, then exits. Powers nothing off, skips the degraded-storage gate, and exits `1` when any node has no usable credential. |
-| `-SkipDrain` | Power the nodes off without draining workloads first. |
+| `-SkipDrain` | Power the nodes off without draining workloads first. The evidence gate still protects each node individually. |
 | `-ShutdownLocalMac` | Also power off the machine running the script (opt-in; kills your terminal and kubectl access mid-run). |
 | `-Mode <Auto\|Dynamic\|Fallback>` | Node discovery: detect via the API, force the API, or use the registry list. |
-| `-DrainTimeoutSeconds` / `-DetachTimeoutSeconds` | Per-node drain budget and Longhorn detach budget (defaults: 300 s each). |
+| `-DrainTimeoutSeconds` / `-DetachTimeoutSeconds` | Per-node drain budget and Longhorn detach budget. Drain default **600 s since v10** (kubernetes5's argocd singletons were still terminating at grace 120 s when the old 300 s budget expired - the drain "failed" on time, not on safety). |
 | `-PowerOffAttempts` | Poweroff attempts per node (default 3). The kernel stage, when enabled, is always the last attempt. |
 | `-VerifyPowerOffSeconds` | How long to wait for a node to stop answering SSH after each attempt (default 45 s). |
 | `-SshConnectTimeoutSeconds` | SSH connect timeout (default 15 s), so a hung host cannot stall the whole run. |
 
 **Exit codes:** `0` = every target node was verified down (or the run was a dry run); `1` = at
 least one node was skipped or is still answering after every stage, a credential failed, or any
-recoverable error was recorded.
+recoverable error was recorded; `2` = the **finish gate shut** (see below): worker(s) are stranded
+without proof of cleanliness and the control plane was **deliberately left running** so the
+situation stays recoverable.
 
 ### 4. Error isolation (v9.3): one error never ends the run
 
@@ -193,11 +196,12 @@ stages, and the whole of it lives in a `try/catch/finally`:
 
 | Where an error happens | What the script does |
 |---|---|
-| One node's drain fails | Records it; with `-Force` still powers that node off, otherwise skips that node and continues with the rest. |
+| One node's drain fails | With no `-Force` it is skipped (accidental-run behaviour). With `-Force` the **evidence gate** judges the node's actual state instead of trusting the drain exit code: proven clean → poweroff proceeds; unclean/unverifiable → skipped, and the finish gate (below) keeps the etcd members up. |
 | One node's poweroff fails | That node is listed under `failed`; every other node is still processed. |
-| Longhorn/API query fails | Reported as `UNKNOWN-API-FAILURE` (never as "healthy" or "clean" - see below). |
+| Longhorn/API query fails | Reported as `UNKNOWN-API-FAILURE` (never as "healthy" or "clean" - see below). When the API is dead, the node-local SSH probe answers the same cleanliness question without it. |
 | API discovery fails | Recorded in `errors`, falls back to the **complete** registry list (workers + control plane, primary last) and keeps going. |
 | Any unexpected exception, in any phase | Caught, recorded, and the remaining work is skipped rather than half-done. |
+| A worker still up when the etcd phase would start | **Finish gate**: one invariant re-check + one 2×-budget drain retry; if it cannot be resolved, the control plane is deliberately left running (exit `2`) instead of destroying the ability to finish the job. |
 | A node flagged `neverPowerOff` reaches a target list | **Fatal by design** (that power-off cannot be undone): nothing is powered off, the reason is recorded, and `finally` still writes the report. |
 | Degraded attached volumes without `-Force` | **Refuses to start** - a pre-flight gate, so nothing has been touched yet and there is no half-powered state to recover from. |
 
@@ -225,6 +229,58 @@ code, so a failed run can always be explained afterwards:
 > ⚠️ The one thing `-Force` never overrides: a node flagged `neverPowerOff` in
 > `WindowsLab/homelab-nodes.json` (`kubernetes7`, whose physical power switch is broken) is still
 > refused, because that power-off is physically unrecoverable.
+
+### 5. v10.0: the evidence gate, the finish gate, and the second run
+
+Motivation - the 2026-10-17 kubernetes5 incident: its drain overran the 300 s budget while the
+last pods (argocd singletons at grace 120 s) were still terminating, the storage gate refused a
+dirty power-off, and then the control-plane phase powered the API off anyway. From that moment a
+rerun could never finish the node: the fallback path cannot drain, and its detach gate reads
+`UNKNOWN` while the API is down. The node could only be finished by hand over SSH. v10 turns that
+manual procedure into default behaviour with three layers:
+
+**1. The evidence gate (replaces drain-exit-code decisions).** A failed drain/detach is no longer
+judged by exit codes alone - the actual safety invariant is asked directly:
+
+- **API channel**: zero eligible (non-DaemonSet) Running/terminating pods on the node AND zero
+  Longhorn `volumeattachment`s on it, live from kubectl.
+- **Node-local channel** (once the API is gone): over SSH - `/dev/longhorn/` empty, `findmnt`
+  shows no Longhorn data mounts, and every running container matches the system allowlist
+  (Longhorn, CSI, svclb, kube plumbing, agents). One unrecognised container name → not clean.
+
+| Situation | v9 behaviour | v10 default |
+|---|---|---|
+| Drain timed out, but node is actually empty | skip (or dirty poweroff with `-AllowDirtyPowerOff`) | **proven clean → poweroff proceeds** |
+| Detach gate can't reach the API | poll kubectl to the timeout, then skip | SSH probe answers in seconds; clean → poweroff |
+| Still unclean or unverifiable | skip | skip, with evidence logged to the transcript, summary and report |
+| `-AllowDirtyPowerOff` | override | override (unchanged) |
+
+**2. The finish gate (structural).** Before a single etcd member loses quorum, every worker is
+TCP-probed. A worker still up gets one invariant re-check plus one 2×-budget drain retry; only a
+worker that remains up **without proof of cleanliness** blocks the control-plane phase. In that
+case the etcd members stay running (exit code `2`) and the summary says exactly which nodes are
+stranded and why. Because the API never died, the plain rerun completes cleanly:
+
+```bash
+pwsh -File WindowsLab/shutdown_homelab.ps1 -Force > shutdown.log 2>&1 < /dev/null &
+```
+
+**3. `-CompletePendingNodes` (the post-mortem).** If the API *has* already died with a worker
+stranded, reruns cannot help. This mode asks the node itself: TCP 22 closed → already down;
+otherwise the node-local probe runs and **only a positively proven clean node is powered off**
+(through the same escalation ladder). Unproven nodes are refused and named, with evidence. It
+never touches control-plane members and cannot be combined with `-AllowDirtyPowerOff`
+(powering off unproven nodes is what that switch exists for in the normal flow, and this mode
+deliberately has no equivalent when nobody can verify storage):
+
+```bash
+pwsh -File WindowsLab/shutdown_homelab.ps1 -CompletePendingNodes
+```
+
+Every cleanup decision lands in the JSON report under `cleanliness`
+(`{ node, verdict, channel, evidence }`), and stranded nodes under `strandedWorkers` +
+`finishGateBlocked`, so the "why is this node still up" question is answerable without the
+transcript.
 
 Rehearse first (changes nothing):
 

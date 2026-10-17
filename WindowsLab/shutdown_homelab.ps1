@@ -1,4 +1,4 @@
-# K3s Homelab Systematic Shutdown (v9.2 - Definitive & Verified)
+# K3s Homelab Systematic Shutdown (v10.0 - Evidence-Gated & Farewell-Gated)
 #
 # Control plane (since 2026-09-20): THREE embedded-etcd servers - nuc (192.168.0.21),
 # server-236 (192.168.0.236) and server-252 (192.168.0.252). Powering off members spends
@@ -11,6 +11,21 @@
 #   3. falls back to that snapshot once quorum is spent, and refuses (without -Force) to
 #      power off a member that had volumes attached at pre-flight.
 # Control-plane members are never drained, and a neverPowerOff member is never touched.
+#
+# v10.0 - the two smart defaults born of the 2026-10-17 kubernetes5 incident:
+#   * EVIDENCE GATE: a failed drain/detach is no longer judged by exit codes alone. Every
+#     node at risk of a dirty power-off is first asked whether the safety invariant holds -
+#     via the API (eligible pods + volumeattachments) or, once the API is gone, node-local
+#     over SSH (0 longhorn devices, 0 data mounts, only system containers running). Proven
+#     clean -> poweroff proceeds; unproven -> skipped, with the evidence in the report.
+#   * FINISH GATE: the control plane is never powered off while a worker is still up without
+#     proof of cleanliness. Stranded workers get one invariant re-check plus one 2x-budget
+#     drain retry, and only remain "in the way" if they cannot be resolved - at which point
+#     the etcd members stay UP (exit code 2) and a rerun can finish the job, because the
+#     API never died. -CompletePendingNodes is the post-mortem: it verifies stranded workers
+#     strictly over SSH and powers off only positively-proven-clean ones.
+#   * -DrainTimeoutSeconds now defaults to 600 (kubernetes5's drain failed on time, not on
+#     safety: its argocd singletons were still terminating at grace 120s when 300s elapsed).
 #
 # Credentials (v9.2): every poweroff is an SSH login + sudo, so the login identity is resolved
 # PER NODE from WindowsLab/homelab-nodes.json ("sshUser") and probed before anything is
@@ -33,6 +48,9 @@
 #     drops the connection and returns 255, which v8 reported as a failure.
 # -Force still refuses the one thing that cannot be undone: a node flagged neverPowerOff in
 # homelab-nodes.json (kubernetes7's power switch is broken, so a poweroff is unrecoverable).
+# pwsh 7.0+ only: the v10 evidence gate, finish gate and -CompletePendingNodes post-mortem
+# all rely on PowerShell 7 stdin piping semantics.
+#Requires -Version 7.0
 [CmdletBinding()]
 param(
     [Parameter(HelpMessage="Ignore prompts and continue recoverable errors, but still honor storage-safety gates unless -AllowDirtyPowerOff is also supplied. Never overrides the neverPowerOff rule.")]
@@ -53,13 +71,16 @@ param(
     [Parameter(HelpMessage="Also power off the local Mac running this script (DANGEROUS: kills your terminal and remote access mid-test). Default: skipped.")]
     [switch]$ShutdownLocalMac,
 
+    [Parameter(HelpMessage="Second-run completion mode (v10.0): instead of a fresh shutdown, verify every registry worker node directly over SSH and power off only those proven clean (no workloads, no Longhorn devices or mounts). Use when a previous shutdown left a worker up after the API died, so drains can no longer run. Control-plane members are never touched here.")]
+    [switch]$CompletePendingNodes,
+
     [Parameter(HelpMessage="Discovery Mode: Auto (detect), Dynamic (Force API), Fallback (Force Hardcoded)")]
     [ValidateSet("Auto", "Dynamic", "Fallback")]
     [string]$Mode = "Auto",
 
-    [Parameter(HelpMessage="Seconds to allow kubectl drain per node (stateful RWO workloads need time to flush)")]
+    [Parameter(HelpMessage="Seconds to allow kubectl drain per node (stateful RWO workloads need time to flush; v10.0 default raised from 300 to 600 after kubernetes5 overran the old budget while argocd singletons were still terminating)")]
     [ValidateRange(60, 1800)]
-    [int]$DrainTimeoutSeconds = 300,
+    [int]$DrainTimeoutSeconds = 600,
 
     [Parameter(HelpMessage="Seconds to wait for Longhorn volumes to detach from a node before powering it off")]
     [ValidateRange(30, 1800)]
@@ -90,6 +111,14 @@ if ($AllowDirtyPowerOff -and -not $Force) {
     throw "-AllowDirtyPowerOff requires -Force; refusing to permit a dirty poweroff without the emergency switch."
 }
 
+if ($CompletePendingNodes -and $AllowDirtyPowerOff) {
+    throw "-CompletePendingNodes never powers off a node that is not PROVEN clean (that is its point: it runs when drains no longer can), so -AllowDirtyPowerOff has nothing to override here; the two switches are mutually exclusive."
+}
+
+if ($CompletePendingNodes -and $VerifyCredentials) {
+    throw "-CompletePendingNodes and -VerifyCredentials are separate modes; run them one at a time."
+}
+
 # Native command failures (kubectl, ssh) are judged by explicit $LASTEXITCODE checks instead of
 # exceptions, so a non-zero exit can never abort the run half-way through a power-down. Set the
 # variable only where it exists (7.3+) to stay compatible with the declared 7.0 baseline.
@@ -104,6 +133,25 @@ $script:SudoPasswordSecretName = 'k3s-homelab-sudo'
 # server-236/server-252 are case-sensitive (only 'SuryenduB' authenticates), so the identity can
 # no longer be a hardcoded 'suryendub@' - see homelab-nodes.json "sshUser".
 $script:SshUserCache = @{}
+
+# v10.0 - EVIDENCE-BASED CLEANLINESS (the drain exit code is only a proxy).
+# A drain that overruns its own timeout (argocd singletons churning at grace 120s did exactly
+# that on kubernetes5, 2026-10-17) fails as a *command* while the node itself becomes safe
+# seconds later, when the last terminating pods are gone. From v10 on, any node whose drain
+# or detach gate failed is judged by the actual safety invariant before it may be skipped:
+#   * API channel  - zero eligible (non-DaemonSet) pods on the node AND zero Longhorn
+#                    volumeattachments on it, live from kubectl,
+#   * node-local channel (works once the API is down) - SSH: running containers must all match
+#                    the system allowlist below, /dev/longhorn/ must be empty and findmnt must
+#                    show no Longhorn data mounts.
+# Proven clean -> poweroff proceeds (default behaviour, no extra flag). Proven unclean or
+# unverifiable -> the node is skipped, exactly as before, and the new FINISH GATE keeps the
+# etcd members up so the situation stays recoverable.
+$script:CleanVerdicts = @()
+$script:StrandedWorkers = @()
+$script:FinishGateBlocked = $false
+$script:NodeLocalSystemContainerPattern =
+    '^(longhorn|csi|node-driver-registrar|liveness-probe|engine-image|cleanup-loop|premount|pre-pull|remount|fixer|registry-fixer|beszel|svclb|lb-tcp|traefik|kube-|local-path|helm-install|wait)'
 
 # v9.3 - NO SINGLE ERROR ENDS THE RUN.
 # A shutdown that stops at the first error is the worst outcome available: part of the fleet is
@@ -152,7 +200,7 @@ $workerFallback = @(
         ForEach-Object { @{ Name = $_.name; IP = $_.ip } }
 )
 
-Write-Host "--- K3s Cluster Shutdown Sequence (v9.2) ---" -ForegroundColor Cyan
+Write-Host "--- K3s Cluster Shutdown Sequence (v10.0) ---" -ForegroundColor Cyan
 
 # --- RUN LOGGING (v9.1): every run writes a transcript + JSON report to
 #     WindowsLab/logs/ unless -NoLog is given. This is what was missing when
@@ -547,6 +595,264 @@ function Test-ApiReachable {
         $ErrorActionPreference = $previous
     }
 }
+
+function Get-NodeEligibleWorkloads {
+    <#
+    .SYNOPSIS
+        Names of the pods the API still reports on the node that a full power-off would kill
+        outright: Running/Pending, already terminating, NOT owned by a DaemonSet.
+        DaemonSet pods (Longhorn manager, CSI, svclb, beszel-agent...) are part of the node's
+        infrastructure: kubelet respawns them on boot, so they are not a reason to withhold.
+        Returns the sentinel 'UNKNOWN-API-FAILURE' when kubectl cannot answer, so an unreachable
+        API can never read as "no workloads" (same convention as Get-NodeAttachedVolumes).
+    #>
+    [CmdletBinding()]
+    [OutputType([string[]])]
+    param([Parameter(Mandatory)][string]$NodeName)
+
+    try {
+        $pods = kubectl get pods -A -o json --request-timeout=15s 2>$null | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or -not $pods) { return @('UNKNOWN-API-FAILURE') }
+    }
+    catch { return @('UNKNOWN-API-FAILURE') }
+
+    $eligible = @()
+    foreach ($pod in @($pods.items)) {
+        if ([string]$pod.spec.nodeName -ne $NodeName) { continue }
+        $phase = [string]$pod.status.phase
+        if ($phase -notin @('Running', 'Pending')) { continue }
+        $owners = @($pod.metadata.ownerReferences | Where-Object { $_.kind -eq 'DaemonSet' })
+        if ($owners.Count -gt 0) { continue }
+        if ($pod.metadata.deletionTimestamp) {
+            $eligible += "terminating: $($pod.metadata.namespace)/$($pod.metadata.name)"
+        }
+        else {
+            $eligible += "$($pod.metadata.namespace)/$($pod.metadata.name) ($phase)"
+        }
+    }
+    return $eligible
+}
+
+function Assert-NodeCleanViaApi {
+    <#
+    .SYNOPSIS
+        The API-channel half of the cleanliness invariant: no attached Longhorn volumes and no
+        eligible workloads on the node, both asked live from kubectl.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param([Parameter(Mandatory)][string]$NodeName)
+
+    $evidence = @()
+    $attached = @(Get-NodeAttachedVolumes -NodeName $NodeName)
+    if ($attached -contains 'UNKNOWN-API-FAILURE') {
+        return [pscustomobject]@{ Node = $NodeName; Channel = 'api'; Clean = $null; Evidence = @('kubectl volumeattachment query failed') }
+    }
+    if ($attached.Count -gt 0) { $evidence += "attached volumes: $($attached -join ', ')" }
+
+    $workloads = @(Get-NodeEligibleWorkloads -NodeName $NodeName)
+    if ($workloads -contains 'UNKNOWN-API-FAILURE') {
+        return [pscustomobject]@{ Node = $NodeName; Channel = 'api'; Clean = $null; Evidence = @('kubectl pod query failed') }
+    }
+    if ($workloads.Count -gt 0) { $evidence += ("eligible workloads still on node: " + ($workloads -join ', ')) }
+
+    return [pscustomobject]@{
+        Node     = $NodeName
+        Channel  = 'api'
+        Clean    = ($evidence.Count -eq 0)
+        Evidence = if ($evidence.Count -eq 0) { @('no eligible workloads, no attached volumes') } else { $evidence }
+    }
+}
+
+function Invoke-NodeLocalCleanlinessProbe {
+    <#
+    .SYNOPSIS
+        The node-local channel: SSH + sudo, three plain facts with the API dead and drains gone -
+        (a) Longhorn block devices present, (b) Longhorn data mounts held, (c) the containers
+        that are still running. Mirrors the sudo-stdin pipeline of the poweroff ladder
+        (base64 password on the first line, script body after it) WITHOUT ssh's -n, which
+        would eat the stdin the password travels on.
+    .DESCRIPTION
+        Password transport reuses the ladder's convention: 'echo <b64> | base64 -d | sudo -S',
+        so the plaintext never appears in argv or in the transcript. crictl output is parsed by
+        column NAME discovered from the table header - no awk column-index guessing.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', '',
+        Justification = 'The value is the base64 encoding of the sudo password; the SecureString itself never leaves the orchestrator.')]
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$IP,
+        [Parameter()][string]$SshUser = 'suryendub',
+        [int]$ConnectTimeoutSeconds = 15
+    )
+
+    if (-not (Test-NodeTcpPort -IP $IP -Port 22)) {
+        return [pscustomobject]@{ Success = $false; Reason = 'TCP 22 not answering (node appears down - nothing to verify)'; Devices = @(); Mounts = @(); ContainerNames = @() }
+    }
+    if ([string]::IsNullOrEmpty($env:SSHPASS)) {
+        return [pscustomobject]@{ Success = $false; Reason = 'no sudo password in SSHPASS'; Devices = @(); Mounts = @(); ContainerNames = @() }
+    }
+
+    $body = @'
+echo CLN-BEGIN
+echo CLN-SECTION devices
+ls -1 /dev/longhorn/ 2>/dev/null || true
+echo CLN-SECTION mounts
+findmnt -l -n -o SOURCE,TARGET 2>/dev/null | grep '/dev/longhorn' || true
+echo CLN-SECTION containers
+crictl ps --state Running 2>/dev/null || true
+echo CLN-END
+'@
+
+    $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($env:SSHPASS))
+    $sshArgs = @('-o', 'StrictHostKeyChecking=no', '-o', 'UserKnownHostsFile=/dev/null',
+        '-o', "ConnectTimeout=$ConnectTimeoutSeconds", '-o', 'ConnectionAttempts=1',
+        '-o', 'NumberOfPasswordPrompts=1', '-o', 'PreferredAuthentications=publickey,password',
+        "$SshUser@$IP", "sudo -S -p '' bash -s")
+
+    $previous = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        # sshpass -e takes the password from the environment, so the pipeline flows to the
+        # remote stdin: sudo -S consumes the first line, bash -s executes the remainder.
+        $output = ("$encoded`n$body" | sshpass -e ssh @sshArgs) 2>&1
+    }
+    catch {
+        return [pscustomobject]@{ Success = $false; Reason = "ssh transport problem: $($_.Exception.Message)"; Devices = @(); Mounts = @(); ContainerNames = @() }
+    }
+    finally {
+        $ErrorActionPreference = $previous
+    }
+
+    $lines = @($output | ForEach-Object { [string]$_ })
+    if (-not (($lines -join ' ').Contains('CLN-END'))) {
+        return [pscustomobject]@{ Success = $false; Reason = 'remote probe did not complete (sudo rejected, or crictl unavailable)'; Devices = @(); Mounts = @(); ContainerNames = @() }
+    }
+
+    # Sectioned parsing between markers, immune to prompt noise from sudo.
+    $devices = @(); $mounts = @(); $containerNames = @()
+    $section = ''
+    $nameColumn = $null
+    foreach ($line in $lines) {
+        if ($line -eq 'CLN-SECTION devices') { $section = 'devices'; continue }
+        if ($line -eq 'CLN-SECTION mounts') { $section = 'mounts'; continue }
+        if ($line -eq 'CLN-SECTION containers') { $section = 'containers'; continue }
+        if ($line -eq 'CLN-BEGIN' -or $line -eq 'CLN-END') { continue }
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        if ($line -match '^(SUDOPW|Warning:|Welcome|Last login|)') { continue }
+        switch ($section) {
+            'devices' {
+                # ls output is a bare listing; anything real is a device that holds frontend data.
+                if ($line -notmatch '^(sudo|bash|ls):') { $devices += $line.Trim() }
+            }
+            'mounts' {
+                if ($line -like '/dev/longhorn*') { $mounts += $line.Trim() }
+            }
+            'containers' {
+                $tokens = @($line -split '\s+' | Where-Object { $_ -ne '' })
+                if ($tokens.Contains('NAME')) {
+                    # Table header: locate the NAME column once, then read it per row - no
+                    # fixed column index that a crictl version bump could invalidate.
+                    $nameColumn = $null
+                    for ($i = 0; $i -lt $tokens.Count; $i++) { if ($tokens[$i] -eq 'NAME') { $nameColumn = $i } }
+                    continue
+                }
+                if ($null -ne $nameColumn -and $tokens.Count -gt $nameColumn) {
+                    $containerNames += $tokens[$nameColumn]
+                }
+            }
+        }
+    }
+    $containerNames = @($containerNames | Where-Object { $_ -and $_ -ne 'N/A' })
+    return [pscustomobject]@{ Success = $true; Reason = ''; Devices = $devices; Mounts = $mounts; ContainerNames = $containerNames }
+}
+
+function Assert-NodeCleanLocally {
+    <#
+    .SYNOPSIS
+        Judge the cleanliness invariant from node-local facts only (API-independent).
+        Clean = zero Longhorn devices, zero Longhorn data mounts, and every running container
+        matches $script:NodeLocalSystemContainerPattern (Longhorn/CSI/svclb/agent plumbing).
+        One unknown (non-allowlist) container name -> NOT clean, with the name in the evidence.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$NodeName,
+        [Parameter(Mandatory)][string]$IP
+    )
+
+    $sshUser = Resolve-NodeSshUser -NodeName $NodeName -IP $IP
+    $probe = Invoke-NodeLocalCleanlinessProbe -IP $IP -SshUser $sshUser
+    if (-not $probe.Success) {
+        return [pscustomobject]@{ Node = $NodeName; Channel = 'node-local'; Clean = $null; Evidence = @($probe.Reason) }
+    }
+
+    $evidence = @()
+    if (@($probe.Devices).Count -gt 0) { $evidence += "longhorn devices present: $(@($probe.Devices) -join ', ')" }
+    if (@($probe.Mounts).Count -gt 0) { $evidence += "longhorn mounts held: $(@($probe.Mounts) -join ', ')" }
+    $offenders = @(@($probe.ContainerNames) | Where-Object { $_ -notmatch $script:NodeLocalSystemContainerPattern })
+    if ($offenders.Count -gt 0) { $evidence += "containers outside the system allowlist: $($offenders -join ', ')" }
+
+    return [pscustomobject]@{
+        Node     = $NodeName
+        Channel  = 'node-local'
+        Clean    = ($evidence.Count -eq 0)
+        Evidence = if ($evidence.Count -eq 0) { @("clean: 0 devices, 0 mounts, $(@($probe.ContainerNames).Count) system containers only") } else { $evidence }
+    }
+}
+
+function Assert-NodeCleanliness {
+    <#
+    .SYNOPSIS
+        The decision helper callers use: API channel first (fast, authoritative), node-local
+        channel as the fallback when the API cannot answer. DryRun prints intent and returns
+        an unknown verdict so nothing downstream acts on it.
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject])]
+    param(
+        [Parameter(Mandatory)][string]$NodeName,
+        [Parameter(Mandatory)][string]$IP
+    )
+
+    if ($script:DryRun) {
+        Write-Host "  [DRYRUN] would verify cleanliness on ${NodeName}: eligible pods + volumeattachments via the API, or SSH probe (devices/mounts/container allowlist) when the API is down." -ForegroundColor DarkGray
+        return [pscustomobject]@{ Node = $NodeName; Channel = 'dryrun'; Clean = $null; Evidence = @('dry run - not verified') }
+    }
+
+    if (Test-ApiReachable) {
+        $api = Assert-NodeCleanViaApi -NodeName $NodeName
+        if ($null -ne $api.Clean) { return $api }
+    }
+    return (Assert-NodeCleanLocally -NodeName $NodeName -IP $IP)
+}
+
+function Add-CleanVerdict {
+    <#
+    .SYNOPSIS
+        One line in the transcript + one record in the report for every cleanliness decision,
+        so "why did this node get skipped / powered off with a failed drain" is answerable
+        without reading the whole transcript.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$NodeName,
+        [Parameter(Mandatory)][string]$Verdict,
+        [Parameter(Mandatory)][string]$Channel,
+        [string[]]$Evidence = @()
+    )
+    $script:CleanVerdicts += [pscustomobject]@{
+        node     = $NodeName
+        verdict  = $Verdict
+        channel  = $Channel
+        evidence = @($Evidence)
+        at       = (Get-Date).ToString('o')
+    }
+    Write-Host "  [i] cleanliness verdict [$NodeName]: $Verdict ($Channel) $(@($Evidence) -join '; ')" -ForegroundColor DarkGray
+}
+
 
 function Get-K8sNodeReadiness {
     <#
@@ -988,6 +1294,9 @@ if ($DryRun) {
 elseif ($VerifyCredentials) {
     Write-Host "[VERIFY] Credential check only: nothing will be cordoned, drained or powered off." -ForegroundColor Cyan
 }
+elseif ($CompletePendingNodes) {
+    Write-Host "[COMPLETE] Second-run completion mode: it powers off ONLY workers proven clean by the evidence gate." -ForegroundColor Cyan
+}
 elseif ($Force) {
     Write-Host "[!] -Force: skipping the confirmation prompt (definitive shutdown mode)." -ForegroundColor Red
 }
@@ -999,7 +1308,9 @@ else {
 # 2b. PRE-FLIGHT: refuse to shut down on top of degraded storage unless -Force
 # accepts the risk. Powering off with degraded volumes is how replicas fall
 # behind and frontends wedge on next boot.
-if ($actualMode -ne "FALLBACK") {
+# CompletePendingNodes runs this check itself per node (evidence gate), so it must not be
+# aborted by the fleet-level pre-flight.
+if ($actualMode -ne "FALLBACK" -and -not $CompletePendingNodes) {
     Write-Host "`n--- Pre-flight: Longhorn health ---" -ForegroundColor Cyan
     $degradedVolumes = @(Get-DegradedLonghornVolumes)
     if ($degradedVolumes -contains 'UNKNOWN-API-FAILURE') {
@@ -1045,7 +1356,7 @@ else {
 # member's live Longhorn attachments NOW, while the API is guaranteed to answer, and judge
 # the later members from that snapshot (see the control-plane phase at the end).
 $masterPreCheck = @{}
-if ($actualMode -ne "FALLBACK") {
+if ($actualMode -ne "FALLBACK" -and -not $CompletePendingNodes) {
     Write-Host "`n--- Pre-flight: control-plane storage state ---" -ForegroundColor Cyan
     foreach ($master in $masterTargets) {
         $attached = @(Get-NodeAttachedVolumes -NodeName $master.Name)
@@ -1074,6 +1385,11 @@ $credentialTargets = @(
     @($targets | ForEach-Object { [pscustomobject]@{ Name = $_.Name; IP = $_.IP } }) +
     @($masterTargets | ForEach-Object { [pscustomobject]@{ Name = $_.Name; IP = $_.IP } })
 )
+if ($CompletePendingNodes) {
+    # Completion mode touches workers only, so probing the etcd members' credentials here
+    # is noise: filter them out of the pre-flight list.
+    $credentialTargets = @($credentialTargets | Where-Object { @($masterTargets | ForEach-Object { $_.Name }) -notcontains $_.Name })
+}
 
 Write-Host "`n--- Pre-flight: SSH credentials ---" -ForegroundColor Cyan
 if ($script:DryRun) {
@@ -1179,6 +1495,128 @@ if ($VerifyCredentials) {
     exit $script:ExitCode
 }
 
+# v10.0 - COMPLETE PENDING NODES: the "intelligent second run".
+# Scenario: a previous shutdown skipped a worker (drain overran its budget, gate refused a
+# dirty power-off) and then died with the API, so a plain rerun can never finish the job -
+# the registry-fallback path cannot drain and its detach gate reads UNKNOWN while the API
+# is down. This mode asks the node itself instead of asking the API:
+#   * TCP 22 closed   -> already down, record and move on,
+#   * node-local probe clean (0 Longhorn devices, 0 mounts, only system containers running)
+#     -> power it off through the same escalating ladder as the main run,
+#   * anything unverified (unclean container names, devices, mounts, probe failure)
+#     -> REFUSE and report the evidence. It never acts without positive proof of cleanliness,
+#        so -AllowDirtyPowerOff has no role here (that is enforced at parameter parsing).
+# Workers only: control-plane members are cordoned and host no workloads by design; finishing
+# etcd members is the main script's job (it snapshots their attachments while the API lives).
+if ($CompletePendingNodes) {
+    Write-Host "`n--- Complete Pending Nodes (v10.0) ---" -ForegroundColor Cyan
+    Write-Host "Target: every registry worker flagged neither skipped-safe nor neverPowerOff." -ForegroundColor DarkGray
+    Write-Host "Control-plane members are deliberately NOT touched by this mode." -ForegroundColor DarkGray
+    Write-Host "Context note: discovery ran before this mode but did not participate in it - in the" -ForegroundColor DarkGray
+    Write-Host "API-already-down scenario its failures are EXPECTED, so they do not raise the exit code." -ForegroundColor DarkGray
+    $script:RunErrors = @($script:RunErrors | Where-Object { $_.context -notlike 'phase:discovery*' })
+
+    $completeResults = @()
+    $completeRefusals = @()
+    if ($script:DryRun) {
+        Write-Host "[DRYRUN] No SSH connections, no password use - listing what would be verified:" -ForegroundColor DarkGray
+        Remove-Item Env:SSHPASS -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:SSHPASS = $plainPass
+    }
+
+    foreach ($worker in $workerFallback) {
+        Write-Host "`n--- Complete: $($worker.Name) ($($worker.IP)) ---" -ForegroundColor Yellow
+        if (-not (Test-NodeTcpPort -IP $worker.IP -Port 22)) {
+            Write-Host "  [-] already down (TCP 22 closed) - nothing to do." -ForegroundColor DarkGray
+            $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'already-down' }
+            continue
+        }
+        if ($script:DryRun) {
+            Write-Host "  [DRYRUN] TCP 22 answers: node is UP. Would run Assert-NodeCleanliness (API channel if alive, node-local probe otherwise); poweroff only on positive proof of cleanliness." -ForegroundColor DarkGray
+            $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'would-verify' }
+            continue
+        }
+
+        $verdict = Assert-NodeCleanliness -NodeName $worker.Name -IP $worker.IP
+        $verdictText = if ($verdict.Clean -eq $true) { 'clean' } elseif ($verdict.Clean -eq $false) { 'unclean' } else { 'unverified' }
+        Add-CleanVerdict -NodeName $worker.Name -Verdict $verdictText -Channel $verdict.Channel -Evidence $verdict.Evidence
+        if ($verdict.Clean -eq $true) {
+            Write-Host "  [+] Node-local cleanliness proven - powering off." -ForegroundColor Green
+            $outcome = Stop-HomelabNode -NodeName $worker.Name -IP $worker.IP -EncodedPassword $b64Pass `
+                -MaxAttempts $PowerOffAttempts -ConnectTimeoutSeconds $SshConnectTimeoutSeconds `
+                -VerifyTimeoutSeconds $VerifyPowerOffSeconds -AllowKernelPowerOff:$ForceKernelPowerOff
+            if ($outcome.Down -eq $true) {
+                Write-Host "  [+] $($worker.Name) is down (stage: $($outcome.Stage), attempt: $($outcome.Attempts))." -ForegroundColor Green
+                $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'powered-off' }
+            }
+            elseif ($null -eq $outcome.Down) {
+                Write-Host "  [DRYRUN] left untouched." -ForegroundColor DarkGray
+                $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'dryrun' }
+            }
+            else {
+                Write-Host "  [!] still answering after every poweroff stage." -ForegroundColor Red
+                $completeRefusals += $worker.Name
+                $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'poweroff-failed' }
+            }
+        }
+        elseif ($verdict.Clean -eq $false) {
+            Write-Host "  [!] REFUSED - node does not satisfy the cleanliness invariant:" -ForegroundColor Red
+            foreach ($ev in $verdict.Evidence) { Write-Host "      - $ev" -ForegroundColor Red }
+            Write-Host "  [!] Nothing was powered off. Resolve on the node (ssh $($worker.IP)) or bring the API back and use the normal shutdown." -ForegroundColor Yellow
+            $completeRefusals += $worker.Name
+            $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'refused-unclean' }
+        }
+        else {
+            Write-Host "  [!] Could not verify cleanliness ($($verdict.Evidence -join '; ')) - refusing." -ForegroundColor Yellow
+            $completeRefusals += $worker.Name
+            $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'refused-unverified' }
+        }
+    }
+
+    Write-Host "`n--- Completion Summary ---" -ForegroundColor Cyan
+    foreach ($entry in $completeResults) {
+        Write-Host ("  {0,-20} {1,-16} {2}" -f $entry.node, $entry.ip, $entry.status)
+    }
+    if ($completeRefusals.Count -gt 0) {
+        Write-Host "[!] Completion left these nodes up without proof of cleanliness: $($completeRefusals -join ', ')" -ForegroundColor Red
+        $script:ExitCode = 1
+    }
+    else {
+        Write-Host "[+] Every pending node is down or was powered off on positive proof of cleanliness." -ForegroundColor Green
+        $script:ExitCode = 0
+    }
+
+    if ($script:RunErrors.Count -gt 0) {
+        Write-Host "Recoverable errors recorded: $($script:RunErrors.Count)" -ForegroundColor Yellow
+        foreach ($runError in $script:RunErrors) { Write-Host "    - [$($runError.context)] $($runError.message)" -ForegroundColor Yellow }
+        if ($completeRefusals.Count -eq 0) { $script:ExitCode = 1 }
+    }
+
+    if ($script:ReportPath) {
+        $completeReport = [ordered]@{
+            startedAt  = $script:RunStartedAt.ToString('o')
+            finishedAt = (Get-Date).ToString('o')
+            mode       = 'COMPLETE-PENDING-NODES'
+            dryRun     = [bool]$script:DryRun
+            forced     = [bool]$Force
+            results    = @($completeResults)
+            refusals   = @($completeRefusals)
+            cleanliness = @($script:CleanVerdicts)
+            errors     = @($script:RunErrors)
+            log        = $script:LogPath
+        }
+        try { $completeReport | ConvertTo-Json -Depth 4 | Set-Content -Path $script:ReportPath -Encoding UTF8 } catch {
+            Write-Host "[!] Could not write report: $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+        Write-Host "Report: $($script:ReportPath)" -ForegroundColor DarkGray
+        Write-Host "Log: $($script:LogPath)" -ForegroundColor DarkGray
+    }
+    $script:ReportAlreadyWritten = $true
+    exit $script:ExitCode
+}
+
 # 3. SHUTDOWN LOOP (per-node resilient: one bad node must not abort the rest)
 $failedNodes = @()
 $skippedNodes = @()
@@ -1201,16 +1639,39 @@ foreach ($worker in $targets) {
                     '--grace-period=120', "--timeout=$($DrainTimeoutSeconds)s")
             }
             catch {
-                # The drain was only buying the workloads time to migrate; failing it must not
-                # withhold the poweroff that follows. Without -Force the old behaviour is kept
-                # (skip the node, report it) so an accidental run stays conservative.
+                # v10.0: the drain is only buying the workloads time to migrate, so its exit
+                # code is a proxy - a drain that overruns its own budget (argocd singletons
+                # churning at grace 120 on kubernetes5, 2026-10-17) fails as a *command* while
+                # the node seconds later becomes safe. The real invariant is judged directly:
+                #   -AllowDirtyPowerOff            -> override, power off regardless (unchanged),
+                #   no -Force                      -> skip the node (accidental-run behaviour),
+                #   -Force alone (new default)     -> power off ONLY on positive proof of
+                #                                     cleanliness (API or node-local channel).
                 Write-Host "  [!] Drain failed for $($worker.Name): $($_.Exception.Message)" -ForegroundColor Yellow
-                if (!$Force -or !$AllowDirtyPowerOff) {
-                    Write-Host "  [!] Skipping poweroff for this node (use -Force -AllowDirtyPowerOff only for an emergency override)." -ForegroundColor Red
+                if (!$Force) {
+                    Write-Host "  [!] Skipping poweroff for this node (a deliberate shutdown re-runs with -Force; the evidence gate then decides)." -ForegroundColor Red
                     $skippedNodes += $worker.Name
+                    Add-CleanVerdict -NodeName $worker.Name -Verdict 'unclean-skipped' -Channel 'none' -Evidence "drain failed and -Force not supplied"
                     continue
                 }
-                Write-Host "  [!] -Force: powering off despite the failed drain." -ForegroundColor Red
+                if ($AllowDirtyPowerOff) {
+                    Write-Host "  [!] -Force -AllowDirtyPowerOff: powering off despite the failed drain." -ForegroundColor Red
+                }
+                else {
+                    Write-Host "  - Judging the cleanliness invariant directly (drain exit code ignored)..." -ForegroundColor DarkGray
+                    $verdict = Assert-NodeCleanliness -NodeName $worker.Name -IP $worker.IP
+                    $verdictText = if ($verdict.Clean -eq $true) { 'clean' } elseif ($verdict.Clean -eq $false) { 'unclean' } else { 'unverified' }
+                    Add-CleanVerdict -NodeName $worker.Name -Verdict $verdictText -Channel $verdict.Channel -Evidence $verdict.Evidence
+                    if ($verdict.Clean -eq $true) {
+                        Write-Host "  [+] Node is PROVEN safe (no eligible workloads, no attached volumes) - proceeding despite the failed drain." -ForegroundColor Green
+                    }
+                    else {
+                        Write-Host "  [!] Refusing to power off $($worker.Name): the cleanliness invariant did not hold ($($verdict.Evidence -join '; '))." -ForegroundColor Red
+                        Write-Host "  [!] It stays up; the finish gate below keeps the etcd members running so this stays recoverable." -ForegroundColor Yellow
+                        $skippedNodes += $worker.Name
+                        continue
+                    }
+                }
             }
         }
         elseif ($SkipDrain) {
@@ -1219,16 +1680,36 @@ foreach ($worker in $targets) {
 
         if (!$SkipDrain -and -not $script:DryRun) {
             Write-Host "  - Waiting for Longhorn detach (timeout ${DetachTimeoutSeconds}s)..."
-            $clean = Wait-NodeVolumesDetached -NodeName $worker.Name -TimeoutSeconds $DetachTimeoutSeconds
+            if (Test-ApiReachable) {
+                $clean = Wait-NodeVolumesDetached -NodeName $worker.Name -TimeoutSeconds $DetachTimeoutSeconds
+            }
+            else {
+                # v10.0: previously this polled a dead API for the whole timeout and then
+                # skipped the node. The node-local channel now answers the same question in
+                # seconds, whether the API is healthy or already spent.
+                Write-Host "  [i] API not answering - switching to the node-local cleanliness probe." -ForegroundColor DarkGray
+                $clean = $false
+            }
             if (!$clean) {
-                $left = @(Get-NodeAttachedVolumes -NodeName $worker.Name)
-                if (!$Force -or !$AllowDirtyPowerOff) {
-                    Write-Host "  [!] Volumes still attached to $($worker.Name): $($left -join ', ')" -ForegroundColor Red
-                    Write-Host "  [!] Skipping poweroff for this node (use -Force -AllowDirtyPowerOff only for an emergency override)." -ForegroundColor Red
-                    $skippedNodes += $worker.Name
-                    continue
+                if ($AllowDirtyPowerOff) {
+                    $left = @(Get-NodeAttachedVolumes -NodeName $worker.Name)
+                    Write-Host "  [!] -Force supplied: powering off with volumes still attached: $($left -join ', ')" -ForegroundColor Red
                 }
-                Write-Host "  [!] -Force supplied: powering off with volumes still attached: $($left -join ', ')" -ForegroundColor Red
+                else {
+                    Write-Host "  - Judging the cleanliness invariant directly (detach gate inconclusive)..." -ForegroundColor DarkGray
+                    $verdict = Assert-NodeCleanliness -NodeName $worker.Name -IP $worker.IP
+                    $verdictText = if ($verdict.Clean -eq $true) { 'clean' } elseif ($verdict.Clean -eq $false) { 'unclean' } else { 'unverified' }
+                    Add-CleanVerdict -NodeName $worker.Name -Verdict $verdictText -Channel $verdict.Channel -Evidence $verdict.Evidence
+                    if ($verdict.Clean -eq $true) {
+                        Write-Host "  [+] Node is PROVEN safe (0 longhorn devices, 0 mounts, system containers only) - proceeding." -ForegroundColor Green
+                    }
+                    else {
+                        Write-Host "  [!] Refusing to power off $($worker.Name): the cleanliness invariant did not hold ($($verdict.Evidence -join '; '))." -ForegroundColor Red
+                        Write-Host "  [!] It stays up; the finish gate below keeps the etcd members running so this stays recoverable." -ForegroundColor Yellow
+                        $skippedNodes += $worker.Name
+                        continue
+                    }
+                }
             }
             else {
                 Write-Host "  [+] Storage clean on $($worker.Name)." -ForegroundColor Green
@@ -1265,6 +1746,98 @@ foreach ($worker in $targets) {
     if (!$nodeOk) { $failedNodes += $worker.Name }
 }
 
+# v10.0 - FINISH GATE (marks the structural fix for the stranded-worker trap).
+# A skipped worker must now be RESOLVED before a single etcd member can lose quorum; powering
+# off the control plane with a worker still up is what made kubernetes5 permanently
+# un-replayable on 2026-10-17 (the API died, and a rerun could then neither drain it nor
+# verify its storage). Recovery, in escalating order of preference:
+#   1. still-up workers are re-judged by the cleanliness invariant (API channel - O(1s)),
+#   2. an unclean worker with a live API gets ONE extended drain retry (2x the budget),
+#   3. a clean worker is powered off immediately through the standard ladder,
+#   4. only if a worker remains up WITHOUT positive proof of cleanliness does the gate BLOCK
+#      the control-plane phase and leave the API running, with exit code 2. A plain rerun
+#      then finishes the job (drains still work), or -CompletePendingNodes does when the
+#      API has since died.
+# -AllowDirtyPowerOff keeps its meaning: the explicit choice to race a worker alongside the
+# control plane and proceeds past this gate.
+Write-Host "`n--- Finish gate: workers before quorum ---" -ForegroundColor Cyan
+$stillUpWorkers = @(@($targets) | Where-Object {
+    -not $script:DryRun -and (Test-NodeTcpPort -IP $_.IP -Port 22 -TimeoutMs 3000) -and $AllowDirtyPowerOff -eq $false
+})
+if ($script:DryRun) {
+    $stillUpWorkers = @()
+    Write-Host "[DRYRUN] Finish gate noted: the control plane would only power off after every worker is down or proven clean." -ForegroundColor DarkGray
+}
+elseif ($AllowDirtyPowerOff) {
+    Write-Host "  [!] -AllowDirtyPowerOff supplied: the finish gate is overridden; stranded workers, if any, race the control plane." -ForegroundColor Red
+}
+else {
+    foreach ($strander in $stillUpWorkers) {
+        Write-Host "  [!] Worker $($strander.Name) is still up after its pass - re-judging cleanliness..." -ForegroundColor Red
+        $verdict = Assert-NodeCleanliness -NodeName $strander.Name -IP $strander.IP
+        if ($verdict.Clean -eq $false -and (Test-ApiReachable)) {
+            Write-Host "  - UNCLEAN via API. One extended drain retry (2x budget) before the gate can allow the etcd phase..." -ForegroundColor Yellow
+            $retryBudget = [Math]::Min(1800, 2 * $DrainTimeoutSeconds)
+            try {
+                Invoke-KubectlCommand -Arguments @('cordon', $strander.Name)
+                Invoke-KubectlCommand -Arguments @('drain', $strander.Name, '--ignore-daemonsets',
+                    '--delete-emptydir-data', '--force', '--disable-eviction',
+                    '--grace-period=120', "--timeout=$($retryBudget)s")
+            }
+            catch {
+                Add-RunError -Context "finish-gate:drain-retry:$($strander.Name)" -Message "extended drain retry failed: $($_.Exception.Message)"
+            }
+            $verdict = Assert-NodeCleanliness -NodeName $strander.Name -IP $strander.IP
+        }
+        $verdictText = if ($verdict.Clean -eq $true) { 'clean' } elseif ($verdict.Clean -eq $false) { 'unclean' } else { 'unverified' }
+        Add-CleanVerdict -NodeName $strander.Name -Verdict "$verdictText (finish gate)" -Channel $verdict.Channel -Evidence $verdict.Evidence
+
+        if ($verdict.Clean -eq $true) {
+            Write-Host "  - Proven safe: powering off $($strander.Name) during the finish gate." -ForegroundColor Green
+            $env:SSHPASS = $plainPass
+            $outcome = Stop-HomelabNode -NodeName $strander.Name -IP $strander.IP -EncodedPassword $b64Pass `
+                -MaxAttempts $PowerOffAttempts -ConnectTimeoutSeconds $SshConnectTimeoutSeconds `
+                -VerifyTimeoutSeconds $VerifyPowerOffSeconds -AllowKernelPowerOff:$ForceKernelPowerOff
+            if ($outcome.Down -eq $true) {
+                Write-Host "  [+] $($strander.Name) resolved by the finish gate (stage: $($outcome.Stage), attempt: $($outcome.Attempts))." -ForegroundColor Green
+                $skippedNodes = @($skippedNodes | Where-Object { $_ -ne $strander.Name })
+            }
+            else {
+                Write-Host "  [!] $($strander.Name) still answers despite the recovery poweroff - gate will stay shut." -ForegroundColor Red
+                $script:StrandedWorkers += $strander.Name
+            }
+        }
+        else {
+            $script:StrandedWorkers += $strander.Name
+            Add-RunError -Context "finish-gate:$($strander.Name)" -Message "worker still up without proof of cleanliness: $($verdict.Evidence -join '; ')"
+        }
+    }
+
+    $script:StrandedWorkers = @(
+        foreach ($worker in $targets) {
+            if ($script:StrandedWorkers -contains $worker.Name) {
+                if (Test-NodeTcpPort -IP $worker.IP -Port 22 -TimeoutMs 3000) { $worker.Name }
+            }
+        }
+    )
+    if ($script:StrandedWorkers.Count -gt 0) {
+        $script:FinishGateBlocked = $true
+        $script:ExitCode = 2
+        Write-Host "`n[!!!] FINISH GATE SHUT: $($script:StrandedWorkers -join ', ') remain up without proof of cleanliness." -ForegroundColor Red
+        Write-Host "      The CONTROL PLANE WILL BE LEFT RUNNING (etcd quorum + kubectl preserve power to fix this)." -ForegroundColor Red
+        Write-Host "      Fix and re-run the same command: the next pass drains normally while the API is still alive," -ForegroundColor Yellow
+        Write-Host "      or use -CompletePendingNodes afterwards if the API dies." -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "  [+] Finish gate open: every worker is down or was resolved on proof of cleanliness." -ForegroundColor Green
+    }
+}
+
+if ($script:FinishGateBlocked) {
+    Write-Host "`n--- Control Plane: SKIPPED (finish gate) ---" -ForegroundColor Red
+    Write-Host "Control-plane members deliberately left up: $(@($masterTargets | ForEach-Object { $_.Name }) -join ', ')" -ForegroundColor Yellow
+}
+else {
 Write-Host "`n--- Powering off Control Plane (last) ---" -ForegroundColor Red
 foreach ($master in $masterTargets) {
     $masterName = $master.Name
@@ -1328,7 +1901,7 @@ foreach ($master in $masterTargets) {
         $failedNodes += $masterName
     }
 }
-
+} # if finish gate open
 # end of the operational try body - what follows is the catch/finally finalizer.
 }
 # v9.3: an unexpected error is recorded, not fatal - the finally block below still writes the
@@ -1340,8 +1913,20 @@ finally {
 if (-not $script:ReportAlreadyWritten) {
 Write-Host "`n--- Shutdown Summary ---" -ForegroundColor Cyan
 if ($script:DryRun) { Write-Host "[DRYRUN] Nothing was changed: no node was cordoned, drained or powered off." -ForegroundColor DarkGray }
+if ($script:FinishGateBlocked) {
+    Write-Host "FINISH GATE SHUT - control plane DELIBERATELY left running ($(@($masterTargets | ForEach-Object { $_.Name }) -join ', ')):" -ForegroundColor Red
+    Write-Host "  Stranded workers (still answering on TCP 22, no proof of cleanliness): $($script:StrandedWorkers -join ', ')" -ForegroundColor Red
+    Write-Host "  Next step: re-run the same command (the API is still alive, so drains work and stranded workers get resolved)," -ForegroundColor Yellow
+    Write-Host "  or - if the API has since died - review the evidence above and use -Force -CompletePendingNodes." -ForegroundColor Yellow
+}
 if ($skippedNodes.Count -gt 0) {
-    Write-Host "Skipped (storage/drain not clean, no -Force): $($skippedNodes -join ', ')" -ForegroundColor Yellow
+    Write-Host "Skipped (cleanliness invariant not proven, nodes left up): $($skippedNodes -join ', ')" -ForegroundColor Yellow
+}
+if ($script:CleanVerdicts.Count -gt 0) {
+    Write-Host "Cleanliness evidence per node:" -ForegroundColor DarkGray
+    foreach ($cv in $script:CleanVerdicts) {
+        Write-Host ("    {0,-16} {1} [{2}] {3}" -f $cv.node, $cv.verdict, $cv.channel, (@($cv.evidence) -join '; ')) -ForegroundColor DarkGray
+    }
 }
 if ($failedNodes.Count -gt 0) {
     Write-Host "Still answering after every poweroff stage: $($failedNodes -join ', ')" -ForegroundColor Red
@@ -1374,25 +1959,36 @@ else {
     Write-Host "`n--- Local Mac left powered on (use -ShutdownLocalMac to include it) ---" -ForegroundColor Yellow
 }
 
-# Exit code: only ever RAISED to 1 (never reset), so a deliberate gate that exited non-zero keeps
-# its code through this finalizer. 1 = a node was skipped / is still up, a credential failed, or
-# any recoverable error was recorded.
-if ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0 -or $script:RunErrors.Count -gt 0) { $script:ExitCode = 1 }
+# Exit code: only ever RAISED (never reset), so a deliberate gate that set a code keeps it
+# through this finalizer. 1 = a node was skipped / is still up, a credential failed, or any
+# recoverable error was recorded. 2 (v10.0) = the finish gate shut: worker(s) are stranded
+# WITHOUT proof of cleanliness, and the control plane was deliberately left running.
+if ($script:ExitCode -eq 0 -and ($skippedNodes.Count -gt 0 -or $failedNodes.Count -gt 0 -or $script:RunErrors.Count -gt 0)) { $script:ExitCode = 1 }
 
 # --- RUN REPORT (v9.1): machine-readable outcome next to the transcript ---
 if ($script:ReportPath) {
+    $excludedFromDown = @()
+    if ($script:FinishGateBlocked) {
+        # The gate kept the etcd members up, so they must not appear in "down".
+        $excludedFromDown = @($masterTargets | ForEach-Object { $_.Name })
+    }
     $downNodes = @(
         @($targets | ForEach-Object { $_.Name }) + @($masterTargets | ForEach-Object { $_.Name }) |
-            Where-Object { ($skippedNodes -notcontains $_) -and ($failedNodes -notcontains $_) -and (-not $script:DryRun) }
+            Where-Object { ($skippedNodes -notcontains $_) -and ($failedNodes -notcontains $_) -and
+                           ($excludedFromDown -notcontains $_) -and (-not $script:DryRun) }
     )
+    $downNodes = @($downNodes | Where-Object { $_ })
     $report = [ordered]@{
         startedAt  = $script:RunStartedAt.ToString('o')
         finishedAt = (Get-Date).ToString('o')
         mode       = $actualMode
         dryRun     = [bool]$script:DryRun
         forced     = [bool]$Force
+        finishGateBlocked = [bool]$script:FinishGateBlocked
+        strandedWorkers   = @($script:StrandedWorkers)
         credentials = @($credentialReport)
         credentialFailures = @($credentialFailures)
+        cleanliness = @($script:CleanVerdicts)
         errors     = @($script:RunErrors)
         down       = @($downNodes)
         skipped    = @($skippedNodes)
