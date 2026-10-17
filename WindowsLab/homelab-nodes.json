@@ -1,5 +1,5 @@
 {
-  "$comment": "Single source of truth for K3s homelab node identity and safety constraints. Consumed by WindowsLab/HomelabNodes.psm1 -> Start-K3sHomelab.ps1, Stop-K3sHomelab-Minimal.ps1, shutdown_homelab.ps1. Do not hardcode node lists in those scripts.",
+  "$comment": "Single source of truth for K3s homelab node identity and safety constraints. Consumed by WindowsLab/HomelabNodes.psm1 -> Start-K3sHomelab.ps1, Stop-K3sHomelab-Minimal.ps1, shutdown_homelab.ps1. Do not hardcode node lists in those scripts. Decommissioned 2026-10-17: kubernetes7 was removed from the cluster by owner decision - its physical power switch is unrecoverable, so the machine can never return to service. Its MACs (6c:c2:17:e9:a4:e5 on 192.168.0.26 primary, 90:48:9a:df:2c:10 on 192.168.0.104 second NIC) must not be reassigned to other hosts.",
   "registryVersion": 1,
   "cluster": {
     "name": "k3s-homelab",
@@ -8,7 +8,7 @@
     "expectedNodes": 11,
     "storageClass": "longhorn"
   },
-  "survivors": ["nuc", "kubernetes5", "kubernetes7", "server-236", "server-252"],
+  "survivors": ["nuc", "kubernetes5", "server-236", "server-252"],
   "nodes": [
     {
       "name": "nuc",
@@ -79,17 +79,6 @@
       "neverCordon": false,
       "neverPowerOff": false,
       "notes": "General worker."
-    },
-    {
-      "name": "kubernetes7",
-      "ip": "192.168.0.26",
-      "secondaryIps": ["192.168.0.104"],
-      "role": "worker",
-      "os": "Ubuntu 24.04",
-      "sshUser": "suryendub",
-      "neverCordon": true,
-      "neverPowerOff": true,
-      "notes": "PERMANENT SURVIVOR: physical power switch is broken, so a power-off is unrecoverable. NEVER cordon, drain or power it off. Carries the largest workload share while other nodes are down. Dual-homed: second NIC answers on 192.168.0.104 (MAC 90:48:9a:df:2c:10; primary .26 is 6c:c2:17:e9:a4:e5) - verified 2026-10-04 via kubelet cert CN=kubernetes7 on both. .104 must never be reassigned to another host; it is NOT a free address."
     },
     {
       "name": "kubernetes8-debian",

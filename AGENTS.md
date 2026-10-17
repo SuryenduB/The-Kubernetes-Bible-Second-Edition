@@ -15,7 +15,7 @@ This repo is two things: Packt "Kubernetes Bible 2e" chapter examples (`Chapter0
 `WindowsLab/` holds **two unrelated projects** — K3s power tooling and an AD/IAM lab. See `WindowsLab/README.md`.
 
 - `WindowsLab/homelab-nodes.json` is the single source of truth for nodes/SSH users/safety flags. Never hardcode node lists.
-- `kubernetes7` has `neverPowerOff: true` (broken power switch — unrecoverable). `nuc`/`server-236`/`server-252` are `neverCordon` (control plane/etcd + local registry host).
+- `kubernetes7` was decommissioned on 2026-10-17 (broken power switch — a power-off was unrecoverable; owner decision) and is removed from `homelab-nodes.json`; it no longer participates in the cluster or in any startup/shutdown target list. `nuc`/`server-236`/`server-252` are `neverCordon` (control plane/etcd + local registry host).
 - SSH usernames are case-sensitive: `suryendub` on Ubuntu workers/`nuc`, `SuryenduB` (capital S) on `server-236`/`server-252`.
 - Bring-up: `pwsh -File WindowsLab/Start-K3sHomelab.ps1 -DryRun` first, then `-RepairStorage`; watch `kubectl get nodes -w` then `kubectl get pods -A`. Shutdown must run detached: `pwsh -File WindowsLab/shutdown_homelab.ps1 -Force > shutdown.log 2>&1 < /dev/null &`. Rehearse with `-DryRun`, check creds with `-VerifyCredentials -Force`.
 - Health check: `Test-K3sClusterHealth.ps1` at repo root. Runbooks: `docs/homelab/how-to-manage-homelab-power.md`, `docs/operations/`.
