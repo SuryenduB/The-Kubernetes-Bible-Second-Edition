@@ -195,3 +195,45 @@ server-252   Ready   control-plane,etcd,master   3h4m   v1.34.6+k3s1   192.168.0
 ```
 beszel-agent-2npxg   1/1   Running   1 (35m ago)   3h5m   192.168.0.252   server-252
 ```
+
+## Addendum 2026-10-17 — root cause of the "never rejoin" behaviour
+
+**Finding.** server-252's VM was never the network problem: it sat up for 9h25m with k3s
+`active/running`, static .252, healthy ping to nuc. The reason it could never rejoin was the etcd
+*data lineage*: the VM kept running through the 27-days-ago rebuild, and its embedded etcd
+carried cluster id `afb0a5e986f206a9` while nuc's live cluster is `ccb62f2762529097`.
+Every raft message it sent was refused:
+
+```
+{"msg":"request sent was ignored by remote peer due to cluster ID mismatch",
+ "remote-peer-id":"e4c0813c987fdb4c","remote-peer-cluster-id":"ccb62f2762529097",
+ "local-member-id":"58938be5135d8cb6","local-member-cluster-id":"afb0a5e986f206a9"}
+```
+
+etcd member list on nuc (via the etcdctl binary now resident at `/usr/local/bin/etcdctl`,
+downloaded v3.5.21 static — k3s does not bundle one) showed *only* nuc, i.e. the live etcd runs as a
+de-facto single member with the other two frozen forks wailing off its ports.
+
+**Surgery (2026-10-17 18:28 UTC, same procedure had already succeeded on server-236 20:25 CEST):**
+
+```
+systemctl stop k3s
+mv /var/lib/rancher/k3s/server/db{,-backup-20261017-182829}
+printf '%s\n' "<live token K10...>" > /var/lib/rancher/k3s/server/token   # .252's file had gone missing
+cat > /etc/systemd/system/k3s.service.env <<E
+K3S_URL=https://192.168.0.21:6443
+K3S_TOKEN=<same live token>
+E
+chmod 600 /var/lib/rancher/k3s/server/token
+systemctl daemon-reload && systemctl restart k3s
+```
+
+**Outcome.** `member list` grew a third `started` row (`server-252-ce9cd7df`, peer .252:2380),
+`endpoint health` green on all three endpoints within ±3 raft index of each other (term 12), and
+the node object flipped NotReady → Ready. The stale 558 MB fork is archived in-place as
+`db-backup-20261017-182829`; delete after a week without rollback need.
+
+**Structural lesson (recorded in the power runbook).** A single etcd member left running while the
+others reboot is how a lineage forks in the first place. The `K3S_URL` env now on both VMs makes
+rejoin mechanical, but the shutdown runbook's finish-gate invariant — *decommission the whole
+etcd member set together or not at all* — is what actually prevents recurrence.

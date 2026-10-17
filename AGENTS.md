@@ -18,6 +18,7 @@ This repo is two things: Packt "Kubernetes Bible 2e" chapter examples (`Chapter0
 - `kubernetes7` was decommissioned on 2026-10-17 (broken power switch — a power-off was unrecoverable; owner decision) and is removed from `homelab-nodes.json`; it no longer participates in the cluster or in any startup/shutdown target list. `nuc`/`server-236`/`server-252` are `neverCordon` (control plane/etcd + local registry host).
 - SSH usernames are case-sensitive: `suryendub` on Ubuntu workers/`nuc`, `SuryenduB` (capital S) on `server-236`/`server-252`.
 - Bring-up: `pwsh -File WindowsLab/Start-K3sHomelab.ps1 -DryRun` first, then `-RepairStorage`; watch `kubectl get nodes -w` then `kubectl get pods -A`. Shutdown must run detached: `pwsh -File WindowsLab/shutdown_homelab.ps1 -Force > shutdown.log 2>&1 < /dev/null &`. Rehearse with `-DryRun`, check creds with `-VerifyCredentials -Force`.
+- Embedded etcd: after the 2026-10-17 post-shutdown recovery, all three members (nuc leader, server-236, server-252) sit in ONE lineage after stale forks were archived + rejoined via `K3S_URL` (procedure in the power runbook; `etcdctl` on nuc). Never leave one etcd member running while the other two reboot — that forks the lineage and a node shows as permanently `NotReady` until the archive-and-rejoin surgery is repeated.
 - Health check: `Test-K3sClusterHealth.ps1` at repo root. Runbooks: `docs/homelab/how-to-manage-homelab-power.md`, `docs/operations/`.
 
 ## AD/IAM lab: `WindowsLab/AutomatedLabAD.ps1` + `WindowsLab/README.md`

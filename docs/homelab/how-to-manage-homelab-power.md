@@ -324,3 +324,55 @@ pwsh -File WindowsLab/shutdown_homelab.ps1 -VerifyCredentials -Force
 
 A node that logs in but whose sudo is rejected is reported as `sudo-failed` - that is a *stale or
 wrong* `k3s-homelab-sudo` secret, not a username problem; re-store it with `Set-Secret`.
+
+### Embedded-etcd lineage check & rejoin (added 2026-10-17)
+
+After a full-fleet power cycle, a control-plane node whose kubelet stays `NotReady` while the API
+server is healthy has an **etcd lineage problem**, not a network problem. `etcd` cluster IDs never
+change for a data directory, so a member whose embedded etcd branched off earlier (for example a VM
+that kept running through the shutdown, or a rebuilt member whose data dir predates a restore) will
+form raft connections but reject every message:
+
+```
+"msg":"request sent was ignored by remote peer due to cluster ID mismatch",
+"local-member-cluster-id":"afb0a5e986f206a9"
+```
+
+**Ground truth:** `etcdctl` lives at `/usr/local/bin/etcdctl` on `nuc` (static v3.5.21, certs in
+`/var/lib/rancher/k3s/server/tls/etcd/`):
+
+```bash
+etcdctl --endpoints https://127.0.0.1:2379 \
+  --cacert .../etcd/server-ca.crt --cert .../etcd/server-client.crt --key .../etcd/server-client.key \
+  member list -w table
+```
+
+If a node is *absent* from the member list yet identifies a *different* `local-member-cluster-id`
+than the live leader's, it is a stale fork. Do **not** try to fix it with networking.
+
+**Rejoin procedure (validated twice on 2026-10-17: server-236, server-252):**
+
+1. Check the node's token matches the live cluster: `sha256sum /var/lib/rancher/k3s/server/token`
+   on the member vs on `nuc`. If it differs/missing, plant the live token (`chmod 600`).
+2. Guard disk space (`du -sm` of `server/db` + 200 MB headroom), then `systemctl stop k3s`.
+3. Archive, never delete: `mv /var/lib/rancher/k3s/server/db /var/lib/rancher/k3s/server/db-backup-$(date +%Y%m%d-%H%M%S)`.
+4. Point the bare `k3s server` unit at the live cluster via the env file its unit already reads
+   (`EnvironmentFile=-/etc/systemd/system/k3s.service.env`):
+
+   ```
+   K3S_URL=https://192.168.0.21:6443
+   K3S_TOKEN=<live token>          # only when the token file had to be planted
+   ```
+
+5. `systemctl daemon-reload && systemctl restart k3s`. Success markers in the journal: registry
+   ranges at the *live* revision, `Reconciliation of ETCDSnapshotFile`, cloud-controller-manager
+   lease election - and on `nuc`, the member list grows by one `started` row with the right peer
+   address. Settle on `kubectl get nodes` reporting `Ready`.
+6. Repeat per node, one at a time; the serving members stay up throughout. End state: all member
+   rows `started` in one raft term, `endpoint health` green for every member.
+
+After server-236/252 rejoined, `K3S_URL` is now part of their systemd env - a later shutdown of all
+three is safe (quorum fully restart-able again), but **any single member must never be left running
+while the other two reboot**: that is what forked the lineage in the first place. The stale forks
+are archived in-place and may be deleted once a week passes without a rollback need
+(`server-236: db-backup-20261017-202456`, `server-252: db-backup-20261017-182829`).
