@@ -176,6 +176,14 @@ monitor (via Kuma UI or socket API with the `conditions: []` pattern used by
 file is absent. The script resolves the uptime-kuma ClusterIP via `k3s kubectl` and caches
 it in `/root/.kuma-etcd-push-host-cache` for API-degraded fallback.
 
+**Verified against a real scheduled in this exact flow (2026-10-17 06:00 CEST, first
+regular `0 */6` crontab fire):** log `/var/log/k3s-etcd-backup.log` shows
+mount-verify → free-space → transfer → sha256 + `tar -tzf` verification → atomic
+publish `20261017-060001` → retention prune (`20260926-003812` removed, 14 dirs kept)
+→ heartbeat push; Kuma heartbeat row: status=1,
+`etcd NAS backup published 20261017-060001 (225MB)`. Retention + verification paths
+are thus proven against the real cron, not only manually.
+
 This monitor complements the daily `backup-daily-check` CronJob (see
 `k3s-homelab-optimisation/docs/change-log.md`, iterations 1–3), which itself verifies both
 pipeline freshnesses: Longhorn backups ≤ 26 h and online etcd snapshots ≤ 13 h.

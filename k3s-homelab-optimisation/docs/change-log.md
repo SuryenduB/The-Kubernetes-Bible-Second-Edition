@@ -194,6 +194,12 @@ file were stored in `/root/k3s-manifests-backup-20261017/`, and workstation copi
 - **Rollback:** reinstall `/root/metrics-server-deployment.pre-ha-20261017` over the addon file via `remote-admin.sh` (watcher restores single-replica state within ~20 s; PDB doc would remain unless removed — remove with `kubectl delete pdb metrics-server -n kube-system`).
 - **Residual:** upstream recommends `--enable-aggregator-routing=true` on kube-apiserver to truly load-balance both instances; that is an API-server CLI flag on `nuc` — forbidden (server-node change). Requests are still spread at the Service level.
 
+### 14. Scheduled play-out verification (2026-10-17)
+
+- **04:00 CEST** — `backup-daily-check` CronJob first scheduled pass of the extended checker: succeeded (job `backup-daily-check-29870040`), `longhorn: OK 0.4h | etcd: OK 1.3h | longhorn-vol: OK 40 volumes (unknown-detached=1 expected)`, push `{'ok': True}`.
+- **06:00 CEST** — first regular `0 */6 * * *` fire of the hardened `k3s-etcd-safe-backup.sh` on `nuc` (this cron has never fired regularly since it replaced the destructive legacy line): full pipeline success logged to `/var/log/k3s-etcd-backup.log` 06:00:17–06:00:34 (bounded mount verify; free space 323 GB; sha256 + `tar -tzf` off-node verification; atomic publish `20261017-060001` incl. `k3s-config.tar.gz`/`k3s-identity.tar.gz`; retention pruned `20260926-003812` keeping exactly 14 dirs; Kuma heartbeat pushed). Kuma `etcd-nas-backup` heartbeat row: status=1, msg `etcd NAS backup published 20261017-060001 (225MB)`. NAS stub `.tmp-*` litter: absent.
+- All three automated reliability beats (Longhorn backup freshness + etcd snapshot freshness + robustness counts, NAS publish heartbeat, node SSH monitors) have now been exercised on their real schedules — not just manually.
+
 ### 13. T-09 — node-down detection via existing Kuma sync (2026-10-17 ~03:35–03:50 CEST)
 
 - `kubernetes-manifests/monitoring/uptime-kuma-monitors.yaml`: seven `node-<name>-ssh` TCP/22 monitors for the **active** nodes (nuc `192.168.0.21`, kubernetes1–6 `.19/.20/.22/.23/.24/.25`), interval 60 s, maxretries 3 — a node reads DOWN when SSH stops answering ~3 min. server-236/252 deliberately not listed (retained NotReady nodes would sit permanently red; `.236` liveness is already covered by the existing `registry-docker-tcp` monitor).
