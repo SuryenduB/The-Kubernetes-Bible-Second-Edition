@@ -157,3 +157,25 @@ If a Longhorn volume is corrupted or lost due to disk failure:
    ```
 2. In Longhorn UI -> **Backup** -> Select Volume -> Choose Snapshot -> Click **Restore Latest Backup**.
 3. Point the target workload PVC to the newly restored Longhorn volume.
+
+---
+
+## 5. Automated Backup Completion Heartbeat (added 2026-10-17, iteration 3)
+
+After a successful publish the automated script pushes `status=up` to the Uptime-Kuma push
+monitor `etcd-nas-backup` (6-hour interval) using the root-only token file
+`/root/.kuma-etcd-push-token` on `nuc`. The heartbeat proves the FULL pipeline, not merely
+the snapshot: snapshot + NAS publish + checksum verification + retention. If pushes at the
+6-hourly cadence stop, the monitor goes DOWN in Uptime-Kuma (dashboard-visible). Kuma has
+no notification provider configured — dashboard-only, delivery unverified.
+
+**Recovery if the Kuma data store is rebuilt:** re-create the `etcd-nas-backup` push
+monitor (via Kuma UI or socket API with the `conditions: []` pattern used by
+`uptime-kuma-sync`) and write its new push token to `/root/.kuma-etcd-push-token`
+(`chmod 600`). The script skips the heartbeat (log line, never a backup failure) when the
+file is absent. The script resolves the uptime-kuma ClusterIP via `k3s kubectl` and caches
+it in `/root/.kuma-etcd-push-host-cache` for API-degraded fallback.
+
+This monitor complements the daily `backup-daily-check` CronJob (see
+`k3s-homelab-optimisation/docs/change-log.md`, iterations 1–3), which itself verifies both
+pipeline freshnesses: Longhorn backups ≤ 26 h and online etcd snapshots ≤ 13 h.

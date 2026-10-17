@@ -26,6 +26,7 @@ Chronological audit log of platform engineering inspections, discoveries, valida
 
 ## 2026-10-17: Ralph Loop Iteration 2 — online backup script hardening
 
+
 - **Phase-2 defect review of `k3s-etcd-safe-backup.sh`:**
   (a) `mount -t nfs -o hard` without bound would hang forever on an unreachable NAS,
   silently stopping backups from that point; (b) no mount-identity check — a stale/foreign
@@ -54,6 +55,26 @@ Chronological audit log of platform engineering inspections, discoveries, valida
 
 ---
 
+
+## 2026-10-17: Ralph Loop Iteration 3 — end-to-end etcd backup heartbeat
+
+- **Gap:** the daily checker proves freshness via CR timestamps, but only proves the
+  `etcd-snapshot save` side; nothing confirmed the NAS publish pipeline actually finished
+  until the 04:00 UTC check.
+- **Implementation:** new Kuma push monitor `etcd-nas-backup` (id 26, push type, interval
+  21600 s) created via the socket API (`conditions: []` pattern, same as uptime-kuma-sync);
+  its token delivered to nuc as `/root/.kuma-etcd-push-token` (chmod 600, never printed);
+  `k3s-etcd-safe-backup.sh` now pushes a completion heartbeat at the very end of a
+  successful publish (script `sha256 2d9993ce…`; push resolves the uptime-kuma ClusterIP
+  via `k3s kubectl` with a cached file fallback, and a push failure can never fail the
+  backup itself).
+- **Live validation:** manual end-to-end run published `20261017-024141` (225 MB snapshot +
+  archives, checksums verified, retention pruned the oldest dir) and pushed the heartbeat —
+  Kuma heartbeat id 202382: `status=1, msg='etcd NAS backup published 20261017-024141
+  (225MB)'`, exit 0.
+- **Recovery note (in docs/backup-restore-runbook.md):** if the Kuma data store is rebuilt,
+  the monitor and its token must be re-provisioned (same procedure as the Longhorn monitor);
+  the monitoring script simply skips pushing when the token file is absent.
 ## 2026-10-17: Ralph Loop Mission Execution
 
 ### 1. Repository & Secret Protection Hardening

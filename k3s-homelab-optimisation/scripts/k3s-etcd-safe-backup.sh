@@ -233,6 +233,42 @@ for archive in k3s-config.tar.gz k3s-identity.tar.gz; do
 done
 log "Config and identity archives verified (tar -tzf)."
 
+# Kuma heartbeat configuration (see runbook: backup-restore-runbook.md)
+KUMA_TOKEN_FILE="/root/.kuma-etcd-push-token"
+KUMA_HOST_CACHE="/root/.kuma-etcd-push-host-cache"
+
+# 12. Push completion heartbeat to Uptime-Kuma (best-effort; never fails the backup).
+# The push monitor "etcd-nas-backup" proves the FULL pipeline (snapshot + NAS publish
+# + verification + retention) end to end. If pushes at the 6-hourly cadence stop,
+# the monitor goes DOWN in Uptime-Kuma (dashboard-visible).
+kuma_push() {
+    local host
+    host=$(k3s kubectl get svc -n monitoring uptime-kuma -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
+    if ! [[ "${host:-}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        # Fall back to the cluster IP cached at the last successful push.
+        host=$(tail -n 1 "${KUMA_HOST_CACHE}" 2>/dev/null || echo "")
+    fi
+    if ! [[ "${host:-}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+        log "Skipping Uptime-Kuma heartbeat: uptime-kuma service IP not resolvable."
+        return 0
+    fi
+    local token
+    if [ -s "${KUMA_TOKEN_FILE}" ]; then
+        token=$(tr -d '\r\n' < "${KUMA_TOKEN_FILE}")
+    else
+        log "Skipping Uptime-Kuma heartbeat: token file absent (${KUMA_TOKEN_FILE})."
+        return 0
+    fi
+    local out
+    if out=$(curl -fsS --max-time 20 \
+        "http://${host}/api/push/${token}?status=up&msg=etcd%20NAS%20backup%20published%20${DATE}%20(${PUBLISHED_MB}MB)" 2>&1); then
+        log "Uptime-Kuma heartbeat pushed for backup ${DATE}."
+        echo "${host}" > "${KUMA_HOST_CACHE}"
+    else
+        phase "HEARTBEAT" "Uptime-Kuma push failed (backup itself is intact): ${out}"
+    fi
+}
+
 if [ "${MANUAL_TEST}" -eq 1 ]; then
     log "Manual test mode: pipeline verified up to publication point. NOT publishing ${TARGET_DIR}."
     log "Manual test mode: leaving ${TMP_TARGET_DIR} for inspection; it will be pruned at next real run."
@@ -259,5 +295,9 @@ done
 #     pre-join snapshots are deliberately NOT pruned - they document the etcd migration).
 log "Pruning local scheduled snapshots older than 14 days in ${LOCAL_SNAP_DIR}..."
 find "${LOCAL_SNAP_DIR}" -name "etcd-snapshot-*" -type f -mtime +14 -delete || true
+
+# 12. Completion heartbeat (best-effort; a monitoring failure must never fail the backup).
+PUBLISHED_MB=$(du -sm "${TARGET_DIR}" 2>/dev/null | awk '{print $1}')
+kuma_push
 
 log "=== K3s Online etcd & Identity Backup Completed Successfully ==="
