@@ -37,7 +37,7 @@ metadata:
   name: longhorn-backup-reader
 rules:
   - apiGroups: ["longhorn.io"]
-    resources: ["backups"]
+    resources: ["backups", "volumes"]
     verbs: ["get", "list"]
   - apiGroups: ["k3s.cattle.io"]
     resources: ["etcdsnapshotfiles"]
@@ -66,15 +66,21 @@ data:
     """
     Backup freshness checker + Uptime-Kuma push reporter.
 
-    Covers BOTH independent backup pipelines:
+    Covers THREE independent checks:
       1. Longhorn volume backups   (backups.longhorn.io, 26 h threshold)
       2. K3s online etcd snapshots (etcdsnapshotfiles.k3s.cattle.io with
          snapshotName prefix "etcd-snapshot-online-", 13 h threshold;
          the producing cron runs every 6 h)
+      3. Longhorn volume robustness (volumes.longhorn.io): any volume whose
+         status.robustness is degraded or faulted → down; robustness unknown
+         is held distinct (unknown on a detached volume is the normal
+         "detached iiq volume" case and does NOT alert; unknown on a
+         non-detached volume DOES count as bad)
 
-    Exits 0  → both pipelines fresh; status=up pushed.
+    Exits 0  → all checks pass; status=up pushed.
     Exits 1  → Kubernetes API or push failure (infrastructure problem).
-    Exits 2  → one or both pipelines stale → status=down pushed (Kuma alert).
+    Exits 2  → backup stale and/or degraded/faulted Longhorn volume →
+               status=down pushed (Kuma alert).
     """
     import os, sys, json, ssl, urllib.request, urllib.parse, datetime
 
@@ -166,7 +172,57 @@ data:
         etcd_ok = True
         msg_parts.append(f"etcd: OK {round(freshest_etcd / 3600, 1)}h")
 
-    backup_ok = lh_ok and etcd_ok
+    # ── 3. Longhorn volume robustness (live data safety, same beat) ───────────
+    # degraded → missing replica but serving; faulted → volume no longer
+    # serving robustly; both are actionable data-safety conditions.
+    try:
+        vols = k8s_get(
+            "https://kubernetes.default.svc/apis/longhorn.io/v1beta2/"
+            "namespaces/longhorn-system/volumes"
+        )
+    except Exception as e:
+        print(f"ERROR: Kubernetes API (longhorn volumes) failed: {e}")
+        vols = []
+    degraded_cnt = faulted_cnt = unknown_detached = unknown_other = 0
+    bad_names = []
+    for v in vols:
+        st = v.get("status", {})
+        name = (v.get("metadata") or {}).get("name", "")
+        rb = st.get("robustness") or "unknown"
+        state = st.get("state") or ""
+        if rb == "degraded":
+            degraded_cnt += 1
+            bad_names.append(f"{name[:24]}[degraded/{state}]")
+        elif rb == "faulted":
+            faulted_cnt += 1
+            bad_names.append(f"{name[:24]}[faulted/{state}]")
+        elif rb == "unknown" and state != "detached":
+            # unknown on an attached/attaching volume is not the expected
+            # detached-idle case — treat it as suspicious but keep it
+            # reported distinctly.
+            unknown_other += 1
+            bad_names.append(f"{name[:24]}[unknown/{state}]")
+        elif rb == "unknown":
+            unknown_detached += 1
+
+    vol_ok = not bad_names
+    if bad_names:
+        shown = "; ".join(bad_names[:4])
+        extra = "" if len(bad_names) <= 4 else f"; +{len(bad_names)-4} more"
+        msg_parts.append(
+            f"longhorn-vol: BAD {shown}{extra}"
+            f" | degraded={degraded_cnt} faulted={faulted_cnt}"
+            f" unknown-nondetached={unknown_other} unknown-detached={unknown_detached}"
+        )
+    else:
+        msg_parts.append(
+            f"longhorn-vol: OK {len(vols)} volumes"
+            f" (unknown-detached={unknown_detached} expected)"
+            if unknown_detached
+            else f"longhorn-vol: OK {len(vols)} volumes, 0 degraded/faulted"
+        )
+
+    backup_ok = (lh_ok and etcd_ok and vol_ok)
     msg = " | ".join(msg_parts)
     print(f"Backup status: {msg}")
 
