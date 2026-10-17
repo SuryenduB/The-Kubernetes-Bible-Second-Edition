@@ -4,6 +4,56 @@ Chronological audit log of platform engineering inspections, discoveries, valida
 
 ---
 
+## 2026-10-17: Ralph Loop Iteration 1 — backup detection repair (commit 877ecc1)
+
+- **F-08 (new):** `backup-daily-check` CronJob had failed daily since 2026-09-17: the Kuma 2.x
+  push monitor's token rotated, while Secret `longhorn-backup-kuma-push` kept the stale one,
+  so every push returned 404 (`/api/push/<token>` → "monitor not found") and the Job hit its
+  5-minute deadline in a retry loop. Detected during Phase-1 reconciliation via
+  `status.lastSuccessfulTime` vs `lastScheduleTime`.
+- **Fix:** Secret re-synchronised with the live monitor token (read via Kuma's embedded
+  MariaDB through exec, never printed); validated by a manual Job (`{'ok': True}`) and a
+  Kuma heartbeat status=1 at 2026-10-17 00:16 UTC.
+- **Extension:** `check.py` now covers both backup pipelines (Longhorn backups ≤ 26 h and
+  K3s `etcd-snapshot-online-*` CRs ≤ 13 h), masks the push token in pod logs, and prints a
+  precise remediation hint on 404 token desync. `ClusterRole longhorn-backup-reader`
+  extended for `k3s.cattle.io/etcdsnapshotfiles`. Applied live via
+  `kubernetes-manifests/monitoring/longhorn-backup-monitor.yaml` after server-side dry-run
+  and `py_compile`; final manual Job logs `longhorn: OK 9.0h | etcd: OK 1.0h`, exit 0.
+- **Note:** Uptime-Kuma has no notification provider configured (verified via API listing);
+  detection = Kuma dashboard monitor state + Job `Failed` condition. Notification delivery is
+  UNVERIFIED and recorded as such.
+
+## 2026-10-17: Ralph Loop Iteration 2 — online backup script hardening
+
+- **Phase-2 defect review of `k3s-etcd-safe-backup.sh`:**
+  (a) `mount -t nfs -o hard` without bound would hang forever on an unreachable NAS,
+  silently stopping backups from that point; (b) no mount-identity check — a stale/foreign
+  filesystem at `/mnt/k3s-nas-backup` could have been used as destination; (c) failure
+  causes were not distinguishable in logs; (d) `INT`/`TERM` could exit 0; (e) interrupted
+  `.tmp-*` transfers were never pruned; (f) the documented `--manual-test` flag did not exist.
+- **Fix (script `sha256 b87a06f4…` installed on nuc, old version backed up at
+  `/root/k3s-etcd-safe-backup.sh.pre-iter2`):** `timeout`-bounded mount
+  (`NAS_MOUNT_TIMEOUT_SECONDS`, default 180 s), `findmnt` mount-identity verification and
+  refusal of pre-existing mounts, phase-tagged errors, single coherent trap schema always
+  exiting non-zero on signals, `.tmp-*` pruning at the start of each transfer, and a real
+  `--manual-test` mode (full pipeline, no publish, no prune). Between-fixture observation:
+  an interim real run published `20261017-023018` (checksums verified, retention pruned the
+  15th-oldest dir; NAS now at exactly 14 published dirs).
+- **Fixture validation (live on nuc):**
+  - A: `NAS_IP=203.0.113.1` (blackhole) + `NAS_MOUNT_TIMEOUT_SECONDS=20` → clean failure
+    `[MOUNT] … timed out after 20s`, `[FATAL] exit 1`, no mount left, NAS unaffected.
+  - B: foreign `tmpfs` mounted at `/mnt/k3s-nas-backup` → run refuses with `[MOUNT]`
+    already mounted (source: tmpfs), exit 1, zero writes into the foreign mount, foreign
+    mount left intact for the operator.
+  - D: `--manual-test` → full pipeline incl. NAS checksum verification, exit 0, no publish,
+    inspectable `.tmp-*` left (pruned by next real run).
+- ACK/awareness: each fixture run creates one local 225 MB online snapshot as a by-product
+  (snapshot deliberately happens first so local snapshots exist even during NAS outages);
+  they age out with the 14-day local retention.
+
+---
+
 ## 2026-10-17: Ralph Loop Mission Execution
 
 ### 1. Repository & Secret Protection Hardening

@@ -24,6 +24,15 @@ This runbook documents the complete end-to-end backup, off-node synchronization,
 
 > [!NOTE]
 > Since 2026-10-17 this procedure is automated on `nuc` by `/usr/local/bin/k3s-etcd-safe-backup.sh` (root cron, every 6 hours; execution proof in `docs/change-log.md` §7). The manual steps below remain for ad-hoc snapshots and verification.
+>
+> The automated script hardening (2026-10-17, iteration 2) adds: bounded NAS mount
+> (`timeout` + `hard` mount never hangs forever when the NAS is unreachable),
+> mount-identity verification (refuses to publish onto a stale or foreign mount),
+> phase-tagged failure log lines (`[PRECOND]`, `[SNAPSHOT]`, `[STAGING]`,
+> `[MOUNT]`, `[TRANSFER]`, `[VERIFY]`, `[RETENTION]`, `[FATAL]`), stale
+> `.tmp-*` transfer litter pruning, non-zero exits for interrupted runs, and
+> a `--manual-test` flag that runs the full pipeline without publishing.
+> Test-time env overrides: `NAS_IP` and `NAS_MOUNT_TIMEOUT_SECONDS`.
 
 ### Step 1: Execute Online Snapshot
 On the control-plane node (`nuc`):
