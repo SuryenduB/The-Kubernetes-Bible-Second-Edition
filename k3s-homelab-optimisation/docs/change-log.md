@@ -185,3 +185,11 @@ file were stored in `/root/k3s-manifests-backup-20261017/`, and workstation copi
 - Validation: `py_compile` OK; live manual Job `manual-check-t07` (from the real CronJob, real RBAC/Secret): `longhorn-vol: OK 40 volumes (unknown-detached=1 expected)` plus both freshness checks OK, push `{'ok': True}`; job deleted after. Degraded branch not exercised against prod data (no synthetic volume degradation) — documented in task table.
 - Rollback: `git revert` the file + `kubectl apply` (RBAC/configmap only).
 - Negative path (altered state) is code-validated only; the stateful classification logic is a straight count — no thresholds to fuzz.
+
+### 12. T-08 — metrics-server HA via k3s addon file (2026-10-17 ~03:15–03:35 CEST)
+
+- **Source of truth:** `/var/lib/rancher/k3s/server/manifests/metrics-server/metrics-server-deployment.yaml` on `nuc` (k3s-reconciled Addon). Backup: `/root/metrics-server-deployment.pre-ha-20261017` (sha df341b81…). New sha `e7527d16…`.
+- **Change (mirrors upstream v0.8.1 `high-availability-1.21+.yaml`, archived in `reports/ralph-20261017/app08-metrics-ha/`):** `replicas: 2`; hard podAntiAffinity (`k8s-app=metrics-server`, `kubernetes.io/hostname`); appended PodDisruptionBudget `metrics-server` `minAvailable: 1`. Kept k3s's tuned values (mirror image, cipher list, 70Mi request, existing tolerations, `maxUnavailable: 1`).
+- **Evidence:** rollout success; pods Ready on kubernetes2 + kubernetes6 (distinct nodes); PDB `currentHealthy: 2, disruptionsAllowed: 1`; APIService `v1beta1.metrics.k8s.io` "all checks passed"; `kubectl top nodes` sane. Bounded drill: deleted one pod — `kubectl top node` kept working via the surviving replica; replacement scheduled on kubernetes3; rollout OK.
+- **Rollback:** reinstall `/root/metrics-server-deployment.pre-ha-20261017` over the addon file via `remote-admin.sh` (watcher restores single-replica state within ~20 s; PDB doc would remain unless removed — remove with `kubectl delete pdb metrics-server -n kube-system`).
+- **Residual:** upstream recommends `--enable-aggregator-routing=true` on kube-apiserver to truly load-balance both instances; that is an API-server CLI flag on `nuc` — forbidden (server-node change). Requests are still spread at the Service level.
