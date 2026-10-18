@@ -152,11 +152,6 @@ data:
           href: http://uptime-kuma.tail35421d.ts.net
           description: Uptime Monitoring
           siteMonitor: http://uptime-kuma.monitoring.svc
-      - Pooml:
-          icon: mdi-chart-timeline-variant
-          href: http://pooml.tail35421d.ts.net
-          description: Logs, Metrics & Alerts
-          siteMonitor: http://pooml-ui.monitoring.svc
       - Dozzle:
           icon: mdi-text-box-search-outline
           href: http://dozzle.tail35421d.ts.net
@@ -229,7 +224,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "c959907d6b19bf782359933de44ea792c0903df960fa0f30a74dd91dac64f63a"
+        checksum/config: "ae19939ccbc1f95b080c5faf84f2ce37186e3e90783924f39ef391a2405d6aeb"
       labels:
         app: homepage
     spec:

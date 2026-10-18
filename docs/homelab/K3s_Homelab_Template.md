@@ -121,7 +121,6 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | Gotify          | `monitoring` | <http://gotify.tail35421d.ts.net>                        |
 | Apprise         | `monitoring` | <http://apprise.tail35421d.ts.net>                       |
 | LogChef         | `monitoring` | <http://logchef.tail35421d.ts.net>                       |
-| PooML           | `monitoring` | <http://pooml.tail35421d.ts.net>                         |
 | Uptime Kuma     | `monitoring` | <http://uptime-kuma.tail35421d.ts.net>                   |
 
 #### IdentityIQ lab and deployment management
@@ -404,7 +403,7 @@ the CNI affects pod networking and service connectivity across the cluster.
 
 ## Credential register
 
-Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, OpenLingo, LibrisLog, BookLogr, BookOrbit, LinguaCafe, Homarr, PooML, homelab-manger, RemotePower, Beszel agent, ai-language-learning, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
+Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, OpenLingo, LibrisLog, BookLogr, BookOrbit, LinguaCafe, Homarr, homelab-manger, RemotePower, Beszel agent, ai-language-learning, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
 
 ### Undocumented credentials (now documented)
 
@@ -481,7 +480,6 @@ kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "cl
 | ---------------------------- | ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Dozzle                       | `monitoring` | `amir20/dozzle:v11.1.0` to `v11.3.0`                                 | `kubernetes-manifests/monitoring/dozzle.yaml`                                          |
 | Gotify                       | `monitoring` | `gotify/server:3.1.0` to `3.1.1`                                      | `kubernetes-manifests/monitoring/gotify.yaml`                                          |
-| PooML                        | `monitoring` | `mykonordy/pooml:0.3.0` to `0.3.4`                                    | `kubernetes-manifests/monitoring/pooml.yaml`                                           |
 | Chaptarr                     | `media`      | `chaptarr/chaptarr:0.9.958` to `0.9.965`                              | `kubernetes-manifests/media/chaptarr.yaml`                                             |
 | Audiobookshelf               | `media`      | `advplyr/audiobookshelf:2.36.1` to `2.37.1`                          | `kubernetes-manifests/media/audiobookshelf.yaml`                                       |
 | Calibre-Web                  | `media`      | `linuxserver/calibre-web:0.6.27-ls401` to `0.6.27-ls404`              | `kubernetes-manifests/media/calibre-web-with-importer.yaml`                            |
