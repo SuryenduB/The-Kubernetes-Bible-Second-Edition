@@ -51,7 +51,7 @@ kubernetes-manifests/
 │   ├── uptime-kuma.yaml (+ monitors, sync)
 │   ├── dozzle.yaml
 │   └── gotify.yaml                      # push notifications
-├── dashboard/                      # dashboard ns (Homarr, Cairn)
+├── dashboard/                      # dashboard ns (Cairn)
 ├── server-management/              # server-management ns (HomeLab Manger, RemotePower)
 ├── longhorn-backup/                # longhorn-system platform config
 │   ├── kustomization.yaml
@@ -83,7 +83,7 @@ kubernetes-manifests/
 | 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
 | 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
 | 8 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), Dozzle, Gotify | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
-| 9 | `dashboard` | Homarr, Cairn | `dashboard/` |
+| 9 | `dashboard` | Cairn | `dashboard/` |
 | 10 | `server-management` | HomeLab Manger, RemotePower | `server-management/` |
 
 ## Deployment

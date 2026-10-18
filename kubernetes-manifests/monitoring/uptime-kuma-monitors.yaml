@@ -224,12 +224,6 @@ data:
         interval: 60
         maxretries: 3
         description: Dozzle container log viewer
-      - name: homarr
-        type: http
-        url: http://homarr.dashboard.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: Homarr dashboard (307 redirect followed to 200)
       - name: cairn
         type: http
         url: http://cairn.dashboard.svc.cluster.local/

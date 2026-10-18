@@ -120,11 +120,6 @@ data:
           description: Free and Open Source Resume Builder
           siteMonitor: http://reactive-resume.media.svc/api/health
     - Dashboards:
-      - Homarr:
-          icon: homarr.png
-          href: http://homarr.tail35421d.ts.net
-          description: Customizable Homelab Dashboard
-          siteMonitor: http://homarr.dashboard.svc
       - Cairn:
           icon: mdi-view-dashboard-outline
           href: http://cairn.tail35421d.ts.net
@@ -214,7 +209,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "7d9a8851360b5f7b439e7b8cb2f8b2cd962913e09970c391cb4501a0ae54aa3f"
+        checksum/config: "9f1fc665d6d7dfb50b0be1c584e41430c2e14b65af9467b0e63b9166d66d05d5"
       labels:
         app: homepage
     spec:
