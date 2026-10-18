@@ -162,11 +162,6 @@ data:
           href: http://gotify.tail35421d.ts.net
           description: Push notification server
           siteMonitor: http://gotify.monitoring.svc
-      - Apprise:
-          icon: mdi-bell-cog
-          href: http://apprise.tail35421d.ts.net
-          description: Notification gateway (150+ services)
-          siteMonitor: http://apprise.monitoring.svc/status
       - Longhorn UI:
           icon: longhorn.png
           description: Storage management (internal only; no browser endpoint)
@@ -219,7 +214,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "840a24ddc834a19310267fc339a954eb9dd43e42ca1cb2c37927cedf2aa277b0"
+        checksum/config: "7d9a8851360b5f7b439e7b8cb2f8b2cd962913e09970c391cb4501a0ae54aa3f"
       labels:
         app: homepage
     spec:

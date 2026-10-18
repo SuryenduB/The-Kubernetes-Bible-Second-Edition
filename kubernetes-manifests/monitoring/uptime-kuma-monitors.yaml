@@ -218,12 +218,6 @@ data:
         interval: 60
         maxretries: 3
         description: Gotify push notification server (alert delivery path)
-      - name: apprise
-        type: http
-        url: http://apprise.monitoring.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: Apprise notification gateway (alert delivery path)
       - name: dozzle
         type: http
         url: http://dozzle.monitoring.svc.cluster.local/
