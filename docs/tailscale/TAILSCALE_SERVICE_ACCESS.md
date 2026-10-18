@@ -54,7 +54,7 @@ Then access via:
 ### Option 3: Using Tailscale DNS (if configured)
 
 If you've enabled MagicDNS in Tailscale settings, services may be accessible via:
-- `openwebui-tailscale.tail[yournet].ts.net`
+- `openwebui.tail[yournet].ts.net`
 - Similar for other services
 
 ---
@@ -102,8 +102,7 @@ Each service is exposed via a **Tailscale proxy StatefulSet** created by the Tai
   - Authenticates via OAuth client credentials
 
 - **Service Proxies** (one per exposed service):
-  - `ts-openwebui-tailscale-6c2ss` → StatefulSet
-  - `ts-argocd-server-tailscale-tfd9g` → StatefulSet
+  - StatefulSets named `ts-<service>-<suffix>` → one per exposed Service
 
 Each proxy runs as a Kubernetes StatefulSet that:
 1. Boots a Tailscale client authenticated to your Tailnet
@@ -123,7 +122,7 @@ For each original service, the operator created:
    - Namespace: tailscale
    - Type: Headless (ClusterIP: None)
    - Routes to proxy pods
-   - Example: `ts-openwebui-tailscale-6c2ss`
+   - Example: `ts-openwebui-<suffix>`
 
 3. **Proxy StatefulSet Pod**
    - Namespace: tailscale
@@ -152,7 +151,7 @@ kubectl get svc openwebui -n ai -o jsonpath='{.metadata.annotations}'
 kubectl get pod -n tailscale | grep ts-
 
 # 5. Check proxy pod logs for Tailscale IP
-kubectl logs -n tailscale ts-openwebui-tailscale-6c2ss-0 | grep "peerapi\|100\."
+kubectl logs -n tailscale -l tailscale.com/managed=true --tail=100 | grep "peerapi\|100\."
 ```
 
 ### ACL Issues
@@ -181,7 +180,7 @@ If you see "tag:k8s is invalid" errors:
    ```
 3. Verify service proxy pod is running:
    ```bash
-   kubectl get pod -n tailscale ts-openwebui-tailscale-6c2ss-0
+   kubectl get pod -n tailscale -l tailscale.com/managed=true
    ```
 4. Check ACL rules allow traffic from your device to service proxies
 5. Try accessing with explicit port: `http://100.124.23.54:8080`
@@ -222,7 +221,7 @@ Configure fine-grained ACL rules in the Tailscale Admin Console to restrict whic
 ```bash
 # Check if services are responding
 kubectl get svc -n tailscale -o wide | grep ts-
-kubectl logs -n tailscale ts-openwebui-tailscale-6c2ss-0 | tail -20
+kubectl logs -n tailscale -l tailscale.com/managed=true --tail=20
 ```
 
 ---

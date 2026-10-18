@@ -144,7 +144,7 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | SSH service          | `iiqstack` | `iiq-ssh.tail35421d.ts.net:22`                 | SSH access                 |
 | Argo CD              | `argocd`   | <https://argocd.tail35421d.ts.net>             | Deployment management      |
 
-Other registered proxies include `argocd-1.tail35421d.ts.net` on ports 80 and 443 and `openwebui-1.tail35421d.ts.net` on port 8080. Prefer the application-namespace endpoints. A registered MagicDNS name does not guarantee a trusted HTTPS certificate.
+Use the canonical `argocd` and `openwebui` Tailscale endpoints. A registered MagicDNS name does not guarantee a trusted HTTPS certificate.
 
 #### Read on mobile with Moon+ Reader
 

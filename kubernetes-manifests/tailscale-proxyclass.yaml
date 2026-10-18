@@ -14,39 +14,3 @@ spec:
           labelSelector:
             matchLabels:
               tailscale.com/managed: "true"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: openwebui-tailscale
-  namespace: ai
-  annotations:
-    tailscale.com/expose: "true"
-    tailscale.com/proxy-class: "tailscale-proxy"
-    tailscale.com/hostname: "openwebui"
-spec:
-  type: ClusterIP
-  ports:
-  - port: 8080
-    targetPort: 8080
-    protocol: TCP
-  selector:
-    app: openwebui
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: argocd-server-tailscale
-  namespace: argocd
-  annotations:
-    tailscale.com/expose: "true"
-    tailscale.com/proxy-class: "tailscale-proxy"
-    tailscale.com/hostname: "argocd"
-spec:
-  type: ClusterIP
-  ports:
-  - port: 443
-    targetPort: 8080
-    protocol: TCP
-  selector:
-    app.kubernetes.io/name: argocd-server
