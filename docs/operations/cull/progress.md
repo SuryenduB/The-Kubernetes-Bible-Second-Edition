@@ -4,6 +4,7 @@ Started 2026-10-18 from tag `cull-start`.
 
 | Phase | Item | Decision | Reason / evidence | Resources and storage | Commit | Validation |
 | --- | --- | --- | --- | --- | --- | --- |
+| 1 | `argocd/argocd-initial-admin-secret` | REMOVE | Bootstrap secret from 2025-05-26; no owner, manifest, or Application dependency. | Secret only; no storage or exposure. | This commit | Deleted; Argo CD server remains 1/1, nodes Ready, Kustomize succeeds. |
 
 ## Baseline
 

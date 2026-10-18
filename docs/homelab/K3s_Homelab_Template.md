@@ -441,7 +441,6 @@ Recreate these Secrets from the live values above before the next `kubectl apply
 - `logchef.yaml`, stored `password` differs from live `logchef-admin`
 - `uptime-kuma-sync.yaml` / `uptime-kuma-monitors.yaml`, stored `password` differs from live `uptime-kuma-credentials` (stored `username` matches)
 - `trove.yaml`, stored bootstrap `token` differs from live `trove-bootstrap`
-- `argocd-initial-admin-secret`, stale; does **not** match the live admin password
 
 ### Recovery commands
 
