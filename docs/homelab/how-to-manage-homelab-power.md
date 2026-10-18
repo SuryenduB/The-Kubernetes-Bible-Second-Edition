@@ -56,7 +56,7 @@ the same everywhere and Linux usernames are case-sensitive:
 |---|---|---|
 | `nuc`, `kubernetes1`–`kubernetes8-debian` | `suryendub` | Ubuntu workers + the primary control plane |
 | `server-236` (192.168.0.236) | `SuryenduB` | **Capital S matters** - `suryendub` is rejected |
-| `server-252` (192.168.0.252) | `SuryenduB` | Same Hyper-V/Windows-style account (`SuryenduB`) |
+| `server-252` (192.168.0.252) | `suryendub` | Lowercase (verified live 2026-10-17; capital-S `SuryenduB` is rejected - unlike server-236) |
 
 `shutdown_homelab.ps1` (v10.0) resolves the identity per node and *proves* it before powering
 anything off: it tries the registry spelling plus its lowercase and capitalised forms, keeps the
@@ -314,7 +314,8 @@ $plainPass = [System.Runtime.InteropServices.Marshal]::PtrToStringUni(
 If you see connection errors or password prompts in `shutdown.log`, verify that `sshpass` is accessible in your shell's `PATH`. The scripts automatically fall back to standard `ssh` if `sshpass` is missing, which will require an interactive terminal.
 
 `Permission denied (publickey,password)` on one node only is almost always the **username case**,
-not the password: `server-236` and `server-252` reject `suryendub` and only accept `SuryenduB`
+not the password: `server-236` rejects `suryendub` and only accepts `SuryenduB`, while
+`server-252` is the reverse (only lowercase `suryendub`, verified live 2026-10-17)
 (same password, `558068`). Set the correct `sshUser` in `WindowsLab/homelab-nodes.json` and confirm
 with:
 

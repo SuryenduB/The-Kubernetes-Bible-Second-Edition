@@ -70,6 +70,43 @@ spec:
       labels:
         app: iiq
     spec:
+      # IdentityIQ (JVM + Tomcat + WAR deploy + Hibernate init) routinely needs
+      # 5-10 min to serve traffic. Give shutdown enough time to drain sessions.
+      terminationGracePeriodSeconds: 90
+      # IdentityIQ exits if Tomcat starts while MSSQL is still recovering.
+      # Gate startup on both the database and the application login being
+      # available, rather than relying on the app's restart loop.
+      initContainers:
+        - name: wait-for-identityiq-database
+          image: 192.168.0.236:5000/sailpoint-iiq:8.5
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MSSQL_SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sailpoint-db-secrets
+                  key: mssql-sa-password
+            - name: MSSQL_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sailpoint-db-secrets
+                  key: mssql-user-password
+          command:
+            - /bin/bash
+            - -ec
+            - |
+              until /opt/mssql-tools18/bin/sqlcmd \
+                -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C \
+                -Q "SET NOCOUNT ON; IF DB_ID('identityiq') IS NOT NULL SELECT 1" \
+                -h -1 2>/dev/null | grep -q 1; do
+                echo "Waiting for MSSQL identityiq database and login..."
+                sleep 10
+              done
+              /opt/mssql-tools18/bin/sqlcmd \
+                -S db -U sa -P "$MSSQL_SA_PASSWORD" -No -C \
+                -Q "IF NOT EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = 'identityiq') CREATE LOGIN [identityiq] WITH PASSWORD = N'$MSSQL_USER_PASSWORD'; ELSE ALTER LOGIN [identityiq] WITH PASSWORD = N'$MSSQL_USER_PASSWORD'; USE [identityiq]; IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = 'identityiq') CREATE USER [identityiq] FOR LOGIN [identityiq]; ELSE ALTER USER [identityiq] WITH LOGIN = [identityiq]; ALTER ROLE [db_owner] ADD MEMBER [identityiq]" \
+                >/dev/null
+              echo "MSSQL identityiq database and login are ready."
       containers:
         - name: iiq
           image: 192.168.0.236:5000/sailpoint-iiq:8.5
@@ -112,6 +149,18 @@ spec:
             limits:
               memory: "4Gi"
               cpu: "2000m"
+          # startupProbe gates liveness/readiness until IdentityIQ actually
+          # serves the login page. Budget: 60 x 15s = 900s (15 min), which
+          # fixes the crash loop where liveness (180s + 3x30s) SIGKILLed the
+          # JVM mid-startup (observed exit 137 at ~4m44s).
+          startupProbe:
+            httpGet:
+              path: /identityiq/login.jsf
+              port: 8080
+              scheme: HTTP
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 60
           readinessProbe:
             httpGet:
               path: /identityiq/login.jsf
@@ -130,5 +179,11 @@ spec:
             periodSeconds: 30
             timeoutSeconds: 10
             failureThreshold: 3
+          # preStop sleep lets the Service drop this endpoint before Tomcat
+          # starts shutting down, avoiding dropped requests during rollouts.
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10"]
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File

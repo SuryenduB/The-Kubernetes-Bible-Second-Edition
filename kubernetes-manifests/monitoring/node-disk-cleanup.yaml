@@ -15,6 +15,23 @@
 # A CronJob cannot target "every node", so this is a DaemonSet running the
 # cleanup on an interval. Same effect, covers all nodes including the
 # control-plane ones that need it most.
+#
+# 2026-10-18 revision - the 2026-10-18 reclaim removed ~576 GiB of
+# unreferenced images and found journals up to 1.5 GB. Both had grown because
+# this script only acted above 80% used, and because journald had no
+# SystemMaxUse on 7 of the 10 nodes.
+#
+# 2026-10-18 revision 2 - the image prune was moved behind the 80% gate.
+# "Unreferenced" is not the same as "safe to delete": `crictl rmi --prune`
+# removes images only a scale-to-zero workload or a rollback revision still
+# needs, and it has no way to exclude a digest the registry cannot fully serve.
+# Unattended blanket deletion is exactly the failure this cluster already hit.
+# So the DaemonSet now only prunes images as EMERGENCY relief above 80%, where
+# the alternative is eviction at ~85-90%. Routine image reclamation is an
+# explicit, eligibility-checked act - see k3s-storage-cleanup/SKILL.md.
+#
+# Both tiers take a per-node lock so an unattended pass cannot interleave with
+# a manual/audited run (same lock path the tool must honour).
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -29,32 +46,94 @@ metadata:
 data:
   cleanup.sh: |
     #!/bin/sh
-    # Node disk cleanup, executed inside the host mount+PID namespace via
+    # Node disk maintenance, executed inside the host mount+PID namespace via
     # nsenter so that host tooling (df, journalctl, snap, crictl) is used.
-    # Safe by construction: every step removes only regenerable data or
-    # already-unreferenced objects.
+    # Safe by construction: every step removes only regenerable data, and the
+    # only step that deletes an arbitrary object (the image prune) is gated
+    # behind disk pressure, where the alternative is eviction.
+    #
+    # Two tiers (2026-10-18 revision 2):
+    #   Tier 1 - bounded maintenance, ALWAYS run. Persists a journald size cap
+    #            and vacuums the journal. Journald had no SystemMaxUse on 7 of
+    #            10 nodes and regrows to 10% of the filesystem otherwise; the
+    #            cap is the durable fix and needs no eligibility judgement.
+    #   Tier 2 - pressure cleanup, only above 80%. Unbounded/disruptive steps
+    #            (unreferenced image prune, disabled snap revisions, oversized
+    #            kern.log) only run when the kubelet DiskPressure trigger
+    #            (~85-90%) is close, so the only deletion is emergency relief.
     set -u
 
     HOST="$(hostname)"
     log() { echo "[$(date -Is 2>/dev/null || date)] $*"; }
 
+    # Serialise against manual/audited runs: one cleanup per node at a time.
+    # Same path the k3s-storage-cleanup tool must take, so the two can never
+    # interleave. flock releases automatically if this process dies, so there
+    # is no stale-lock failure mode. If /run/lock is unusable we continue
+    # unlocked rather than silently skipping maintenance forever.
+    LOCK="/run/lock/k3s-disk-cleanup.lock"
+    if command -v flock >/dev/null 2>&1 && [ -w /run/lock ]; then
+      exec 9>"$LOCK"
+      if ! flock -n 9; then
+        log "another cleanup holds $LOCK, skipping this cycle"
+        exit 0
+      fi
+    else
+      log "flock or /run/lock unavailable, running without the interlock"
+    fi
+
     USED_PCT="$(df -P / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')"
     log "root filesystem ${USED_PCT:-?}% used on ${HOST}"
+
+    # --- Tier 1: bounded maintenance (every cycle) -------------------------
+
+    # 1. Persist a journald size cap. Without one, journald grows back to 10%
+    #    of the filesystem after every vacuum. Skipped when a cap already
+    #    exists (journald.conf or a drop-in) so hand-applied caps are kept.
+    if ! grep -rqsE '^[[:space:]]*SystemMaxUse' /etc/systemd/journald.conf \
+           /etc/systemd/journald.conf.d/ 2>/dev/null; then
+      mkdir -p /etc/systemd/journald.conf.d
+      printf '[Journal]\nSystemMaxUse=500M\n' \
+        > /etc/systemd/journald.conf.d/10-homelab-cap.conf
+      systemctl restart systemd-journald >/dev/null 2>&1 \
+        || log "journald restart skipped"
+      log "installed journald cap at /etc/systemd/journald.conf.d"
+    fi
+
+    # 2. Bound the journal now. Cheap; a no-op when it is already small.
+    journalctl --vacuum-size=200M >/dev/null 2>&1 || log "journal vacuum skipped"
+
+    # 3. Prune unreferenced container images. NOT DONE HERE. This was Tier 1
+    #    until 2026-10-18 rev 2. `crictl rmi --prune` deletes every image no
+    #    *container* references - which includes images a scale-to-zero
+    #    workload or a rollback revision still needs, and it cannot exclude a
+    #    digest the registry cannot fully serve. That is a blanket policy, not
+    #    an eligibility check, so it now runs only as emergency relief below.
+
+    # --- Tier 2: pressure cleanup (only >= 80%) ----------------------------
 
     # Clean before the kubelet DiskPressure trigger (which fires around
     # 85-90% depending on eviction-hard settings), not after eviction starts.
     if [ "${USED_PCT:-0}" -lt 80 ]; then
-      log "below 80% threshold, nothing to do"
+      log "below 80% threshold, skipping pressure cleanup"
+      log "maintenance finished: $(df -h / | tail -1)"
       exit 0
     fi
 
-    log "disk pressure detected, running cleanup"
+    log "disk pressure detected, running pressure cleanup"
 
-    # 1. Cap the systemd journal. The usual culprit: journald defaults to 10%
-    #    of the filesystem, which on a small 48G node is still several GB.
-    journalctl --vacuum-size=200M >/dev/null 2>&1 || log "journal vacuum skipped"
+    # 4. EMERGENCY image relief. Only reached above 80% used, where the
+    #    alternative is eviction at ~85-90% (which is what previously took out
+    #    longhorn-manager and the CSI plugin). --timeout is required: with
+    #    crictl's default 2s client deadline, large removals abort with
+    #    DeadlineExceeded and only partially complete. This is relief, not
+    #    reclamation - planned, eligibility-checked pruning is an explicit run.
+    if command -v crictl >/dev/null 2>&1; then
+      crictl --timeout 10m rmi --prune >/dev/null 2>&1 \
+        || log "emergency crictl prune reported errors"
+    fi
 
-    # 2. Drop disabled snap revisions only - never the active revision, so
+    # 5. Drop disabled snap revisions only - never the active revision, so
     #    snapd-managed apps keep working.
     if command -v snap >/dev/null 2>&1; then
       snap list --all 2>/dev/null | awk '$5 == "disabled" {print $1, $3}' | \
@@ -67,15 +146,7 @@ data:
       done
     fi
 
-    # 3. Prune unreferenced container images. crictl only removes images with
-    #    no container referencing them, so this cannot break a running
-    #    workload. kubelet's own image GC does this too, but only reactively
-    #    under pressure - by then it has usually started evicting pods.
-    if command -v crictl >/dev/null 2>&1; then
-      crictl rmi --prune >/dev/null 2>&1 || log "crictl prune skipped"
-    fi
-
-    # 4. Truncate rotated kernel logs. kern.log reaches hundreds of MB on a
+    # 6. Truncate rotated kernel logs. kern.log reaches hundreds of MB on a
     #    noisy node. Truncate rather than delete so syslog keeps writing to
     #    the same inode.
     truncate -s 0 /var/log/kern.log 2>/dev/null || true

@@ -83,8 +83,9 @@ hardcode node lists in the scripts.
 - Shut down **must** run detached, or the shell suspends it:
   `pwsh -File WindowsLab/shutdown_homelab.ps1 -Force > shutdown.log 2>&1 < /dev/null &`
 - Rehearse with `-DryRun`; check credentials with `-VerifyCredentials -Force`.
-- SSH usernames are **case-sensitive**: `suryendub` on Ubuntu workers and `nuc`, `SuryenduB`
-  (capital S) on `server-236` / `server-252`.
+- SSH usernames are **case-sensitive**: `suryendub` on Ubuntu workers, `nuc` and
+  `server-252` (lowercase - verified live 2026-10-17, capital-S rejected); `SuryenduB`
+  (capital S) only on `server-236`.
 
 Full flag reference and troubleshooting: `docs/homelab/how-to-manage-homelab-power.md`.
 

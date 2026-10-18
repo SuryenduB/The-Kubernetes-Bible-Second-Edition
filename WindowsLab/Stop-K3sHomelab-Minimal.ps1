@@ -68,8 +68,9 @@ foreach ($node in $nodesToShutdown) {
     }
 }
 
-# Login identity is PER NODE (registry 'sshUser'): server-236/server-252 are case-sensitive and
-# only accept 'SuryenduB', while the Ubuntu workers use 'suryendub'. Keep the historical default
+# Login identity is PER NODE (registry 'sshUser'): server-236 accepts only 'SuryenduB'
+# (capital S) and server-252 accepts only 'suryendub' (lowercase, verified 2026-10-17),
+# while the Ubuntu workers use 'suryendub'. Keep the historical default
 # for any node that does not declare one.
 $defaultSshUser = 'suryendub'
 

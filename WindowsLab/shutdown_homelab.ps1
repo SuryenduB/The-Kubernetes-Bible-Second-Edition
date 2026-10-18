@@ -29,8 +29,8 @@
 #
 # Credentials (v9.2): every poweroff is an SSH login + sudo, so the login identity is resolved
 # PER NODE from WindowsLab/homelab-nodes.json ("sshUser") and probed before anything is
-# powered off. Usernames are case-sensitive on server-236/server-252, which accept only
-# 'SuryenduB' while the Ubuntu workers use 'suryendub' - the resolver tries the registry
+# powered off. server-236 accepts only 'SuryenduB' (capital S) while server-252 accepts
+# only 'suryendub' (lowercase, verified 2026-10-17) and the Ubuntu workers use 'suryendub' - the resolver tries the registry
 # spelling plus its lowercase/capitalised forms and keeps the one that authenticates. The
 # sudo password comes from the SecretStore vault ('k3s-homelab-sudo') or cred.xml, and is
 # piped to 'sudo -S' base64-encoded so it never appears in the transcript.

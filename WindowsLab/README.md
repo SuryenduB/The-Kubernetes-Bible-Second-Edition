@@ -24,7 +24,7 @@ lab clients.
 | `HP-1` (`DESKTOP-32DRFM7`) | Hyper-V host | i7-6600U, 16 GB | `192.168.0.103` | DHCP on the wired I219-LM. Also has `192.168.0.120` on **Wi-Fi** (currently disconnected). Hosts `Lab0`. |
 | `HP-2` | Physical lab client | Celeron N3050, 8 GB | `192.168.0.122` | Static. `OpenSSH_for_Windows_9.5`. |
 | Lenovo ThinkCentre | Physical lab client | i3-6100T, 8 GB | — | |
-| Fujitsu ESPRIMO C720 | Physical lab client | i3-4150, 4 GB | — | |
+| Fujitsu ESPRIMO C720 | Physical lab client | i3-4150; RAM unverified (older note says 4 GB; owner is unsure whether it is 4 or 8 GB) | — | IP and SSH status not verified. |
 
 > [!IMPORTANT]
 > **HP-1 has two interfaces, not two identities — and `.236` is NOT HP-1.**
@@ -284,7 +284,7 @@ The version difference is the useful signal: `HP-2` has a manually installed Ope
 the stock Windows one.
 
 Note that the K3s homelab SSH usernames are **case-sensitive** and differ per machine
-(`suryendub` on the Ubuntu workers, `SuryenduB` on `server-236` / `server-252`) — see
+(`suryendub` on the Ubuntu workers and `server-252`, `SuryenduB` only on `server-236`) — see
 [`homelab-nodes.json`](./homelab-nodes.json) and
 [`docs/homelab/how-to-manage-homelab-power.md`](../docs/homelab/how-to-manage-homelab-power.md).
 

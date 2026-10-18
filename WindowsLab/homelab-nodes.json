@@ -105,10 +105,10 @@
       "ip": "192.168.0.252",
       "role": "control-plane",
       "os": "Ubuntu 20.04",
-      "sshUser": "SuryenduB",
+      "sshUser": "suryendub",
       "neverCordon": true,
       "neverPowerOff": false,
-      "notes": "3rd K3s server (embedded etcd), joined 2026-09-20. Hyper-V VM (hostname k3s-master, 2 vCPU / 2 GB) - completes 3-member etcd quorum. Registering it here means the minimal-mode survivor list MUST keep a control-plane majority (see survivors)."
+      "notes": "3rd K3s server (embedded etcd), joined 2026-09-20. Hyper-V VM (actual VM name k3s-master-2, guest hostname k3s-master, 2 vCPU / dynamic memory 3-6 GB since 2026-10-17) on the Lenovo ThinkCentre host (192.168.0.170, 8 GB RAM, also runs Podman) - completes 3-member etcd quorum. SSH user is lowercase suryendub (verified live 2026-10-17; capital-S SuryenduB is rejected - unlike server-236). Registering it here means the minimal-mode survivor list MUST keep a control-plane majority (see survivors)."
     }
   ],
   "external": [

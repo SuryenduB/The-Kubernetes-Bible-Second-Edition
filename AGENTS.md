@@ -8,6 +8,7 @@ This repo is two things: Packt "Kubernetes Bible 2e" chapter examples (`Chapter0
 - Full app/namespace map lives in `kubernetes-manifests/README.md` — read it before adding workloads.
 - Tailscale exposure goes on the **Service**, never Ingress (see `k3s-tailscale-proxy/SKILL.md`): `tailscale.com/expose: "true"`, `tailscale.com/proxy-class: "tailscale-proxy"`, `tailscale.com/hostname: "<name>"`.
 - Storage: Longhorn default; `longhorn-r1` single-replica class for rebuildable data; NFS `nfs-nas` on Synology `192.168.0.128` for media/Ollama models. Static NFS PVs use explicit `claimRef` — don't remove it.
+- Disk-pressure reclaim (Longhorn orphans, image prune, journald caps, registry-recoverability proof, additive-vs-not measurement rules): `k3s-storage-cleanup/SKILL.md`.
 - Secrets with plaintext creds are intentionally checked in (homelab scope). Replace `REPLACE_ME` before applying; never "fix" this by deleting secrets.
 
 ## Homelab power: `WindowsLab/`
@@ -16,7 +17,7 @@ This repo is two things: Packt "Kubernetes Bible 2e" chapter examples (`Chapter0
 
 - `WindowsLab/homelab-nodes.json` is the single source of truth for nodes/SSH users/safety flags. Never hardcode node lists.
 - `kubernetes7` was decommissioned on 2026-10-17 (broken power switch — a power-off was unrecoverable; owner decision) and is removed from `homelab-nodes.json`; it no longer participates in the cluster or in any startup/shutdown target list. `nuc`/`server-236`/`server-252` are `neverCordon` (control plane/etcd + local registry host).
-- SSH usernames are case-sensitive: `suryendub` on Ubuntu workers/`nuc`, `SuryenduB` (capital S) on `server-236`/`server-252`.
+- SSH usernames are case-sensitive: `suryendub` on Ubuntu workers/`nuc`/`server-252` (lowercase verified live 2026-10-17), `SuryenduB` (capital S) only on `server-236`.
 - Bring-up: `pwsh -File WindowsLab/Start-K3sHomelab.ps1 -DryRun` first, then `-RepairStorage`; watch `kubectl get nodes -w` then `kubectl get pods -A`. Shutdown must run detached: `pwsh -File WindowsLab/shutdown_homelab.ps1 -Force > shutdown.log 2>&1 < /dev/null &`. Rehearse with `-DryRun`, check creds with `-VerifyCredentials -Force`.
 - Embedded etcd: after the 2026-10-17 post-shutdown recovery, all three members (nuc leader, server-236, server-252) sit in ONE lineage after stale forks were archived + rejoined via `K3S_URL` (procedure in the power runbook; `etcdctl` on nuc). Never leave one etcd member running while the other two reboot — that forks the lineage and a node shows as permanently `NotReady` until the archive-and-rejoin surgery is repeated.
 - Health check: `Test-K3sClusterHealth.ps1` at repo root. Runbooks: `docs/homelab/how-to-manage-homelab-power.md`, `docs/operations/`.
