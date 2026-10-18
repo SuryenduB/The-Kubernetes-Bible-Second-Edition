@@ -51,8 +51,7 @@ kubernetes-manifests/
 │   ├── uptime-kuma.yaml (+ monitors, sync)
 │   ├── pooml.yaml / omnisight.yaml
 │   ├── dozzle.yaml / logchef.yaml
-│   ├── homelab-monitor.yaml
-│   └── gotify.yaml / apprise.yaml  # push notifications + relay gateway
+│   ├── │   └── gotify.yaml / apprise.yaml  # push notifications + relay gateway
 ├── dashboard/                      # dashboard ns (Homarr, Cairn)
 ├── server-management/              # server-management ns (HomeLab Manger, RemotePower)
 ├── longhorn-backup/                # longhorn-system platform config
@@ -84,7 +83,7 @@ kubernetes-manifests/
 | 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
 | 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
 | 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
-| 8 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), PooML, OmniSight, Dozzle, Logchef, Homelab Monitor, Gotify, Apprise | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
+| 8 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), PooML, OmniSight, Dozzle, Logchef, Gotify, Apprise | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
 | 9 | `dashboard` | Homarr, Cairn | `dashboard/` |
 | 10 | `server-management` | HomeLab Manger, RemotePower | `server-management/` |
 

@@ -14,7 +14,6 @@ resources:
   - dozzle.yaml
   - gotify.yaml
   - apprise.yaml
-  - homelab-monitor.yaml
   - logchef.yaml
 
 # API credentials come from a local-only env file (gitignored) so the

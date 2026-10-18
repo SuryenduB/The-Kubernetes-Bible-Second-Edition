@@ -230,12 +230,6 @@ data:
         interval: 60
         maxretries: 3
         description: Dozzle container log viewer
-      - name: homelab-monitor
-        type: http
-        url: http://homelab-monitor.monitoring.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: Homelab monitoring UI (monitoring namespace)
       - name: homarr
         type: http
         url: http://homarr.dashboard.svc.cluster.local/

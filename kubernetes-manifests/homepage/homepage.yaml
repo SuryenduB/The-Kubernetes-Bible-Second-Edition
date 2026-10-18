@@ -177,11 +177,6 @@ data:
           href: http://apprise.tail35421d.ts.net
           description: Notification gateway (150+ services)
           siteMonitor: http://apprise.monitoring.svc/status
-      - HomeLab Monitor:
-          icon: mdi-monitor-dashboard
-          href: http://homelab-monitor.tail35421d.ts.net
-          description: Host and homelab metrics
-          siteMonitor: http://homelab-monitor.monitoring.svc
       - Logchef:
           icon: mdi-text-search
           href: http://logchef.tail35421d.ts.net
@@ -239,7 +234,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "4856d94aae6bfce29fb062d25bd7071b39337e0e557c4fb1254ca788c400e49f"
+        checksum/config: "f866d221068bb648c3e3b0328ebd8ae3fea5656362a8fc48493856bc8663aa27"
       labels:
         app: homepage
     spec:
