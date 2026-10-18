@@ -29,7 +29,6 @@ kubernetes-manifests/
 │   ├── immich-pdb.yaml
 │   ├── immich-db-backup.yaml       # nightly pg_dump to NAS + restore check
 │   ├── flick.yaml                  # File sharing: Go API, web, Caddy, Postgres
-│   └── pgweb.yaml                  # PostgreSQL explorer (no default DB)
 ├── homepage/
 │   └── homepage.yaml               # homepage ns (gethomepage dashboard + ConfigMap + Tailscale svc)
 ├── cloudflare/                     # cloudflare ns (Cloudflare Tunnels, standalone apply)
@@ -84,7 +83,7 @@ kubernetes-manifests/
 | 3 | `openlingo` | OpenLingo (Next.js language platform + Postgres) | `media/openlingo.yaml` |
 | 4 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
 | 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
-| 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick, pgweb | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
+| 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, BookHoarder, Booklogr, LibrisLog, OpenLingo, Immich, Flick | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
 | 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
 | 8 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), Kuvasz, Lantern, PooML, OmniSight, Dozzle, Logchef, Trove, LAN Sheriff, LanGuard, Homelab Monitor, Gotify, Apprise | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
 | 9 | `dashboard` | Homarr, Cairn | `dashboard/` |

@@ -109,11 +109,6 @@ data:
           href: http://immich.tail35421d.ts.net
           description: Photo and video library
           siteMonitor: http://immich.media.svc/api/server/ping
-      - pgweb:
-          icon: mdi-database-search
-          href: http://pgweb.tail35421d.ts.net
-          description: PostgreSQL explorer (all app DBs)
-          siteMonitor: http://pgweb.media.svc
       - Flick:
           icon: mdi-file-swap
           href: http://flick.tail35421d.ts.net

@@ -13,6 +13,5 @@ resources:
   - immich-pdb.yaml
   - immich-db-backup.yaml
   - flick.yaml
-  - pgweb.yaml
   - reactive-resume.yaml
 
