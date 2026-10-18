@@ -9,7 +9,6 @@ kubernetes-manifests/
 ├── kustomization.yaml              # Top-level Kustomization — aggregates all apps
 ├── ai-language-learning.yaml        # ai-language-learning ns (backend, postgres, schema ConfigMap)
 ├── iiq-stateful.yaml               # iiqstack ns (IIQ, LDAP, ActiveMQ, MSSQL, MySQL, Mailpit, etc.)
-├── iiq-networkpolicy.yaml          # iiqstack network policies (default-deny + allow-internal)
 ├── iiq-serviceaccount.yaml         # iiqstack ServiceAccount
 ├── iiq misc/                       # iiqstack extras: init job, iiq Deployment/Service, HA ref, recovery README
 ├── base/

@@ -401,7 +401,7 @@ The cluster uses stock Flannel. The node config at
 and `bandwidth` plugins. This CNI setup does not enforce Kubernetes NetworkPolicy resources, so
 the media namespace has none.
 
-The three NetworkPolicy resources in `iiqstack` may also have no effect. Verify them in a separate
+The legacy IIQ NetworkPolicies were removed because they had no effect. Verify policy enforcement in a separate
 network-policy audit.
 
 Enforcing east-west policies requires a CNI that supports them, such as Calico or Cilium. Changing
@@ -548,7 +548,6 @@ _This baseline came from `nuc`, the original server. Since 2026-09-20, each cont
 
 | Issue                                              | Symptom                                                                                                                                                 | Resolution                                                                                                                                                                                                                                                                                                                                                                                            |
 | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| IIQ init stalls | The `iiq` pod stays in `Init:0/1` or `Pending`. | A NetworkPolicy may block egress to the K3s API on port `6443`. Update `iiqstack-allow-internal` to allow that egress. |
 | Beszel agent crashes | `beszel-agent` pods enter `CrashLoopBackOff`. | In push mode, the liveness probe fails because the agent has no local SSH server. Remove `livenessProbe` from the DaemonSet. |
 | Longhorn mount fails | Pod events report `MountVolume.SetUp failed`. | Check that `longhorn-manager` and `csi-plugin` are healthy on the node. Restarting the affected node or manager may clear a transient CSI RPC timeout. |
 | MagicDNS fails on macOS | `curl` cannot resolve `*.tail35421d.ts.net`, but `dig` works. | Tailscale issue [#18510](https://github.com/tailscale/tailscale/issues/18510) describes `tailscaled` writing `/etc/resolver/search.tailscale` without a nameserver. Add the resolver with `echo 'nameserver 100.100.100.100' | sudo tee /etc/resolver/ts.net`. |

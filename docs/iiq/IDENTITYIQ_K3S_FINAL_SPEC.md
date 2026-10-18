@@ -17,7 +17,6 @@ The deployment uses a high-availability, hardened stack on K3s, migrated from le
 
 ## 3. Hardening & Security
 - **Namespace:** `iiqstack` with `ResourceQuota` and `LimitRange` enforced.
-- **NetworkPolicy:** Default deny with explicit allows for internal traffic, DNS, Tailscale, and the Kubernetes API (port 443).
 - **UIDs:**
   - MSSQL: `10001`
   - IdentityIQ: `1000`
