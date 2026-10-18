@@ -105,7 +105,6 @@ This inventory was checked on 2026-09-17 against workloads, Service ports, and d
 | Application     | Namespace           | MagicDNS access                              | Public access                                                                                                                              |
 | --------------- | ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Homepage        | `homepage`          | <http://homepage-homepage.tail35421d.ts.net> | Cloudflare Quick Tunnel, with no authentication gate. The hostname changes; use the script above to read it. |
-| Cairn           | `dashboard`         | <http://cairn.tail35421d.ts.net>             | Not listed                                                                                                                                          |
 | Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net>    | Not listed                                                                                                                                          |
 | RemotePower     | `server-management` | <http://remotepower.tail35421d.ts.net>       | Not listed                                                                                                                                          |
 

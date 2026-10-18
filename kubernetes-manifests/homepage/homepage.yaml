@@ -119,12 +119,6 @@ data:
           href: http://reactive-resume.tail35421d.ts.net
           description: Free and Open Source Resume Builder
           siteMonitor: http://reactive-resume.media.svc/api/health
-    - Dashboards:
-      - Cairn:
-          icon: mdi-view-dashboard-outline
-          href: http://cairn.tail35421d.ts.net
-          description: Homelab Service Directory
-          siteMonitor: http://cairn.dashboard.svc
     - Server Management:
       - HomeLab Manger:
           icon: mdi-server-cog
@@ -209,7 +203,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "9f1fc665d6d7dfb50b0be1c584e41430c2e14b65af9467b0e63b9166d66d05d5"
+        checksum/config: "6708fb54230845d097d8542a9f1777c7fd9ddab8a403610f6c2514046ed56835"
       labels:
         app: homepage
     spec:
