@@ -120,7 +120,6 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | Dozzle          | `monitoring` | <http://dozzle.tail35421d.ts.net>                        |
 | Gotify          | `monitoring` | <http://gotify.tail35421d.ts.net>                        |
 | Apprise         | `monitoring` | <http://apprise.tail35421d.ts.net>                       |
-| LogChef         | `monitoring` | <http://logchef.tail35421d.ts.net>                       |
 | Uptime Kuma     | `monitoring` | <http://uptime-kuma.tail35421d.ts.net>                   |
 
 #### IdentityIQ lab and deployment management
@@ -409,7 +408,6 @@ Audited 2026-09-17: every live Secret's values were compared against this reposi
 
 | Secret                      | Namespace    | Key(s)                        | Value                                                                                   |
 | --------------------------- | ------------ | ----------------------------- | --------------------------------------------------------------------------------------- |
-| `logchef-admin`             | `monitoring` | `password`                    | `ZF7OSaNeaEMElvmOiNm4`                                                                  |
 | `uptime-kuma-credentials`   | `monitoring` | `username` / `password`       | `suryendub` / `Joy2Gopal!`                                                              |
 | `longhorn-backup-kuma-push` | `monitoring` | `token`                       | `xADmtohED3`                                                                            |
 | `operator-oauth`            | `tailscale`  | `client_id` / `client_secret` | `kP3vXcDeXd11CNTRL` / `tskey-client-kP3vXcDeXd11CNTRL-h5adH2fVy831Vtxj55Vg93J3iie3C6uM` |
@@ -428,7 +426,6 @@ kubectl -n argocd patch secret argocd-secret \
 
 Recreate these Secrets from the live values above before the next `kubectl apply -k kubernetes-manifests`, or the manifests will overwrite the working credentials:
 
-- `logchef.yaml`, stored `password` differs from live `logchef-admin`
 - `uptime-kuma-sync.yaml` / `uptime-kuma-monitors.yaml`, stored `password` differs from live `uptime-kuma-credentials` (stored `username` matches)
 
 ### Recovery commands
@@ -436,8 +433,6 @@ Recreate these Secrets from the live values above before the next `kubectl apply
 ```bash
 # Argo CD admin hash + server secretkey
 kubectl -n argocd get secret argocd-secret -o go-template='{{index .data "admin.password" | base64decode}}{{"\n"}}{{index .data "server.secretkey" | base64decode}}{{"\n"}}'
-# Logchef admin
-kubectl -n monitoring get secret logchef-admin -o go-template='{{index .data "password" | base64decode}}'
 # Uptime kuma login + Longhorn-backup push token
 kubectl -n monitoring get secret uptime-kuma-credentials -o go-template='{{index .data "username" | base64decode}}:{{index .data "password" | base64decode}}'
 kubectl -n monitoring get secret longhorn-backup-kuma-push -o go-template='{{index .data "token" | base64decode}}'
