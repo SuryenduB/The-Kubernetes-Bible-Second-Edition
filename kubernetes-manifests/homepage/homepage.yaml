@@ -182,11 +182,6 @@ data:
           href: http://apprise.tail35421d.ts.net
           description: Notification gateway (150+ services)
           siteMonitor: http://apprise.monitoring.svc/status
-      - LanGuard:
-          icon: mdi-lan-connect
-          href: http://languard.tail35421d.ts.net
-          description: LAN discovery and monitoring
-          siteMonitor: http://languard.monitoring.svc
       - HomeLab Monitor:
           icon: mdi-monitor-dashboard
           href: http://homelab-monitor.tail35421d.ts.net
@@ -249,7 +244,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "6d64c0faf6d53e5c3eec778f6e47e97e8eed156778c8b18ee14f1f2bd9ac4493"
+        checksum/config: "2e5ff9f4ff1ad358525b2be8368e63cb967f5c197ea0c3d896a2f7fd210ac619"
       labels:
         app: homepage
     spec:

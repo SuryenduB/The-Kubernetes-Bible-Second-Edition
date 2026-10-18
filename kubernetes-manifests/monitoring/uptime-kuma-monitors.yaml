@@ -224,12 +224,6 @@ data:
         interval: 60
         maxretries: 3
         description: Apprise notification gateway (alert delivery path)
-      - name: languard
-        type: http
-        url: http://languard.monitoring.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: LAN watchdog service
       - name: dozzle
         type: http
         url: http://dozzle.monitoring.svc.cluster.local/
