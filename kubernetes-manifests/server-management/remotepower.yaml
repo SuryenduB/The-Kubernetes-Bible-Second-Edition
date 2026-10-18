@@ -1,4 +1,9 @@
 apiVersion: v1
+kind: Namespace
+metadata:
+  name: server-management
+---
+apiVersion: v1
 kind: Secret
 metadata:
   name: remotepower-secrets
@@ -19,6 +24,9 @@ spec:
   accessModes:
     - ReadWriteOnce
   storageClassName: longhorn
+  # Pin the pre-existing 5Gi data volume (reclaim Retain) so re-applies
+  # rebind the original disk instead of provisioning a fresh empty one.
+  volumeName: pvc-3784f169-93f7-49e9-bb9b-07b5cbb139ab
   resources:
     requests:
       storage: 5Gi

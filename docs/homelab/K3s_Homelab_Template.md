@@ -99,10 +99,7 @@ This inventory was checked on 2026-09-17 against workloads, Service ports, and d
 | Application     | Namespace           | MagicDNS access                              | Public access                                                                                                                              |
 | --------------- | ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Homepage        | `homepage`          | <http://homepage-homepage.tail35421d.ts.net> | Cloudflare Quick Tunnel, with no authentication gate. The hostname changes; use the script above to read it. |
-| Homelab Manager | `server-management` | <http://homelab-manger.tail35421d.ts.net>    | Not listed                                                                                                                                          |
 | RemotePower     | `server-management` | <http://remotepower.tail35421d.ts.net>       | Not listed                                                                                                                                          |
-
-The spelling `homelab-manger` matches the deployed Service and registered hostname.
 
 #### Monitoring and observability
 
@@ -400,7 +397,7 @@ the CNI affects pod networking and service connectivity across the cluster.
 
 ## Credential register
 
-Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, LinguaCafe, homelab-manger, RemotePower, Beszel agent, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
+Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, LinguaCafe, RemotePower, Beszel agent, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
 
 ### Undocumented credentials (now documented)
 
@@ -486,7 +483,7 @@ Notes from this pass:
 
 - The pass left Immich DB and Valkey images unchanged. Upstream Immich `v3.3.1` pinned `ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0` and `docker.io/valkey/valkey:9`. It updated only the server and ML images. The API reported version `3.3.1` after rollout.
 - Restarting the Audiobookshelf cloudflared pod changed its Quick Tunnel hostname. The hostname is temporary. Read the current value with `pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify` rather than copying it here.
-- These images already matched the upstream versions checked in the 2026-10-09 pass: homelab-manger (`v0.8.5`), remotepower (`7.0.3`), reactive-resume (`v5.3.1`), and osixia/openldap (`1.5.0`).
+- These images already matched the upstream versions checked in the 2026-10-09 pass: remotepower (`7.0.3`), reactive-resume (`v5.3.1`), and osixia/openldap (`1.5.0`).
 - The pass did not refresh IdentityIQ images from the local registry. The registry on `server-236` was unavailable during that pass.
 - The pass left moving tags unchanged: `ollama:latest`, `openwebui:latest`, `postgres:15-alpine` and `16-alpine`, `redis:7.2-alpine`, `valkey:9`, `caddy:2-alpine`, `mysql:8.0`, `mariadb:10.11`, `busybox:1.36`, and Beszel/Homepage images. The report said these tags resolved to current builds on pull. Pinning digests was outside that version refresh.
 

@@ -90,11 +90,6 @@ data:
           description: Free and Open Source Resume Builder
           siteMonitor: http://reactive-resume.media.svc/api/health
     - Server Management:
-      - HomeLab Manger:
-          icon: mdi-server-cog
-          href: http://homelab-manger.tail35421d.ts.net
-          description: Homelab Hardware Manager
-          siteMonitor: http://homelab-manger.server-management.svc
       - RemotePower:
           icon: mdi-remote-desktop
           href: http://remotepower.tail35421d.ts.net
@@ -173,7 +168,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "3d1b754379f2a48bfc503ebc90d503b6f6a16f4dfb5c156ee8b2efd0fbc48098"
+        checksum/config: "a51814e58bbb3dbe8ad448978d844c413454090373d1445532ee03fd6fb75da7"
       labels:
         app: homepage
     spec:

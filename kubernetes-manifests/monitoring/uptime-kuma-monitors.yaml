@@ -180,12 +180,6 @@ data:
         interval: 60
         maxretries: 3
         description: Remote power-switch API - homelab start/stop scripts depend on it
-      - name: homelab-manger
-        type: http
-        url: http://homelab-manger.server-management.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: Homelab node manager API
       - name: gotify
         type: http
         url: http://gotify.monitoring.svc.cluster.local/
