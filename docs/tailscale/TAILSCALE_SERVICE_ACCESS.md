@@ -103,8 +103,6 @@ Each service is exposed via a **Tailscale proxy StatefulSet** created by the Tai
 
 - **Service Proxies** (one per exposed service):
   - `ts-openwebui-tailscale-6c2ss` → StatefulSet
-  - `ts-iiq-tailscale-scfpx` → StatefulSet
-  - `ts-phpldapadmin-tailscale-x5cr5` → StatefulSet
   - `ts-argocd-server-tailscale-tfd9g` → StatefulSet
 
 Each proxy runs as a Kubernetes StatefulSet that:
