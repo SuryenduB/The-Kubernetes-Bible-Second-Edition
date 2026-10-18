@@ -150,7 +150,6 @@ Other compatible apps include KOReader, Aldiko, FBReader, and PocketBook.
 | Service         | Namespace  | MagicDNS host                    | TCP port / access |
 | --------------- | ---------- | -------------------------------- | ----------------- |
 | MSSQL           | `iiqstack` | `iiq-db.tail35421d.ts.net`       | 1433              |
-| MySQL           | `iiqstack` | `iiq-db-mysql.tail35421d.ts.net` | 3306              |
 | LDAP            | `iiqstack` | `iiq-ldap.tail35421d.ts.net`     | 389               |
 | SSH             | `iiqstack` | `iiq-ssh.tail35421d.ts.net`      | 22                |
 | ActiveMQ broker | `iiqstack` | `iiq-mq-admin.tail35421d.ts.net` | 61616             |
@@ -283,7 +282,6 @@ The capture date is not recorded. It predates the decommissioning of `kubernetes
 | **iiqstack**   | `db-0`                 | `kubernetes1`                   | 42m  | 2.1Gi  |
 | **iiqstack**   | `iiq-55d965997c-7vjd8` | `kubernetes2`                   | 28m  | 1.8Gi  |
 | **iiqstack**   | `iiq-55d965997c-mp268` | `kubernetes3`                   | 26m  | 1.8Gi  |
-| **iiqstack**   | `db-mysql-0`           | `kubernetes6`                   | 22m  | 840Mi  |
 | **iiqstack**   | `activemq-0`           | `kubernetes3`                   | 12m  | 256Mi  |
 | **ai**         | `ollama-*`             | `kubernetes7`                   | 1m   | 50Mi   |
 | **ai**         | `openwebui-*`          | `kubernetes7`                   | 320m | 1.2Gi  |
@@ -305,7 +303,7 @@ Beszel collects host and container metrics.
 - The NAS agent runs as a persistent binary service on QNAP `NASECDE55`. `Enroll-NasMonitoring.ps1` manages enrollment.
 - The NAS runs Tailscale 1.80.3 for direct tailnet access. It uses userspace networking because the ARM 3.2.26 kernel has no TUN driver. The init script is `/etc/init.d/tailscale.sh`.
 - A Windows workstation agent runs as a service managed by `nssm`.
-- Operators have moved workloads, such as MySQL to `kubernetes6`, based on Beszel metrics.
+- Operators have moved workloads to `kubernetes6`, based on Beszel metrics.
 
 ---
 
@@ -321,7 +319,7 @@ IdentityIQ replicas share `/webapps` through Longhorn RWX. A Share Manager pod e
 
 #### Longhorn RWO (Read-Write-Once)
 
-MSSQL, MySQL, ActiveMQ, and LDAP use Longhorn RWO volumes with synchronous replication across three nodes.
+MSSQL, ActiveMQ, and LDAP use Longhorn RWO volumes with synchronous replication across three nodes.
 
 #### Control-plane members as storage nodes (2026-09-20)
 
@@ -397,7 +395,7 @@ the CNI affects pod networking and service connectivity across the cluster.
 
 ## Credential register
 
-Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, LinguaCafe, RemotePower, Beszel agent, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
+Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, LDAP, SSH, LinguaCafe, RemotePower, Beszel agent, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
 
 ### Undocumented credentials (now documented)
 
@@ -458,7 +456,6 @@ kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "cl
 | Image             | Tag      | Namespace  |
 | ----------------- | -------- | ---------- |
 | `sailpoint-iiq`   | `8.5`    | `iiqstack` |
-| `mysql`           | `8.0`    | `iiqstack` |
 | `axllent/mailpit` | `latest` | `iiqstack` |
 
 ---

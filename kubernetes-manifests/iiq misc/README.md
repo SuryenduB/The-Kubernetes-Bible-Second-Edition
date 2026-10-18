@@ -10,7 +10,6 @@
 | `iiq-pdb` | ✅ Created | `minAvailable: 1` (added from code during reconciliation) |
 | `db-0` (MSSQL) | ✅ Running | 3 databases; `identityiq` upgraded **8.4→8.5** (official `upgrade_identityiq_tables.sqlserver`, 220 tables); version rows **`8.5-19` / `8.5-15`**; `identityiqPlugin` login/user ready |
 | `identityiqah` | ✅ **32/32 tables** | 8.5 fragment completed the 18 missing tables (must run with `-d identityiqah`); version row `8.5-19` / `8.5-15`; legacy `dbo` synonym dropped |
-| `db-mysql-0` | ✅ Running | MySQL 8.0 (not used by IIQ) |
 | `ldap-0` / `mail-0` / `activemq-0` | ✅ Running | OpenLDAP / Mailpit / ActiveMQ Artemis |
 | `iiq-init` job | ✅ Completed | Recreated with the fixed 8.5 script (image `sailpoint-iiq:8.5`, version-row seed step) — runs clean end-to-end: "Access History schema OK (32 tables)." |
 | stack YAML vs live | ✅ In sync | `kubectl diff` clean for `iiq-stateful.yaml` and `iiq misc/*.yaml` |

@@ -17,7 +17,7 @@
 #      public endpoint is gated before traffic reaches the cluster.
 #
 # SECURITY: only these two browser-facing UIs are published. Databases
-# (db, db-mysql, postgres, redis, mariadb), the ssh Service, the K3s API and
+# (db, postgres, redis, mariadb), the ssh Service, the K3s API and
 # Longhorn remain Tailscale-only. Do not add them here.
 #
 # NOT wired into the top-level kustomization.yaml on purpose: the Secret below

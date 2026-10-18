@@ -113,13 +113,6 @@ data:
         interval: 60
         maxretries: 3
         description: IIQ MSSQL database
-      - name: iiq-mysql
-        type: port
-        hostname: db-mysql.iiqstack.svc.cluster.local
-        port: 3306
-        interval: 60
-        maxretries: 3
-        description: IIQ MySQL database
       - name: iiq-mailpit
         type: http
         url: http://mail.iiqstack.svc.cluster.local:8025/

@@ -4,7 +4,7 @@ resources:
   - base/ollama-deployment.yaml         # ai ns: ollama, openwebui, PVCs, ingress
 
   # --- Identity (SailPoint IdentityIQ stack) ---
-  - iiq-stateful.yaml                   # iiqstack ns (all-in-one): iiq, ldap, activemq, db, db-mysql, mail, counter, ssh, phpldapadmin, init job, netpols, RBAC
+  - iiq-stateful.yaml                   # iiqstack ns (all-in-one): iiq, ldap, activemq, db, mail, counter, ssh, phpldapadmin, init job, netpols, RBAC
 
   # --- Media ---
   - media                               # media ns: audiobookshelf, calibre-web (with importer sidecar)

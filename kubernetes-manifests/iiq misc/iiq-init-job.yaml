@@ -54,7 +54,6 @@ spec:
             - |
               echo "Waiting for all dependencies..."
               until nc -z db 1433; do echo "Waiting for MSSQL..."; sleep 5; done
-              until nc -z db-mysql 3306; do echo "Waiting for MySQL..."; sleep 5; done
               until nc -z ldap 389; do echo "Waiting for LDAP..."; sleep 5; done
               until nc -z mail 1025; do echo "Waiting for Mail..."; sleep 5; done
               until nc -z activemq 61616; do echo "Waiting for ActiveMQ..."; sleep 5; done

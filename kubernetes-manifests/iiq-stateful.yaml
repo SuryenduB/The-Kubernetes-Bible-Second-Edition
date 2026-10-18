@@ -539,96 +539,6 @@ spec:
       targetPort: 1433
 
 ---
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: db-mysql
-  namespace: iiqstack
-spec:
-  replicas: 1
-  serviceName: db-mysql
-  selector:
-    matchLabels:
-      app: db-mysql
-  template:
-    metadata:
-      labels:
-        app: db-mysql
-    spec:
-      affinity:
-        nodeAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-            nodeSelectorTerms:
-            - matchExpressions:
-              - key: kubernetes.io/hostname
-                operator: NotIn
-                values:
-                - kubernetes2
-      enableServiceLinks: false
-      # securityContext removed to allow MySQL 8.0 root initialization
-      containers:
-        - name: mysql
-          image: mysql:8.0
-          resources:
-            requests: { cpu: 500m, memory: 1Gi }
-            limits: { cpu: "1", memory: 2Gi }
-          readinessProbe:
-            exec:
-              command: ["sh", "-c", "mysqladmin ping -h localhost -u $MYSQL_USER -p$MYSQL_PASSWORD"]
-            initialDelaySeconds: 20
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket: { port: 3306 }
-            initialDelaySeconds: 60
-            periodSeconds: 30
-          env:
-            - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: sailpoint-db-secrets
-                  key: mysql-root-password
-            - name: MYSQL_DATABASE
-              value: identityiq
-            - name: MYSQL_USER
-              value: identityiq
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: sailpoint-db-secrets
-                  key: mysql-user-password
-            - name: TZ
-              value: "UTC"
-          volumeMounts:
-            - name: mysql-persistent-storage
-              mountPath: /var/lib/mysql
-  volumeClaimTemplates:
-    - metadata:
-        name: mysql-persistent-storage
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 10Gi
-        storageClassName: longhorn
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: db-mysql
-  namespace: iiqstack
-  annotations:
-    tailscale.com/expose: "true"
-    tailscale.com/proxy-class: "tailscale-proxy"
-    tailscale.com/hostname: "iiq-db-mysql"
-spec:
-  selector:
-    app: db-mysql
-  ports:
-    - protocol: TCP
-      port: 3306
-      targetPort: 3306
-
----
 # --- 6. Mailpit ---
 apiVersion: apps/v1
 kind: StatefulSet
@@ -913,17 +823,6 @@ spec:
   selector:
     matchLabels:
       app: db
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: db-mysql-pdb
-  namespace: iiqstack
-spec:
-  maxUnavailable: 0
-  selector:
-    matchLabels:
-      app: db-mysql
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget

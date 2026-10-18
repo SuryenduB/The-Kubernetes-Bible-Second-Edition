@@ -7,7 +7,7 @@ This directory contains Kubernetes manifests for a 9–11-node K3s homelab clust
 ```
 kubernetes-manifests/
 ├── kustomization.yaml              # Top-level Kustomization — aggregates all apps
-├── iiq-stateful.yaml               # iiqstack ns (IIQ, LDAP, ActiveMQ, MSSQL, MySQL, Mailpit, etc.)
+├── iiq-stateful.yaml               # iiqstack ns (IIQ, LDAP, ActiveMQ, MSSQL, Mailpit, etc.)
 ├── iiq-serviceaccount.yaml         # iiqstack ServiceAccount
 ├── iiq misc/                       # iiqstack extras: init job, iiq Deployment/Service, HA ref, recovery README
 ├── base/
@@ -70,7 +70,7 @@ kubernetes-manifests/
 |---|-----------|-----|----------|
 | 1 | `ai` | Ollama + Open WebUI | `base/ollama-deployment.yaml` |
 | 2 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
-| 3 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
+| 3 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
 | 4 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, Immich, Flick | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
 | 5 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
 | 6 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), Dozzle, Gotify | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
