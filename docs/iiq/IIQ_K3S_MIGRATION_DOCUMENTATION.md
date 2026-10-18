@@ -92,10 +92,9 @@ This section details the critical interventions required to move the stack from 
     *   `org.quartz.jobStore.driverDelegateClass=org.quartz.impl.jdbcjobstore.MSSQLDelegate`
     *   `org.quartz.jobStore.selectWithLockSQL=SELECT * FROM {0}LOCKS UPDLOCK WHERE LOCK_NAME = ?`
 
-### 7.3. NetworkPolicy Hardening for Tailscale Proxying
-*   **Problem:** IIQ pods were healthy internally but timed out via Tailscale MagicDNS.
-*   **Solution:** Identified that the strict `default-deny` policy was blocking ingress traffic from the `tailscale` namespace where the operator's proxy pods reside.
-    *   Updated `iiqstack-allow-internal` to explicitly allow `Ingress` from the `tailscale` and `kube-system` namespaces.
+### 7.3. Historical NetworkPolicy experiment
+*   The migration temporarily used strict IIQ NetworkPolicies for Tailscale troubleshooting.
+*   They were removed during the 2026-10-18 cull because this cluster's stock Flannel configuration does not enforce Kubernetes NetworkPolicy.
 
 ---
 
