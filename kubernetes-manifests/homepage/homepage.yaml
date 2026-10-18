@@ -28,11 +28,6 @@ data:
           href: http://openwebui.tail35421d.ts.net:8080
           description: Local AI Chat (Ollama)
           siteMonitor: http://openwebui.ai.svc:8080
-      - OpenLingo:
-          icon: mdi-translate
-          href: http://openlingo.tail35421d.ts.net
-          description: Structured Language Platform
-          siteMonitor: http://openlingo.openlingo.svc
       - AI Language Tutor:
           icon: mdi-book-open
           href: http://lang-tutor.tail35421d.ts.net
@@ -183,7 +178,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "f5aefed22fa22e30b672fa0278376221bc6d0a809ee971c9d0181b608f4bb862"
+        checksum/config: "b1e484ed6101a4a1c6b1502e7b10619694d558c589ee32d16fb5e5572d066052"
       labels:
         app: homepage
     spec:

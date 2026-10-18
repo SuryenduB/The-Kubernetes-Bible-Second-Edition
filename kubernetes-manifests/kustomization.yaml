@@ -1,7 +1,6 @@
 resources:
   # --- AI & Language Learning ---
   - ai-language-learning.yaml          # ai-language-learning ns: backend, postgres, schema ConfigMap
-  - media/openlingo.yaml                # openlingo ns: app, db (StatefulSet), netpols, PDB, ingress
   - linguacafe                          # linguacafe ns: webapp, mariadb, redis, netpols
   - base/ollama-deployment.yaml         # ai ns: ollama, openwebui, PVCs, ingress
 

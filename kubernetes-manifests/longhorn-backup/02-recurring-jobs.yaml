@@ -40,7 +40,7 @@ spec:
   name: backup-daily
   # 03:30 UTC - after control-plane backup (02:00, default-timed pending
   # Phase-0 duration measurement). First run: trigger MANUALLY and measure
-  # duration - IIQ (10Gi) + openlingo (5Gi) full copies over 1GbE with
+  # duration - IIQ (10Gi) full copies over 1GbE with
   # concurrency 1. Retain 14 daily backups on the QNAP.
   cron: "30 3 * * *"
   task: backup
