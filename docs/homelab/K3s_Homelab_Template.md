@@ -83,7 +83,6 @@ This inventory was checked on 2026-09-17 against workloads, Service ports, and d
 | ----------------- | ---------------------- | ------------------------------------------------- | --------------------------------- |
 | Ollama            | `ai`                   | Internal only; no dedicated Tailscale proxy found | Local AI model serving            |
 | Open WebUI        | `ai`                   | <http://openwebui.tail35421d.ts.net:8080>         | AI chat interface                 |
-| AI Language Tutor | `ai-language-learning` | <http://lang-tutor.tail35421d.ts.net>             | Custom language-learning backend  |
 | LinguaCafe        | `linguacafe`           | <http://linguacafe.tail35421d.ts.net>             | Language learning through reading |
 
 #### Books and media
@@ -175,7 +174,7 @@ These components have no dedicated MagicDNS proxy and are not user-facing applic
 | metrics-server                                           | `kube-system`                                              | Kubernetes resource metrics                                                                                                                                               |
 | Local-path provisioner                                   | `kube-system`                                              | Local persistent storage provisioning                                                                                                                                     |
 | NFS provisioner                                          | `default`                                                  | NAS-backed persistent storage provisioning                                                                                                                                |
-| PostgreSQL                                               | `ai-language-learning`, `media`, `monitoring` | Databases for AI Language Tutor, Immich, and Flick                                                                                          |
+| PostgreSQL                                               | `media`, `monitoring` | Databases for Immich and Flick                                                                                          |
 | MariaDB                                                  | `linguacafe`                                               | LinguaCafe database                                                                                                                                                       |
 | Redis / Valkey                                           | `linguacafe`, `argocd`, `media`                            | Supporting cache services; Valkey 9 backs Immich                                                                                                                          |
 | Flick API / web / Caddy                                  | `media`                                                    | Internal Flick tiers; only Caddy has a MagicDNS proxy                                                                                                                     |
@@ -401,7 +400,7 @@ the CNI affects pod networking and service connectivity across the cluster.
 
 ## Credential register
 
-Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, LinguaCafe, homelab-manger, RemotePower, Beszel agent, ai-language-learning, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
+Audited 2026-09-17: every live Secret's values were compared against this repository. Most credentials (IIQ, MSSQL, MySQL, LDAP, SSH, LinguaCafe, homelab-manger, RemotePower, Beszel agent, Gotify, Immich, Flick) are already defined in their manifests. The credentials below existed **only in the cluster** and are now recorded here.
 
 ### Undocumented credentials (now documented)
 
@@ -488,7 +487,7 @@ Notes from this pass:
 - The pass left Immich DB and Valkey images unchanged. Upstream Immich `v3.3.1` pinned `ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0` and `docker.io/valkey/valkey:9`. It updated only the server and ML images. The API reported version `3.3.1` after rollout.
 - Restarting the Audiobookshelf cloudflared pod changed its Quick Tunnel hostname. The hostname is temporary. Read the current value with `pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify` rather than copying it here.
 - These images already matched the upstream versions checked in the 2026-10-09 pass: homelab-manger (`v0.8.5`), remotepower (`7.0.3`), reactive-resume (`v5.3.1`), and osixia/openldap (`1.5.0`).
-- The pass did not refresh AI Language Tutor, or IdentityIQ images from the local registry. The registry on `server-236` was unavailable during that pass.
+- The pass did not refresh IdentityIQ images from the local registry. The registry on `server-236` was unavailable during that pass.
 - The pass left moving tags unchanged: `ollama:latest`, `openwebui:latest`, `postgres:15-alpine` and `16-alpine`, `redis:7.2-alpine`, `valkey:9`, `caddy:2-alpine`, `mysql:8.0`, `mariadb:10.11`, `busybox:1.36`, and Beszel/Homepage images. The report said these tags resolved to current builds on pull. Pinning digests was outside that version refresh.
 
 ---

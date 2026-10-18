@@ -22,7 +22,7 @@ data:
         port: 5000
         interval: 60
         maxretries: 3
-        description: Local Docker registry - custom images unpullable when down (ai-backend, IIQ)
+        description: Local Docker registry - custom images unpullable when down (IIQ)
       - name: ollama-api
         type: http
         url: http://ollama.ai.svc.cluster.local:11434/
@@ -53,19 +53,6 @@ data:
         interval: 60
         maxretries: 3
         description: Uptime-Kuma self check
-      - name: ai-lang-backend
-        type: http
-        url: http://ai-lang-backend.ai-language-learning.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: AI language tutor backend
-      - name: ai-postgres
-        type: port
-        hostname: ai-postgres.ai-language-learning.svc.cluster.local
-        port: 5432
-        interval: 60
-        maxretries: 3
-        description: AI tutor Postgres database
       - name: linguacafe-web
         type: http
         url: http://linguacafe.linguacafe.svc.cluster.local/
