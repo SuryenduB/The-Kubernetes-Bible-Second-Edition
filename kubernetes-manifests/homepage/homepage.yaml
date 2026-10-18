@@ -152,11 +152,6 @@ data:
           href: http://uptime-kuma.tail35421d.ts.net
           description: Uptime Monitoring
           siteMonitor: http://uptime-kuma.monitoring.svc
-      - Lantern:
-          icon: mdi-lan-connect
-          href: http://lantern.tail35421d.ts.net
-          description: Homelab Status Dashboard
-          siteMonitor: http://lantern.monitoring.svc
       - Pooml:
           icon: mdi-chart-timeline-variant
           href: http://pooml.tail35421d.ts.net
@@ -244,7 +239,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "2e5ff9f4ff1ad358525b2be8368e63cb967f5c197ea0c3d896a2f7fd210ac619"
+        checksum/config: "4856d94aae6bfce29fb062d25bd7071b39337e0e557c4fb1254ca788c400e49f"
       labels:
         app: homepage
     spec:

@@ -9,7 +9,6 @@ resources:
   - uptime-kuma-sync.yaml
   - availability.yaml
   - longhorn-backup-monitor.yaml
-  - lantern.yaml
   - pooml.yaml
   - omnisight.yaml
   - dozzle.yaml
