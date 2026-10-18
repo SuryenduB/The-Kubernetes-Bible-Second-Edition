@@ -197,11 +197,6 @@ data:
           href: http://homelab-monitor.tail35421d.ts.net
           description: Host and homelab metrics
           siteMonitor: http://homelab-monitor.monitoring.svc
-      - Trove:
-          icon: mdi-server-network
-          href: http://trove.tail35421d.ts.net
-          description: Read-only infrastructure catalogue
-          siteMonitor: http://trove.monitoring.svc
       - Logchef:
           icon: mdi-text-search
           href: http://logchef.tail35421d.ts.net
@@ -259,7 +254,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "5a4d016040acfe5c26d8e193f0841254e0c35d43610a187e3b0f4b893de9d40c"
+        checksum/config: "ce31968fec2fef07ecacd401b9865bd608a5b535d0fc8925239770a4bda9cf41"
       labels:
         app: homepage
     spec:

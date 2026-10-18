@@ -127,7 +127,6 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | LogChef         | `monitoring` | <http://logchef.tail35421d.ts.net>                       |
 | OmniSight       | `monitoring` | <http://omnisight.tail35421d.ts.net>                     |
 | PooML           | `monitoring` | <http://pooml.tail35421d.ts.net>                         |
-| Trove           | `monitoring` | <http://trove.tail35421d.ts.net> (also exposes TCP 8080) |
 | Uptime Kuma     | `monitoring` | <http://uptime-kuma.tail35421d.ts.net>                   |
 
 #### IdentityIQ lab and deployment management
@@ -189,7 +188,7 @@ These components have no dedicated MagicDNS proxy and are not user-facing applic
 | Flick API / web / Caddy                                  | `media`                                                    | Internal Flick tiers; only Caddy has a MagicDNS proxy                                                                                                                     |
 | Immich ML                                                | `media`                                                    | Machine-learning backend; only the server has a MagicDNS proxy                                                                                                            |
 | Booklogr API and LibrisLog backend                       | `media`                                                    | Internal application backends                                                                                                                                             |
-| Beszel agent and Trove agent                             | `monitoring`                                               | Monitoring agents; not separate user-facing apps                                                                                                                          |
+| Beszel agent                                                    | `monitoring`                                               | Monitoring agent; not a separate user-facing app                                                                                                                          |
 | Argo CD controllers, repo server, Dex, and notifications | `argocd`                                                   | Supporting components of the Argo CD installation                                                                                                                         |
 
 **Readiness snapshot (2026-09-17):** All Deployments and StatefulSets checked met their desired Ready counts except IdentityIQ (**1/2 Ready**). Beszel was **1/1 Ready**. This covers Deployments and StatefulSets only. It says nothing about node or DaemonSet health.
@@ -419,7 +418,6 @@ Audited 2026-09-17: every live Secret's values were compared against this reposi
 | `logchef-admin`             | `monitoring` | `password`                    | `ZF7OSaNeaEMElvmOiNm4`                                                                  |
 | `uptime-kuma-credentials`   | `monitoring` | `username` / `password`       | `suryendub` / `Joy2Gopal!`                                                              |
 | `longhorn-backup-kuma-push` | `monitoring` | `token`                       | `xADmtohED3`                                                                            |
-| `trove-bootstrap`           | `monitoring` | `token`                       | `trove_723c0310609660a9f637bbc0de038d082c7f19349a8bf7fc`                                |
 | `operator-oauth`            | `tailscale`  | `client_id` / `client_secret` | `kP3vXcDeXd11CNTRL` / `tskey-client-kP3vXcDeXd11CNTRL-h5adH2fVy831Vtxj55Vg93J3iie3C6uM` |
 | `argocd-secret`             | `argocd`     | `server.secretkey`            | `HGuoPiZhc2MiEPOourHwS5noFQPaKzG4Vd8FmxF5IvA=`                                          |
 
@@ -438,7 +436,6 @@ Recreate these Secrets from the live values above before the next `kubectl apply
 
 - `logchef.yaml`, stored `password` differs from live `logchef-admin`
 - `uptime-kuma-sync.yaml` / `uptime-kuma-monitors.yaml`, stored `password` differs from live `uptime-kuma-credentials` (stored `username` matches)
-- `trove.yaml`, stored bootstrap `token` differs from live `trove-bootstrap`
 
 ### Recovery commands
 
@@ -450,8 +447,6 @@ kubectl -n monitoring get secret logchef-admin -o go-template='{{index .data "pa
 # Uptime kuma login + Longhorn-backup push token
 kubectl -n monitoring get secret uptime-kuma-credentials -o go-template='{{index .data "username" | base64decode}}:{{index .data "password" | base64decode}}'
 kubectl -n monitoring get secret longhorn-backup-kuma-push -o go-template='{{index .data "token" | base64decode}}'
-# Trove bootstrap token
-kubectl -n monitoring get secret trove-bootstrap -o go-template='{{index .data "token" | base64decode}}'
 # Tailscale operator OAuth
 kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "client_id" | base64decode}} / {{index .data "client_secret" | base64decode}}'
 ```
@@ -504,7 +499,7 @@ Notes from this pass:
 
 - The pass left Immich DB and Valkey images unchanged. Upstream Immich `v3.3.1` pinned `ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0` and `docker.io/valkey/valkey:9`. It updated only the server and ML images. The API reported version `3.3.1` after rollout.
 - Restarting the Audiobookshelf cloudflared pod changed its Quick Tunnel hostname. The hostname is temporary. Read the current value with `pwsh -File ./WindowsLab/Get-CloudflareTunnelUrls.ps1 -Verify` rather than copying it here.
-- These images already matched the upstream versions checked in the 2026-10-09 pass: homelab-manger (`v0.8.5`), remotepower (`7.0.3`), trove server and agent (`0.18.1`), librislog and librislog-api (`v1.9.0`), reactive-resume (`v5.3.1`), apprise (`v1.5.4`), lantern (`v0.72.0`), booklogr and booklogr-web (`v1.12.0`), and osixia/openldap (`1.5.0`).
+- These images already matched the upstream versions checked in the 2026-10-09 pass: homelab-manger (`v0.8.5`), remotepower (`7.0.3`), librislog and librislog-api (`v1.9.0`), reactive-resume (`v5.3.1`), apprise (`v1.5.4`), lantern (`v0.72.0`), booklogr and booklogr-web (`v1.12.0`), and osixia/openldap (`1.5.0`).
 - The pass did not upgrade Homarr (`v1.77.1`) because the checked upstream version was `v2.4.0`, a major release with possible configuration and schema changes.
 - The pass did not refresh OpenLingo, AI Language Tutor, or IdentityIQ images from the local registry. The registry on `server-236` was unavailable during that pass.
 - The pass left moving tags unchanged: `ollama:latest`, `openwebui:latest`, `postgres:15-alpine` and `16-alpine`, `redis:7.2-alpine`, `valkey:9`, `caddy:2-alpine`, `mysql:8.0`, `mariadb:10.11`, `busybox:1.36`, and Beszel/Homepage images. The report said these tags resolved to current builds on pull. Pinning digests was outside that version refresh.
