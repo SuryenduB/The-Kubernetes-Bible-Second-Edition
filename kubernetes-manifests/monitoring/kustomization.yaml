@@ -16,7 +16,6 @@ resources:
   - gotify.yaml
   - apprise.yaml
   - languard.yaml
-  - lan-sheriff.yaml
   - homelab-monitor.yaml
   - logchef.yaml
 

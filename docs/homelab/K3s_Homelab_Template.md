@@ -121,7 +121,6 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | Gotify          | `monitoring` | <http://gotify.tail35421d.ts.net>                        |
 | Apprise         | `monitoring` | <http://apprise.tail35421d.ts.net>                       |
 | Homelab Monitor | `monitoring` | <http://homelab-monitor.tail35421d.ts.net>               |
-| LAN Sheriff     | `monitoring` | <http://lan-sheriff.tail35421d.ts.net>                   |
 | LanGuard        | `monitoring` | <http://languard.tail35421d.ts.net>                      |
 | Lantern         | `monitoring` | <http://lantern.tail35421d.ts.net>                       |
 | LogChef         | `monitoring` | <http://logchef.tail35421d.ts.net>                       |

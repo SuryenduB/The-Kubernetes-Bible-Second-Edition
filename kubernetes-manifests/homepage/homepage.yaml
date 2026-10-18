@@ -187,11 +187,6 @@ data:
           href: http://languard.tail35421d.ts.net
           description: LAN discovery and monitoring
           siteMonitor: http://languard.monitoring.svc
-      - LAN Sheriff:
-          icon: mdi-shield-search
-          href: http://lan-sheriff.tail35421d.ts.net
-          description: Network traffic monitoring
-          siteMonitor: http://lan-sheriff.monitoring.svc
       - HomeLab Monitor:
           icon: mdi-monitor-dashboard
           href: http://homelab-monitor.tail35421d.ts.net
@@ -254,7 +249,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "ce31968fec2fef07ecacd401b9865bd608a5b535d0fc8925239770a4bda9cf41"
+        checksum/config: "6d64c0faf6d53e5c3eec778f6e47e97e8eed156778c8b18ee14f1f2bd9ac4493"
       labels:
         app: homepage
     spec:
