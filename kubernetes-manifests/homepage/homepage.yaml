@@ -152,11 +152,6 @@ data:
           href: http://uptime-kuma.tail35421d.ts.net
           description: Uptime Monitoring
           siteMonitor: http://uptime-kuma.monitoring.svc
-      - Kuvasz:
-          icon: mdi-shield-check
-          href: http://kuvasz.tail35421d.ts.net
-          description: Uptime & SSL Monitoring
-          siteMonitor: http://kuvasz.monitoring.svc
       - Lantern:
           icon: mdi-lan-connect
           href: http://lantern.tail35421d.ts.net
@@ -264,7 +259,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "5b9cd6f975dd5be263e79aa58bd04ab5a78dd1a1f8c3993a7167fd4a30f3ad25"
+        checksum/config: "5a4d016040acfe5c26d8e193f0841254e0c35d43610a187e3b0f4b893de9d40c"
       labels:
         app: homepage
     spec:
