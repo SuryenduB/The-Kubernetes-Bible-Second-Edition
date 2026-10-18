@@ -6,7 +6,6 @@ resources:
   - calibre-web-with-importer.yaml
   - chaptarr.yaml
   - bookorbit.yaml
-  - bookhoarder.yaml
   - booklogr.yaml
   - librislog.yaml
   - immich.yaml

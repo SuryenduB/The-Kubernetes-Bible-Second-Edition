@@ -301,12 +301,6 @@ data:
         interval: 60
         maxretries: 3
         description: Chaptarr media app
-      - name: bookhoarder
-        type: http
-        url: http://bookhoarder.media.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: BookHoarder collection app
       # -----------------------------------------------------------------------
       # Node liveness: SSH port per ACTIVE homelab node. Detached keys down a
       # node ~3 min after SSH stops answering (maxretries x interval) and
