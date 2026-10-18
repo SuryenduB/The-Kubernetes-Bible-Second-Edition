@@ -10,7 +10,6 @@ resources:
   - availability.yaml
   - longhorn-backup-monitor.yaml
   - pooml.yaml
-  - omnisight.yaml
   - dozzle.yaml
   - gotify.yaml
   - apprise.yaml

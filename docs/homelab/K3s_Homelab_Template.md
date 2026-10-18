@@ -121,7 +121,6 @@ The spelling `homelab-manger` matches the deployed Service and registered hostna
 | Gotify          | `monitoring` | <http://gotify.tail35421d.ts.net>                        |
 | Apprise         | `monitoring` | <http://apprise.tail35421d.ts.net>                       |
 | LogChef         | `monitoring` | <http://logchef.tail35421d.ts.net>                       |
-| OmniSight       | `monitoring` | <http://omnisight.tail35421d.ts.net>                     |
 | PooML           | `monitoring` | <http://pooml.tail35421d.ts.net>                         |
 | Uptime Kuma     | `monitoring` | <http://uptime-kuma.tail35421d.ts.net>                   |
 

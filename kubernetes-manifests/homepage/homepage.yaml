@@ -157,11 +157,6 @@ data:
           href: http://pooml.tail35421d.ts.net
           description: Logs, Metrics & Alerts
           siteMonitor: http://pooml-ui.monitoring.svc
-      - OmniSight:
-          icon: mdi-eye-settings
-          href: http://omnisight.tail35421d.ts.net
-          description: Multi-platform Monitoring
-          siteMonitor: http://omnisight.monitoring.svc
       - Dozzle:
           icon: mdi-text-box-search-outline
           href: http://dozzle.tail35421d.ts.net
@@ -234,7 +229,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "f866d221068bb648c3e3b0328ebd8ae3fea5656362a8fc48493856bc8663aa27"
+        checksum/config: "c959907d6b19bf782359933de44ea792c0903df960fa0f30a74dd91dac64f63a"
       labels:
         app: homepage
     spec:
