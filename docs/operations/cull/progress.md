@@ -51,3 +51,9 @@ live-only action (no manifest change); it is recorded here for the audit trail.
 - All ten nodes were Ready. `server-252` was already cordoned and its Longhorn node setting was already `allowScheduling: false`.
 - Embedded-etcd pre-cull snapshot completed on `nuc`: `pre-cull-nuc-1792283844`.
 - One pre-existing detached/unknown Longhorn volume was recorded in `baseline.md`; it is not a cull regression.
+
+## Final actions
+
+- Final verification record: `docs/operations/cull/final-verification.md` (commit `8cae323`).
+- Final etcd snapshot on `nuc`: `pre-shutdown-cull-nuc-1792317776` (174739488 bytes, 2026-10-18 12:03 +0200), verified present in `/var/lib/rancher/k3s/server/db/snapshots/`.
+- Homelab shutdown executed per `docs/homelab/how-to-manage-homelab-power.md` via `WindowsLab/shutdown_homelab.ps1 -Force` (detached). Post-shutdown TCP 6443 / SSH 22 probes on all node IPs recorded below.
