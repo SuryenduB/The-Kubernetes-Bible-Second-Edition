@@ -257,31 +257,6 @@ data:
         interval: 60
         maxretries: 3
         description: Flick Postgres database
-      - name: booklogr
-        type: http
-        url: http://booklogr.media.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: BookLogr reading tracker
-      - name: bookorbit
-        type: http
-        url: http://bookorbit.media.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: BookOrbit app
-      - name: bookorbit-db
-        type: port
-        hostname: bookorbit-db.media.svc.cluster.local
-        port: 5432
-        interval: 60
-        maxretries: 3
-        description: BookOrbit Postgres database
-      - name: librislog
-        type: http
-        url: http://librislog.media.svc.cluster.local/
-        interval: 60
-        maxretries: 3
-        description: LibrisLog library tracker
       - name: reactive-resume
         type: http
         url: http://reactive-resume.media.svc.cluster.local/

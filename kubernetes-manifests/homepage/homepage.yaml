@@ -84,21 +84,6 @@ data:
           href: http://linguacafe.tail35421d.ts.net
           description: Language Reading App
           siteMonitor: http://linguacafe.linguacafe.svc
-      - BookLogr:
-          icon: mdi-bookshelf
-          href: http://booklogr.tail35421d.ts.net
-          description: Personal Reading Tracker
-          siteMonitor: http://booklogr.media.svc
-      - LibrisLog:
-          icon: mdi-book-heart
-          href: http://librislog.tail35421d.ts.net
-          description: Household Reading Tracker
-          siteMonitor: http://librislog.media.svc
-      - BookOrbit:
-          icon: mdi-bookshelf
-          href: http://bookorbit.tail35421d.ts.net
-          description: Book library
-          siteMonitor: http://bookorbit.media.svc
       - Immich:
           icon: immich.png
           href: http://immich.tail35421d.ts.net
@@ -198,7 +183,7 @@ spec:
   template:
     metadata:
       annotations:
-        checksum/config: "f3285feda50e2dd60d23e6c74a1996fb5c5c0516ebdc857a9098bef130079820"
+        checksum/config: "f5aefed22fa22e30b672fa0278376221bc6d0a809ee971c9d0181b608f4bb862"
       labels:
         app: homepage
     spec:

@@ -19,9 +19,6 @@ kubernetes-manifests/
 │   ├── audiobookshelf.yaml
 │   ├── calibre-web-with-importer.yaml
 │   ├── chaptarr.yaml                 # Audiobook/eBook manager (Readarr fork)
-│   ├── bookorbit.yaml              # + bookorbit-db StatefulSet (pgvector Postgres)
-│   ├── booklogr.yaml
-│   ├── librislog.yaml
 │   ├── openlingo.yaml              # openlingo ns: app, db, netpols, PDB
 │   ├── immich.yaml                 # Photos: server, ML, Valkey, pgvector Postgres
 │   ├── immich-pdb.yaml
@@ -78,7 +75,7 @@ kubernetes-manifests/
 | 3 | `openlingo` | OpenLingo (Next.js language platform + Postgres) | `media/openlingo.yaml` |
 | 4 | `linguacafe` | LinguaCafe (reading app + MariaDB + Redis) | `linguacafe/` |
 | 5 | `iiqstack` | SailPoint IdentityIQ + LDAP + ActiveMQ + MSSQL + MySQL + Mailpit | `iiq-stateful.yaml` (+ `iiq misc/` for init job & recovery docs) |
-| 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, BookOrbit, Booklogr, LibrisLog, OpenLingo, Immich, Flick | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
+| 6 | `media` | AudioBookshelf (also public via Cloudflare Quick Tunnel), Calibre-Web, Chaptarr, OpenLingo, Immich, Flick | `media/` + `cloudflare/quick-tunnel-audiobookshelf.yaml` |
 | 7 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
 | 8 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), Dozzle, Gotify | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
 | 9 | `server-management` | HomeLab Manger, RemotePower | `server-management/` |

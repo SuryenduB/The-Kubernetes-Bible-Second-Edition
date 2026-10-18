@@ -5,9 +5,6 @@ resources:
   - audiobookshelf.yaml
   - calibre-web-with-importer.yaml
   - chaptarr.yaml
-  - bookorbit.yaml
-  - booklogr.yaml
-  - librislog.yaml
   - immich.yaml
   - immich-pdb.yaml
   - immich-db-backup.yaml
