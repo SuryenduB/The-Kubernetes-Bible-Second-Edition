@@ -133,13 +133,6 @@ data:
         interval: 60
         maxretries: 3
         description: IIQ demo counter utility
-      - name: iiq-ssh
-        type: port
-        hostname: ssh.iiqstack.svc.cluster.local
-        port: 22
-        interval: 60
-        maxretries: 3
-        description: IIQ demo SSH host
       # -----------------------------------------------------------------------
       # Coverage expansion (2026-10-17 mission): cluster infrastructure,
       # notification path, server-management power API, media/data apps and

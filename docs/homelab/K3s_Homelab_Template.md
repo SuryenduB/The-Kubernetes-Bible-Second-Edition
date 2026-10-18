@@ -127,7 +127,6 @@ register below for the app token).
 | ActiveMQ UI          | `iiqstack` | <http://iiq-mq-admin.tail35421d.ts.net:8161>   | Message broker console     |
 | Mailpit UI           | `iiqstack` | <http://iiq-mail.tail35421d.ts.net:8025>       | Email testing dashboard    |
 | Counter              | `iiqstack` | `iiq-counter.tail35421d.ts.net:12345`          | Demo service; TCP endpoint |
-| SSH service          | `iiqstack` | `iiq-ssh.tail35421d.ts.net:22`                 | SSH access                 |
 | Argo CD              | `argocd`   | <https://argocd.tail35421d.ts.net>             | Deployment management      |
 
 Use the canonical `argocd` and `openwebui` Tailscale endpoints. A registered MagicDNS name does not guarantee a trusted HTTPS certificate.
@@ -151,7 +150,6 @@ Other compatible apps include KOReader, Aldiko, FBReader, and PocketBook.
 | --------------- | ---------- | -------------------------------- | ----------------- |
 | MSSQL           | `iiqstack` | `iiq-db.tail35421d.ts.net`       | 1433              |
 | LDAP            | `iiqstack` | `iiq-ldap.tail35421d.ts.net`     | 389               |
-| SSH             | `iiqstack` | `iiq-ssh.tail35421d.ts.net`      | 22                |
 | ActiveMQ broker | `iiqstack` | `iiq-mq-admin.tail35421d.ts.net` | 61616             |
 | Mailpit SMTP    | `iiqstack` | `iiq-mail.tail35421d.ts.net`     | 1025              |
 | Counter         | `iiqstack` | `iiq-counter.tail35421d.ts.net`  | 12345             |

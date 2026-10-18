@@ -18,7 +18,7 @@
 
 | File | Purpose | Applied to cluster? |
 |---|---|---|
-| `../iiq-stateful.yaml` | **Canonical full stack**: namespace, quota, netpols, SA/RBAC, secret, all dependencies (db/ldap/activemq/mail/counter/ssh/phpldapadmin), Deployment+Service `iiq`, PDBs, IngressRoutes, NFS PVCs | ✅ |
+| `../iiq-stateful.yaml` | **Canonical full stack**: namespace, quota, netpols, SA/RBAC, secret, all dependencies (db/ldap/activemq/mail/counter/phpldapadmin), Deployment+Service `iiq`, PDBs, IngressRoutes, NFS PVCs | ✅ |
 | `iiq-deployment.yaml` | Deployment + Service `iiq` only — spec identical to the canonical file; use for iiq-only updates | ✅ |
 | `iiq-init-job.yaml` | DB bootstrap: databases, logins/users, default schemas, full AH DDL hard-gated at **32 tables**, version-row seed (`8.5-19`/`8.5-15`) | ⚠️ delete job first (immutable while it exists) |
 | `iiq-deployment-ha-nas.yaml` | HA/NAS variant (replicas 2, `sailpoint-iiq:8.5`, NAS initContainer) | ❌ reference only |

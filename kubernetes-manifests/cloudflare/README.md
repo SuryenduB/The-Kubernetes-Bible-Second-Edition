@@ -84,7 +84,7 @@ sources, which is the CI hook.
 design, but has its own sessionSecret and `kuma_gate` cookie - independent
 session domain, independently rotatable).
 
-**Never publish here:** `iiq`, `db`, `ssh`, every `postgres`/`redis`/
+**Never publish here:** `iiq`, `db`, every `postgres`/`redis`/
 `mariadb` Service, the K3s API (6443) and Longhorn. Those stay on Tailscale/LAN.
 A tunnel origin is public internet — anything with a login screen becomes an
 attack surface.
