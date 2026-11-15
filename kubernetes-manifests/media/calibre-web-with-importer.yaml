@@ -159,7 +159,14 @@ spec:
   selector:
     app: calibre-web
   ports:
-  - protocol: TCP
+  # 80 is what the Tailscale ingress proxy serves on, so http://calibre-web works
+  # without a port suffix. 8083 stays for the in-cluster monitors and homepage.
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: 8083
+  - name: app
+    protocol: TCP
     port: 8083
     targetPort: 8083
 
