@@ -75,6 +75,7 @@ kubernetes-manifests/
 | 5 | `homepage` | gethomepage dashboard (public via Cloudflare Quick Tunnel) | `homepage/homepage.yaml` + `cloudflare/cloudflared.yaml` |
 | 6 | `monitoring` | Beszel, Uptime Kuma (also public via Cloudflare Quick Tunnel, gated), Dozzle, Gotify | `monitoring/` + `cloudflare/quick-tunnel-kuma.yaml` |
 | 7 | `server-management` | RemotePower | `server-management/` |
+| 8 | `netbox` | NetBox (DCIM/IPAM + PostgreSQL + Redis + Worker) | `netbox/` | `netbox.tail35421d.ts.net` |
 
 ## Deployment
 
