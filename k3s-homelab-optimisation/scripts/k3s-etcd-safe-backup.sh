@@ -136,7 +136,37 @@ log "Verified server-token presence (${TOKEN_SIZE} bytes) for cluster recovery."
 # 4. Trigger Online Embedded etcd Snapshot (Zero Downtime)
 SNAPSHOT_NAME="etcd-snapshot-online-${DATE}"
 log "Triggering online etcd snapshot: ${SNAPSHOT_NAME} (K3s remains active) ..."
-k3s etcd-snapshot save --name "${SNAPSHOT_NAME}"
+# k3s ships a built-in scheduled snapshot at "0 */12 * * *" (the documented
+# default for --etcd-snapshot-schedule-cron), so at 00:00 and 12:00 it is
+# already saving its own snapshot on our exact cron minute and rejects ours
+# with "snapshot save already in progress". That aborted the whole run (no NAS
+# publish, no heartbeat, monitor DOWN) on every other 6-hourly slot.
+#
+# The CLI only prints "see server log for details: ... etcd-snapshot error ID
+# <id>", so the reason is read back from the k3s journal and any failure is
+# retried a bounded number of times: a transient in-flight snapshot clears in
+# seconds, while a real fault still fails after the last attempt but now says
+# why.
+SNAPSHOT_SAVE_ATTEMPTS=6
+SNAPSHOT_SAVE_WAIT_SECONDS=20
+snapshot_attempt=1
+while :; do
+    if SNAP_SAVE_OUT=$(k3s etcd-snapshot save --name "${SNAPSHOT_NAME}" 2>&1); then
+        printf '%s\n' "${SNAP_SAVE_OUT}"
+        break
+    fi
+    printf '%s\n' "${SNAP_SAVE_OUT}"
+    SNAP_REASON=$(journalctl -u k3s --since "-3min" --no-pager 2>/dev/null \
+        | grep -o 'etcd-snapshot error ID [0-9]*: .*' | tail -n 1 \
+        | sed -E 's/^etcd-snapshot error ID [0-9]+: //; s/["[:space:]]+$//' || true)
+    if [ "${snapshot_attempt}" -ge "${SNAPSHOT_SAVE_ATTEMPTS}" ]; then
+        phase "SNAPSHOT" "etcd snapshot failed ${SNAPSHOT_SAVE_ATTEMPTS}x (last reason: ${SNAP_REASON:-unknown})."
+        exit 1
+    fi
+    log "etcd snapshot attempt ${snapshot_attempt}/${SNAPSHOT_SAVE_ATTEMPTS} failed (${SNAP_REASON:-reason not in journal}); retrying in ${SNAPSHOT_SAVE_WAIT_SECONDS}s."
+    snapshot_attempt=$((snapshot_attempt + 1))
+    sleep "${SNAPSHOT_SAVE_WAIT_SECONDS}"
+done
 
 # Locate generated snapshot file
 SNAP_FILE=$(find "${LOCAL_SNAP_DIR}" -name "*${SNAPSHOT_NAME}*" -type f | head -n 1)
