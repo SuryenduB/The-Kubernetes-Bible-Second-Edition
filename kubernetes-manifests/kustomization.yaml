@@ -14,3 +14,6 @@ resources:
 
   # --- Monitoring ---
   - monitoring                          # monitoring ns: beszel hub + agent DaemonSet
+
+  # --- Infrastructure & IPAM ---
+  - netbox                              # netbox ns: NetBox DCIM/IPAM, Postgres, Redis, Worker, Tailscale svc
