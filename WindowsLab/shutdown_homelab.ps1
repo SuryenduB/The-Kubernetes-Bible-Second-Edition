@@ -27,6 +27,19 @@
 #   * -DrainTimeoutSeconds now defaults to 600 (kubernetes5's drain failed on time, not on
 #     safety: its argocd singletons were still terminating at grace 120s when 300s elapsed).
 #
+# v10.1 - the 2026-11-15 finish-gate deadlock (kubernetes5) and its two fixes:
+#   * STALE VOLUMEATTACHMENTS: status.attached is not proof of attached data. When the
+#     attach/detach controller can no longer finalise a deletion (its peers are already
+#     powered off) the object keeps deletionTimestamp AND attached=true forever, while
+#     Longhorn has already released the volume. The Longhorn Volume CR now arbitrates: a VA
+#     whose volume reports anything but 'attached' is stale, logged, and never withholds a
+#     poweroff. Thirteen such objects blocked the gate while all 25 volumes read 'detached'.
+#   * NODE-LOCAL CROSS-CHECK: an API "unclean" verdict built only from objects on their way
+#     out (stale VAs, pods with deletionTimestamp) no longer stands alone - when nothing live
+#     is on the node, the node itself (0 longhorn devices, 0 data mounts, system containers
+#     only) is asked, and its proof is accepted. A verdict that ignored stale VAs is ALWAYS
+#     confirmed over SSH before any poweroff, so trusting Longhorn never means guessing.
+#
 # Credentials (v9.2): every poweroff is an SSH login + sudo, so the login identity is resolved
 # PER NODE from WindowsLab/homelab-nodes.json ("sshUser") and probed before anything is
 # powered off. server-236 accepts only 'SuryenduB' (capital S) while server-252 accepts
@@ -501,31 +514,77 @@ function Test-NodeTcpPort {
     }
 }
 
+function Get-NodeVolumeAttachments {
+    <#
+    .SYNOPSIS
+        VolumeAttachments on the node, split into LIVE attachments and STALE ones, plus whether
+        the API could be asked at all.
+    .DESCRIPTION
+        status.attached is not proof that data is still on the node. When the attach/detach
+        controller cannot finalise a deletion (its peers are already powered off) the object
+        keeps deletionTimestamp AND attached=true indefinitely, while Longhorn has already
+        released the volume. From v10.1 the Longhorn Volume CR - the authority on whether data
+        is attached - arbitrates: a VolumeAttachment whose volume reports anything other than
+        'attached' (or no longer exists) is STALE, never a reason to withhold a poweroff. On
+        2026-11-15 thirteen such objects deadlocked the finish gate on kubernetes5 while all
+        25 volumes reported 'detached' and the node ran DaemonSets only.
+        When the Longhorn query itself fails the VA flag is trusted (pre-v10.1 behaviour), and a
+        failed volumeattachment query still returns the UNKNOWN sentinel, so an unreachable API
+        can never read as "nothing attached".
+    #>
+    param([Parameter(Mandatory)][string]$NodeName)
+
+    $unknown = [pscustomobject]@{ ApiOk = $false; Attached = @('UNKNOWN-API-FAILURE'); Stale = @() }
+    try {
+        $attachments = kubectl get volumeattachment -o json --request-timeout=15s | ConvertFrom-Json
+        if ($LASTEXITCODE -ne 0 -or -not $attachments) { return $unknown }
+    }
+    catch { return $unknown }
+
+    # $null = Longhorn could not be asked (then the VA's own flag decides, as before).
+    # An empty map is a legitimate answer: the volume CR is gone, so nothing is attached.
+    $longhornState = $null
+    try {
+        $longhorn = kubectl get volumes.longhorn.io -n longhorn-system -o json --request-timeout=15s | ConvertFrom-Json
+        if ($LASTEXITCODE -eq 0 -and $longhorn) {
+            $longhornState = @{}
+            foreach ($volume in @($longhorn.items)) {
+                $longhornState[[string]$volume.metadata.name] = [string]$volume.status.state
+            }
+        }
+    }
+    catch { $longhornState = $null }
+
+    $attached = @()
+    $stale = @()
+    foreach ($item in @($attachments.items)) {
+        if ($item.spec.attacher -ne 'driver.longhorn.io') { continue }
+        if ($item.spec.nodeName -ne $NodeName) { continue }
+        if ($item.status.attached -ne $true) { continue }
+        $pv = [string]$item.spec.source.persistentVolumeName
+        if ($null -ne $longhornState) {
+            $volumeState = if ($longhornState.ContainsKey($pv)) { $longhornState[$pv] } else { 'missing' }
+            if ($volumeState -ne 'attached') { $stale += $pv; continue }
+        }
+        $attached += $pv
+    }
+    return [pscustomobject]@{ ApiOk = $true; Attached = $attached; Stale = $stale }
+}
+
 function Get-NodeAttachedVolumes {
     <#
     .SYNOPSIS
         PV names with a live Longhorn attachment on the given node (empty = safe to power off).
     .DESCRIPTION
-        The exit code is checked explicitly: on an unreachable API kubectl returns non-zero and
-        ConvertFrom-Json turns the empty pipeline into $null WITHOUT throwing. Treating that as
-        "nothing attached" would let the storage gate wave a node through while it still holds live
-        Longhorn attachments - the exact unclean-detach scenario this gate exists to prevent.
+        Thin wrapper over Get-NodeVolumeAttachments: stale attachments (volume already released
+        by Longhorn) are excluded, and an unreachable API is still reported through the UNKNOWN
+        sentinel rather than as "nothing attached" - on an unreachable API kubectl returns
+        non-zero and ConvertFrom-Json turns the empty pipeline into $null WITHOUT throwing.
     #>
     param([Parameter(Mandatory)][string]$NodeName)
-    try {
-        $attachments = kubectl get volumeattachment -o json --request-timeout=15s | ConvertFrom-Json
-        if ($LASTEXITCODE -ne 0 -or -not $attachments) { return @('UNKNOWN-API-FAILURE') }
-    }
-    catch { return @('UNKNOWN-API-FAILURE') }
-    $attached = @()
-    foreach ($item in @($attachments.items)) {
-        if ($item.spec.attacher -eq 'driver.longhorn.io' -and
-            $item.spec.nodeName -eq $NodeName -and
-            $item.status.attached -eq $true) {
-            $attached += [string]$item.spec.source.persistentVolumeName
-        }
-    }
-    return $attached
+    $state = Get-NodeVolumeAttachments -NodeName $NodeName
+    if (-not $state.ApiOk) { return @('UNKNOWN-API-FAILURE') }
+    return @($state.Attached)
 }
 
 function Wait-NodeVolumesDetached {
@@ -636,31 +695,44 @@ function Get-NodeEligibleWorkloads {
 function Assert-NodeCleanViaApi {
     <#
     .SYNOPSIS
-        The API-channel half of the cleanliness invariant: no attached Longhorn volumes and no
-        eligible workloads on the node, both asked live from kubectl.
+        The API-channel half of the cleanliness invariant: no live Longhorn attachment and no
+        eligible workload on the node, both asked live from kubectl.
+    .DESCRIPTION
+        Stale VolumeAttachments (volume already released by Longhorn) are reported as notes, not
+        as blockers, and ActiveWorkloads counts only pods that are NOT already terminating -
+        together they let Assert-NodeCleanliness tell a real objection from a leftover one.
     #>
     [CmdletBinding()]
     [OutputType([pscustomobject])]
     param([Parameter(Mandatory)][string]$NodeName)
 
     $evidence = @()
-    $attached = @(Get-NodeAttachedVolumes -NodeName $NodeName)
-    if ($attached -contains 'UNKNOWN-API-FAILURE') {
-        return [pscustomobject]@{ Node = $NodeName; Channel = 'api'; Clean = $null; Evidence = @('kubectl volumeattachment query failed') }
+    $notes = @()
+    $state = Get-NodeVolumeAttachments -NodeName $NodeName
+    if (-not $state.ApiOk) {
+        return [pscustomobject]@{ Node = $NodeName; Channel = 'api'; Clean = $null; Evidence = @('kubectl volumeattachment query failed'); ActiveWorkloads = $null; StaleVolumes = @(); AttachedVolumes = @() }
     }
-    if ($attached.Count -gt 0) { $evidence += "attached volumes: $($attached -join ', ')" }
+    if (@($state.Stale).Count -gt 0) {
+        $notes += "ignored $(@($state.Stale).Count) stale VolumeAttachment(s) - Longhorn reports the volume(s) not attached: $($state.Stale -join ', ')"
+    }
+    if (@($state.Attached).Count -gt 0) { $evidence += "attached volumes: $(@($state.Attached) -join ', ')" }
 
     $workloads = @(Get-NodeEligibleWorkloads -NodeName $NodeName)
     if ($workloads -contains 'UNKNOWN-API-FAILURE') {
-        return [pscustomobject]@{ Node = $NodeName; Channel = 'api'; Clean = $null; Evidence = @('kubectl pod query failed') }
+        return [pscustomobject]@{ Node = $NodeName; Channel = 'api'; Clean = $null; Evidence = @('kubectl pod query failed'); ActiveWorkloads = $null; StaleVolumes = @($state.Stale); AttachedVolumes = @($state.Attached) }
     }
+    $activeWorkloads = @($workloads | Where-Object { $_ -notlike 'terminating:*' }).Count
     if ($workloads.Count -gt 0) { $evidence += ("eligible workloads still on node: " + ($workloads -join ', ')) }
 
+    $reported = if ($evidence.Count -eq 0) { @('no eligible workloads, no attached volumes') } else { $evidence }
     return [pscustomobject]@{
-        Node     = $NodeName
-        Channel  = 'api'
-        Clean    = ($evidence.Count -eq 0)
-        Evidence = if ($evidence.Count -eq 0) { @('no eligible workloads, no attached volumes') } else { $evidence }
+        Node            = $NodeName
+        Channel         = 'api'
+        Clean           = ($evidence.Count -eq 0)
+        Evidence        = @(@($reported) + @($notes))
+        ActiveWorkloads = $activeWorkloads
+        StaleVolumes    = @($state.Stale)
+        AttachedVolumes = @($state.Attached)
     }
 }
 
@@ -824,7 +896,73 @@ function Assert-NodeCleanliness {
 
     if (Test-ApiReachable) {
         $api = Assert-NodeCleanViaApi -NodeName $NodeName
-        if ($null -ne $api.Clean) { return $api }
+        if ($null -ne $api.Clean) {
+            if ($api.Clean -eq $true) {
+                # v10.1: a clean verdict that had to IGNORE stale VolumeAttachments is confirmed
+                # against the node itself before anyone powers it off. Trusting Longhorn must
+                # never mean guessing: 0 devices and 0 data mounts are the ground truth.
+                if (@($api.StaleVolumes).Count -gt 0) {
+                    $confirm = Assert-NodeCleanLocally -NodeName $NodeName -IP $IP
+                    if ($confirm.Clean -eq $true) {
+                        return [pscustomobject]@{
+                            Node            = $NodeName
+                            Channel         = 'api+node-local (stale VA confirmed)'
+                            Clean           = $true
+                            Evidence        = @(@($api.Evidence) + @($confirm.Evidence))
+                            ActiveWorkloads = $api.ActiveWorkloads
+                            StaleVolumes    = @($api.StaleVolumes)
+                            AttachedVolumes = @($api.AttachedVolumes)
+                        }
+                    }
+                    $confirmText = if ($null -eq $confirm.Clean) { "unverified: $($confirm.Evidence -join '; ')" } else { "unclean: $($confirm.Evidence -join '; ')" }
+                    return [pscustomobject]@{
+                        Node            = $NodeName
+                        Channel         = 'api+node-local'
+                        Clean           = $false
+                        Evidence        = @(@($api.Evidence) + @("stale VolumeAttachments could not be confirmed over SSH - $confirmText"))
+                        ActiveWorkloads = $api.ActiveWorkloads
+                        StaleVolumes    = @($api.StaleVolumes)
+                        AttachedVolumes = @($api.AttachedVolumes)
+                    }
+                }
+                return $api
+            }
+
+            # v10.1 - an API "unclean" verdict is not the final word: it can be built entirely
+            # from objects already on their way out (stale VolumeAttachments left by the drains,
+            # pods whose deletionTimestamp is set). Node-local proof is accepted as the tie-
+            # breaker ONLY when nothing live can be lost: no live attached volume, no running/
+            # pending eligible workload, and the node itself shows 0 Longhorn devices, 0 data
+            # mounts and system containers only. A live volume OR a live workload is never
+            # overridden by node-local proof.
+            if ($null -ne $api.ActiveWorkloads -and $api.ActiveWorkloads -eq 0 -and @($api.AttachedVolumes).Count -eq 0) {
+                $local = Assert-NodeCleanLocally -NodeName $NodeName -IP $IP
+                if ($local.Clean -eq $true) {
+                    Write-Host "  [i] ${NodeName}: the API objection is stale; the node itself proves clean (0 longhorn devices, 0 data mounts, system containers only)." -ForegroundColor DarkGray
+                    return [pscustomobject]@{
+                        Node            = $NodeName
+                        Channel         = 'node-local (API cross-check)'
+                        Clean           = $true
+                        Evidence        = @(@($local.Evidence) + @("API objection overridden: $($api.Evidence -join '; ')"))
+                        ActiveWorkloads = 0
+                        StaleVolumes    = @($api.StaleVolumes)
+                        AttachedVolumes = @()
+                    }
+                }
+                if ($null -ne $local.Clean) {
+                    return [pscustomobject]@{
+                        Node            = $NodeName
+                        Channel         = 'api+node-local'
+                        Clean           = $false
+                        Evidence        = @(@($api.Evidence) + @("node-local probe agrees it is unclean: $($local.Evidence -join '; ')"))
+                        ActiveWorkloads = $api.ActiveWorkloads
+                        StaleVolumes    = @($api.StaleVolumes)
+                        AttachedVolumes = @($api.AttachedVolumes)
+                    }
+                }
+            }
+            return $api
+        }
     }
     return (Assert-NodeCleanLocally -NodeName $NodeName -IP $IP)
 }
@@ -1502,7 +1640,9 @@ if ($VerifyCredentials) {
 # is down. This mode asks the node itself instead of asking the API:
 #   * TCP 22 closed   -> already down, record and move on,
 #   * node-local probe clean (0 Longhorn devices, 0 mounts, only system containers running)
-#     -> power it off through the same escalating ladder as the main run,
+#     -> power it off through the same escalating ladder as the main run. Since v10.1 the
+#        verdict it asks for is API-first WITH the node-local cross-check, so this mode also
+#        resolves a worker that a live-but-stale API had mislabelled as unclean,
 #   * anything unverified (unclean container names, devices, mounts, probe failure)
 #     -> REFUSE and report the evidence. It never acts without positive proof of cleanliness,
 #        so -AllowDirtyPowerOff has no role here (that is enforced at parameter parsing).
@@ -1564,7 +1704,8 @@ if ($CompletePendingNodes) {
         elseif ($verdict.Clean -eq $false) {
             Write-Host "  [!] REFUSED - node does not satisfy the cleanliness invariant:" -ForegroundColor Red
             foreach ($ev in $verdict.Evidence) { Write-Host "      - $ev" -ForegroundColor Red }
-            Write-Host "  [!] Nothing was powered off. Resolve on the node (ssh $($worker.IP)) or bring the API back and use the normal shutdown." -ForegroundColor Yellow
+            Write-Host "  [!] Nothing was powered off. Resolve on the node (ssh $($worker.IP)), or re-run the normal shutdown once the blocker is gone." -ForegroundColor Yellow
+            Write-Host "      (stale VolumeAttachments are already ignored by v10.1; this objection came from the node-local probe itself.)" -ForegroundColor DarkGray
             $completeRefusals += $worker.Name
             $completeResults += [pscustomobject]@{ node = $worker.Name; ip = $worker.IP; status = 'refused-unclean' }
         }
