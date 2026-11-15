@@ -168,7 +168,7 @@ spec:
         - name: chaptarr
           # 0.9.965 (2026-10-09) is the newest stable tag; `latest` still
           # points at the older 2026-08-08 build.
-          image: chaptarr/chaptarr:0.9.965
+          image: chaptarr/chaptarr:0.9.1000
           ports:
             - name: http
               containerPort: 8789
