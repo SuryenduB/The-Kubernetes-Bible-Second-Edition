@@ -41,6 +41,14 @@ Mac has no local `docker`; build in-cluster via `k3s-build <src-dir> <registry/i
 
 Separate Next.js 16 / Bun app (Postgres + Drizzle). Commands run there, not at root: `bun install`, `bun run db:up && bun run db:migrate && bun run db:seed`, `bun run dev`. Per-session rules (agent-browser tool, test login `testing@openlingo.dev` / `0P3NL1NG0`) live in `openlingo-debug/AGENTS.md`.
 
+## Links for the owner: Tailscale Serve only
+
+Any link handed over for something running on this computer (preview server, review page, dashboard) must be a **Tailscale** URL — never `localhost`, `127.0.0.1` or a bare `:PORT`. He works across several computers and his phone, so a loopback link is useless to him.
+
+- Publish with `tailscale serve` (e.g. `tailscale serve --bg <port>`), then open the resulting link yourself and confirm it actually loads before sending it.
+- **Serve only — never `tailscale funnel` on your own initiative**, even if the link appears not to open. Serve is reachable only within the tailnet; Funnel exposes the service to the entire public internet. "Visible on my phone" and "visible to everyone" are different needs: fix the real cause or ask, and never widen exposure just to make a link work.
+- Docs: `tailscale serve` command (https://tailscale.com/kb/1242/tailscale-serve), Tailscale Serve overview (https://tailscale.com/kb/1312/serve).
+
 ## Do not commit
 
 `.gitignore` excludes `skills/`, `.gdrive-sync/`, `*-service-account.json` / `*-sa-key.json`, `**/gcloud/**`, `uptime-kuma-credentials.env`, `cred.xml`, tfstate/backups, and logs. Keep homelab creds out of new files outside the existing manifest pattern.
