@@ -125,11 +125,17 @@ This Mac has `kubectl`, `jq` and `curl`. It has **no** `docker`, `crane`,
 # Docker Hub
 curl -s "https://hub.docker.com/v2/repositories/library/redis/tags?page_size=25" | jq -r '.results[].name'
 
-# ghcr.io: anonymous token, then the tag list
-TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:immich-app/immich-server:pull" | jq -r .token)
+# ghcr.io: anonymous token, then the tag list — ask for enough tags in one go
+TOKEN=$(curl -s "https://ghcr.io/token?scope=repository:advplyr/audiobookshelf:pull" | jq -r .token)
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://ghcr.io/v2/immich-app/immich-server/tags/list" | jq -r '.tags[]'
+  "https://ghcr.io/v2/advplyr/audiobookshelf/tags/list?n=1000" | jq -r '.tags[]' | sort -V | tail -5
 ```
+
+**ghcr truncates the tag list at 100** and paginates through a `link:` header
+(`...?last=<tag>&n=0`). A bare `/tags/list` call happily returns exactly 100 tags
+and looks complete — for `audiobookshelf` that hides every release above 2.19.0,
+including the 2.37.2 actually deployed. Always pass `?n=` large enough, and
+sanity-check the highest tag against what the cluster is already running.
 
 For anything with a store of data, prefer the release notes, and read the
 changelog between the two versions for breaking changes and required migrations.

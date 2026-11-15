@@ -56,3 +56,35 @@ Inventory: 61 distinct images across Deployments, StatefulSets and DaemonSets.
   owning pod template must be confirmed before editing.
 
 No commits, no rollouts, no image changes were made.
+
+## 2026-11-15 — live sweep 1 (3 upgrades, 1 skip)
+
+Preflight: 0 tracked modifications, 8/10 nodes Ready, 0 non-running pods.
+Each app: edit manifest → `--dry-run=server` → apply → `rollout status` → health
+gate → commit → push. One app in flight at a time.
+
+| App | From | To | Gate | Commit | Outcome |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| dozzle | `v11.3.0` | `v11.4.3` | Ready 1/1, 0 restarts, PVC `pvc-8ed467c0` still Bound, `http://dozzle` 200 | `0bb8d25` | upgraded |
+| uptime-kuma | `2.5.5` | `2.5.11` | Ready 1/1, 0 restarts, PVC `pvc-4a422cda` still Bound, `http://uptime-kuma` 302 (login), logs clean | `6d1ebff` | upgraded |
+| audiobookshelf | `2.37.1` | `2.37.2` | Ready 1/1, 0 restarts, both PVCs Bound, `http://audiobookshelf` 200, "No migrations to run" | `5e716b3` | upgraded |
+| gotify | `3.1.1` | `3.1.1` | — | — | skipped — already current on Docker Hub |
+
+### Findings from the live run
+
+- **ghcr truncates `/tags/list` at 100.** The bare call returned 100 tags ending
+  at `2.19.0`, hiding the `2.37.2` actually deployed. `?n=1000` returns all 135.
+  Step 3 now documents this.
+- **Dozzle logs a non-fatal RBAC warning** after the bump: kubelet answers 403 on
+  `nodes/stats` for 8 nodes, so container sizes are unavailable. Its ClusterRole
+  grants `nodes` but not `nodes/stats`. Serving is unaffected (`200`, pods
+  readable); worth a separate manifest fix, not part of an image bump.
+- **`kubectl apply` on a file containing a PVC prints a `volumeName` diff** even
+  when the PVC is untouched (`pvc-8ed467c0` → `""`). The binding survives (the
+  API keeps it), but read that diff rather than assuming a silent no-op.
+- **Tailscale hostnames are the bare MagicDNS names**: `http://dozzle`,
+  `http://uptime-kuma`, `http://audiobookshelf`. `http://kuma` resolves to
+  nothing — the probe must use the `tailscale.com/hostname` annotation.
+
+No rollbacks were needed. Cluster stayed at 8/10 Ready throughout (the two
+absent nodes are unchanged from before the sweep).
