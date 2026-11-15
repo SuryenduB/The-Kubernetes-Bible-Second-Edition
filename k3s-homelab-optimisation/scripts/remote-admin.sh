@@ -29,7 +29,8 @@ case "${TARGET}" in
   suryendub@192.168.0.22|\
   suryendub@192.168.0.23|\
   suryendub@192.168.0.24|\
-  suryendub@192.168.0.25)
+  suryendub@192.168.0.25|\
+  SuryenduB@192.168.0.236)
     ;;
   *)
     echo "[remote-admin] ERROR: target ${TARGET} is not an allowlisted homelab node." >&2
