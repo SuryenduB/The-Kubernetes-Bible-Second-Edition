@@ -1,8 +1,9 @@
 # K3s homelab
 
-**Updated:** 2026-10-18
+**Updated:** 2026-11-15
 **Scope:** Cluster architecture, application access, infrastructure, storage, and dated audit snapshots. Sections marked as snapshots retain their observation dates.
 **K3s baseline:** `v1.34.6+k3s1`; current versions were not checked during the 2026-10-18 host inspection.
+**New:** NetBox DCIM/IPAM added to `netbox` namespace with PostgreSQL and Redis dependencies.
 
 ---
 
@@ -99,6 +100,7 @@ This inventory was checked on 2026-09-17 against workloads, Service ports, and d
 | Application     | Namespace           | MagicDNS access                              | Public access                                                                                                                              |
 | --------------- | ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Homepage        | `homepage`          | <http://homepage-homepage.tail35421d.ts.net> | Cloudflare Quick Tunnel, with no authentication gate. The hostname changes; use the script above to read it. |
+| NetBox          | `netbox`            | <http://netbox.tail35421d.ts.net>            | Not listed                                                                                                                                          |
 | RemotePower     | `server-management` | <http://remotepower.tail35421d.ts.net>       | Not listed                                                                                                                                          |
 
 #### Monitoring and observability
@@ -168,9 +170,9 @@ These components have no dedicated MagicDNS proxy and are not user-facing applic
 | metrics-server                                           | `kube-system`                                              | Kubernetes resource metrics                                                                                                                                               |
 | Local-path provisioner                                   | `kube-system`                                              | Local persistent storage provisioning                                                                                                                                     |
 | NFS provisioner                                          | `default`                                                  | NAS-backed persistent storage provisioning                                                                                                                                |
-| PostgreSQL                                               | `media`, `monitoring` | Databases for Immich and Flick                                                                                          |
+| PostgreSQL                                               | `media`, `monitoring`, `netbox` | Databases for Immich, Flick, and NetBox                                                                                          |
 | MariaDB                                                  | `linguacafe`                                               | LinguaCafe database                                                                                                                                                       |
-| Redis / Valkey                                           | `linguacafe`, `argocd`, `media`                            | Supporting cache services; Valkey 9 backs Immich                                                                                                                          |
+| Redis / Valkey                                           | `linguacafe`, `argocd`, `media`, `netbox`                            | Supporting cache services; Valkey 9 backs Immich; Redis backs NetBox                                                                                                                          |
 | Flick API / web / Caddy                                  | `media`                                                    | Internal Flick tiers; only Caddy has a MagicDNS proxy                                                                                                                     |
 | Immich ML                                                | `media`                                                    | Machine-learning backend; only the server has a MagicDNS proxy                                                                                                            |
 | Beszel agent                                                    | `monitoring`                                               | Monitoring agent; not a separate user-facing app                                                                                                                          |
@@ -464,6 +466,8 @@ kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "cl
 
 | Application                  | Namespace    | Image change                                                        | Manifest                                                                               |
 | ---------------------------- | ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| NetBox                       | `netbox`     | `netboxcommunity/netbox:v4.7.5-5.1.2` (2026-11-15)                   | `kubernetes-manifests/netbox/05-netbox.yaml`                                          |
+| ---------------------------- | ------------ | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Dozzle                       | `monitoring` | `amir20/dozzle:v11.1.0` to `v11.3.0`                                 | `kubernetes-manifests/monitoring/dozzle.yaml`                                          |
 | Gotify                       | `monitoring` | `gotify/server:3.1.0` to `3.1.1`                                      | `kubernetes-manifests/monitoring/gotify.yaml`                                          |
 | Chaptarr                     | `media`      | `chaptarr/chaptarr:0.9.958` to `0.9.965`                              | `kubernetes-manifests/media/chaptarr.yaml`                                             |
@@ -530,6 +534,7 @@ _This baseline came from `nuc`, the original server. Since 2026-09-20, each cont
 | Audiobookshelf reports "Socket Disconnected" over Tailscale | The tailnet URL shows the disconnected banner. | Check the 1 GiB memory limit and the NFS mount at `192.168.0.128`. The app logs `transport close` when a proxy drops and a different reason when it stalls. |
 | ABS gate rejects a valid login | `absproxy` reports "Incorrect username or password." | Regenerate `passwordEntry` in Secret `media/abs-gate` with the command in `kubernetes-manifests/cloudflare/abs-auth-proxy.yaml`, then restart the `abs-auth-proxy` Deployment. |
 | etcd quorum is lost | `/readyz` fails, `kubectl` times out, and `etcdctl endpoint health` fails for two members. | Restore a member before other changes. If a member is permanently lost, rebuild from a survivor with `k3s server --cluster-reset`. This loses the removed member's history. Save a snapshot first with `sudo k3s etcd-snapshot save`. |
+| NetBox worker stuck in Init | `netbox-worker` pod remains in `Init:0/1` state. | The init container `wait-for-netbox-web` was trying to connect to port 8080 on the Service, but the Service listens on port 80. Fix: change the init container command from `http://netbox:8080/login/` to `http://netbox:80/login/` in `kubernetes-manifests/netbox/05-netbox.yaml`. |
 | Clients cannot reach the API | `kubectl` fails while all three members report `Ready`. | Kubeconfigs point to `https://192.168.0.21:6443`, a single member. Follow Phase 3.1 of the HA plan to move clients to a DNS name or VIP across the control plane. |
 
 ---
@@ -544,4 +549,5 @@ _This baseline came from `nuc`, the original server. Since 2026-09-20, each cont
 - The [Cloudflare guide](../../kubernetes-manifests/cloudflare/README.md) documents the session-cookie gate, Quick Tunnel failure mode, and network-policy limits.
 - [Get-CloudflareTunnelUrls.ps1](../../WindowsLab/Get-CloudflareTunnelUrls.ps1) reads and verifies current Quick Tunnel URLs.
 - The [Calibre-Web manifest](../../kubernetes-manifests/media/calibre-web-with-importer.yaml) defines its importer sidecar and storage claims.
+- The [NetBox manifest](../../kubernetes-manifests/netbox/) defines the NetBox deployment with PostgreSQL, Redis, and worker components.
 - [Historical cluster fixes](../CLUSTER_FIXES_2026-03-30.md) record earlier troubleshooting.
