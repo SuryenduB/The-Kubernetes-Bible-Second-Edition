@@ -372,8 +372,65 @@ than the live leader's, it is a stale fork. Do **not** try to fix it with networ
 6. Repeat per node, one at a time; the serving members stay up throughout. End state: all member
    rows `started` in one raft term, `endpoint health` green for every member.
 
+#### Boot-time trap: an empty `k3s.service.env` forks the member (2026-11-15)
+
+A host can be **powered on, SSH-reachable and even serving its local registry**, and still never
+rejoin. On 2026-11-15 `server-236` booted with a **0-byte** `/etc/systemd/system/k3s.service.env`,
+so `k3s server` had no `K3S_URL` and started its own single-node etcd. The journal then repeats
+this forever at ~25 % CPU while `systemctl is-active k3s` sits at `activating`:
+
+```
+"msg":"request cluster ID mismatch"
+local-member-id:  15dd2fd1bddb3c7   local-member-cluster-id: afb0a5e986f206a9   ← the fork on the node
+remote-peer-server-name: 5e5bac64bb6a6190  remote-peer-cluster-id: ccb62f2762529097  ← live cluster
+```
+
+Check this *before* any archive/rejoin work: the member never diverged — it was simply never told
+which cluster to join, so the "rejoin" below is the whole repair, not raft surgery:
+
+```bash
+stat -c '%s bytes' /etc/systemd/system/k3s.service.env   # 0 = the trap
+systemctl cat k3s | grep EnvironmentFile                # confirms the unit reads it
+ssh <node> 'systemctl is-active k3s'                    # 'activating', never 'active'
+```
+
+Also note the asymmetry that makes this class of failure hard to eye-ball: the same node can pass
+`TCP 22/5000/6443` and `curl http://<node>:5000/v2/ → 200` while its kubelet port `10250` stays
+closed — the k3s API is listening from the *forked* single-node server, not from the cluster.
+
+#### Removing the stale member row (required when the old row survives)
+
+Step 4 alone is not enough if the node's **old member row is still `started` in the live member
+list** with the same peer address (`https://<ip>:2380`). A fresh join tries to claim that address
+and conflicts. Order of operations that worked on 2026-11-15 (cluster stayed at 2/2 quorum, then
+went to 3/3):
+
+```bash
+# 1. on the node: stop the fork and archive (steps 2-3 above, plus the env file from step 4)
+# 2. on nuc: drop the dead row -- only while the other two members are started and healthy
+etcdctl --endpoints https://127.0.0.1:2379 $C member list -w table      # note the old <id>
+etcdctl --endpoints https://127.0.0.1:2379 $C member remove <old-id>
+# 3. back on the node: systemctl daemon-reload && systemctl start k3s
+```
+
+Use `K3S_TOKEN_FILE=/var/lib/rancher/k3s/server/token` instead of putting `K3S_TOKEN=<value>` in
+the env file when the local token already matches the live cluster (`sha256sum` both) — the secret
+then never leaves the file it already lives in. Success looks like a **new** member ID for the same
+name, e.g. `server-236-dc51ed1a` replacing the removed row, with all endpoints green:
+
+```
+| 5e5bac64bb6a6190 | started | nuc-1e55bd21       |
+| 7b665c83784e699e | started | server-236-dc51ed1a |
+| 9e5f1ac80d4ea2c0 | started | server-252-ce9cd7df |
+```
+
+That repair also cleared three pods that had been stuck `Terminating` on the node since
+2026-11-07 (the fresh kubelet reaped them) and left the archive at
+`/var/lib/rancher/k3s/server/db-backup-20261115-171716` (873 MB) as the rollback point.
+
 After server-236/252 rejoined, `K3S_URL` is now part of their systemd env - a later shutdown of all
 three is safe (quorum fully restart-able again), but **any single member must never be left running
 while the other two reboot**: that is what forked the lineage in the first place. The stale forks
 are archived in-place and may be deleted once a week passes without a rollback need
-(`server-236: db-backup-20261017-202456`, `server-252: db-backup-20261017-182829`).
+(`server-236: db-backup-20261017-202456`, `server-252: db-backup-20261017-182829`,
+`server-236: db-backup-20261115-171716`).
