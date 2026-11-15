@@ -6,6 +6,7 @@ resources:
   - calibre-web-with-importer.yaml
   - chaptarr.yaml
   - immich.yaml
+  - immich-photos-nas.yaml
   - immich-pdb.yaml
   - immich-db-backup.yaml
   - flick.yaml

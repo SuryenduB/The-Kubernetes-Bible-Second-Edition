@@ -399,10 +399,18 @@ spec:
           volumeMounts:
             - name: library
               mountPath: /data
+            # NAS photo library, scanned via an Immich External Library.
+            - name: nas-photos
+              mountPath: /mnt/nas-photos
+              readOnly: true
       volumes:
         - name: library
           persistentVolumeClaim:
             claimName: immich-library-pvc
+        - name: nas-photos
+          persistentVolumeClaim:
+            claimName: immich-photos-nas
+            readOnly: true
 ---
 apiVersion: v1
 kind: Service

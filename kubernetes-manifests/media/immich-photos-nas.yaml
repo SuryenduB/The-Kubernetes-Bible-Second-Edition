@@ -1,0 +1,31 @@
+# Existing photo library on the QNAP NAS, imported into Immich as an External
+# Library (indexed in place - originals are never copied or modified).
+# Read-only on purpose: Immich only needs to read for scanning; thumbnails and
+# transcodes are written to the Longhorn-backed immich-library-pvc instead.
+#
+# Requires /share/CACHEDEV1_DATA/Photos to be exported from 192.168.0.128.
+# QNAP exports NFS by share name; subpaths are not separately mountable.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: immich-photos-nas
+spec:
+  capacity: {storage: 100Gi}
+  accessModes: [ReadOnlyMany]
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  mountOptions: [nfsvers=3, nolock, noatime]
+  claimRef: {namespace: media, name: immich-photos-nas}
+  nfs: {server: 192.168.0.128, path: /share/CACHEDEV1_DATA/Photos, readOnly: true}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-photos-nas
+  namespace: media
+spec:
+  accessModes: [ReadOnlyMany]
+  storageClassName: ""
+  volumeName: immich-photos-nas
+  resources:
+    requests: {storage: 100Gi}
