@@ -100,8 +100,8 @@ This inventory was checked on 2026-09-17 against workloads, Service ports, and d
 | Application     | Namespace           | MagicDNS access                              | Public access                                                                                                                              |
 | --------------- | ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | Homepage        | `homepage`          | <http://homepage-homepage.tail35421d.ts.net> | Cloudflare Quick Tunnel, with no authentication gate. The hostname changes; use the script above to read it. |
-| NetBox          | `netbox`            | <http://netbox.tail35421d.ts.net>            | Not listed                                                                                                                                          |
-| RemotePower     | `server-management` | <http://remotepower.tail35421d.ts.net>       | Not listed                                                                                                                                          |
+| NetBox          | `netbox`            | <http://netbox.tail35421d.ts.net>            | API: `http://netbox.tail35421d.ts.net/api/`; Token: `nbt_3wuFtgqFBAE6.oszkkdvkJuUDy68III11y0YBaDftq6jBSsiJ8vpS` |
+| RemotePower     | `server-management` | <http://remotepower.tail35421d.ts.net>       | Not listed |
 
 #### Monitoring and observability
 
@@ -130,6 +130,26 @@ register below for the app token).
 | Mailpit UI           | `iiqstack` | <http://iiq-mail.tail35421d.ts.net:8025>       | Email testing dashboard    |
 | Counter              | `iiqstack` | `iiq-counter.tail35421d.ts.net:12345`          | Demo service; TCP endpoint |
 | Argo CD              | `argocd`   | <https://argocd.tail35421d.ts.net>             | Deployment management      |
+
+#### NetBox DCIM/IPAM
+
+**NetBox** is deployed in the `netbox` namespace with PostgreSQL and Redis dependencies for full DCIM (Data Center Infrastructure Management) and IPAM (IP Address Management) capabilities.
+
+| Component | Namespace | Access | Purpose |
+|-----------|-----------|--------|---------|
+| NetBox UI | `netbox` | <http://netbox.tail35421d.ts.net> | Web interface for DCIM/IPAM management |
+| NetBox API | `netbox` | `http://netbox.tail35421d.ts.net/api/` | REST API for programmatic access |
+
+**API Authentication:**
+- **Token:** `nbt_3wuFtgqFBAE6.oszkkdvkJuUDy68III11y0YBaDftq6jBSsiJ8vpS`
+- **Headers:**
+  ```
+  Authorization: Bearer nbt_3wuFtgqFBAE6.oszkkdvkJuUDy68III11y0YBaDftq6jBSsiJ8vpS
+  Accept: application/json
+  Content-Type: application/json
+  ```
+
+**Current Inventory:** 33 devices documented including all K3s nodes, Windows Lab hosts, infrastructure equipment, and gateway-discovered devices.
 
 Use the canonical `argocd` and `openwebui` Tailscale endpoints. A registered MagicDNS name does not guarantee a trusted HTTPS certificate.
 
@@ -405,7 +425,8 @@ Audited 2026-09-17: every live Secret's values were compared against this reposi
 | `longhorn-backup-kuma-push` | `monitoring` | `token`                       | `xADmtohED3`                                                                            |
 | `gotify-app-uptime-kuma`    | `monitoring` | app "Uptime Kuma" `token`     | `gtfya.cqjAxwtSlkrv3Q3hvyQ97vZ17LP5pDbCj4BigY_MomU`                                     |
 | `operator-oauth`            | `tailscale`  | `client_id` / `client_secret` | `kP3vXcDeXd11CNTRL` / `tskey-client-kP3vXcDeXd11CNTRL-h5adH2fVy831Vtxj55Vg93J3iie3C6uM` |
-| `argocd-secret`             | `argocd`     | `server.secretkey`            | `HGuoPiZhc2MiEPOourHwS5noFQPaKzG4Vd8FmxF5IvA=`                                          |
+| `argocd-secret`             | `argocd`     | `server.secretkey`            | `HGuoPiZhc2MiEPOourHwS5noFQPaKzG4Vd8FmxF5IvA=` |
+| `netbox-secrets`            | `netbox`    | `SUPERUSER_API_TOKEN`         | `nbt_3wuFtgqFBAE6.oszkkdvkJuUDy68III11y0YBaDftq6jBSsiJ8vpS`                                          |
 
 ### Argo CD admin password
 
@@ -432,6 +453,8 @@ kubectl -n monitoring get secret uptime-kuma-credentials -o go-template='{{index
 kubectl -n monitoring get secret longhorn-backup-kuma-push -o go-template='{{index .data "token" | base64decode}}'
 # Tailscale operator OAuth
 kubectl -n tailscale get secret operator-oauth -o go-template='{{index .data "client_id" | base64decode}} / {{index .data "client_secret" | base64decode}}'
+# NetBox API token
+kubectl -n netbox get secret netbox-secrets -o go-template='{{index .data "SUPERUSER_API_TOKEN" | base64decode}}'
 ```
 
 ### Audit scope & notes
