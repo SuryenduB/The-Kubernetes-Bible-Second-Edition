@@ -151,6 +151,7 @@ These live in this repo but must not be swept:
 | :-- | :-- | :-- |
 | `immich` | `kubernetes-manifests/media/immich.yaml` | Migrations run at startup, and the `immich-db` image (`postgres:14-vectorchord0.4.3`) is pinned to the vector extension — both move in lockstep. Take a fresh dump via the `immich-db-backup` CronJob first. |
 | `mariadb` / `mssql` | `linguacafe/`, `iiq-stateful.yaml` | A CU update on the same major is in scope; a major jump is a dump/restore, not a tag change. |
+| `reactive-resume` | `media/reactive-resume.yaml` | `v5.3.1` → `v6.x` is a major with Postgres schema migrations. Park it until the project's upgrade notes are read. |
 
 **Done when** the app is either handed to step 5 or parked with the migration
 step that unblocks it.
@@ -180,6 +181,17 @@ kubectl -n <ns> get events --sort-by=.lastTimestamp | tail -10
 Plus one functional probe: `curl -s -o /dev/null -w '%{http_code}' http://<hostname>`
 on the app's Tailscale hostname (the bare MagicDNS name configured on its
 Service — see `k3s-tailscale-proxy`), expecting `200`.
+
+Two ways that probe lies, both seen on a real sweep:
+
+- **Multi-container pods report `2/2`, not `1/1`.** A gate that greps for
+  `1/1` finds no ready pod and calls a healthy deployment a failure. Count
+  container readiness, or trust the pod's `Ready` condition — the manifest's own
+  `readinessProbe` already proves HTTP works.
+- **A dead hostname is not a dead app.** `calibre-web`'s tailnet node answers
+  ping yet has neither 80 nor 443 open, while the Service answers `200`
+  in-cluster. Confirm with `tailscale status` and a port check before blaming
+  the image, and fall back to an in-cluster probe.
 
 - **Gate passes** → commit and push *this app only*, then move on.
 - **Gate fails** → roll back (step 6) and stop the sweep.

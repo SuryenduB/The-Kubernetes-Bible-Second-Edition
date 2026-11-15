@@ -88,3 +88,32 @@ gate → commit → push. One app in flight at a time.
 
 No rollbacks were needed. Cluster stayed at 8/10 Ready throughout (the two
 absent nodes are unchanged from before the sweep).
+
+## 2026-11-15 — live sweep 2 (3 upgrades, 2 skips)
+
+| App | From | To | Gate | Commit | Outcome |
+| :-- | :-- | :-- | :-- | :-- | :-- |
+| chaptarr | `0.9.965` | `0.9.1000` | Ready 1/1, 0 restarts, `http://chaptarr` 200 | `7372bde` | upgraded |
+| calibre-web | `0.6.27-ls404` | `0.6.27-ls410` | Ready 2/2 (both containers), 0 restarts, endpoints populated, in-cluster 200 | `b028e93` | upgraded |
+| redis (linguacafe) | `7.2-alpine` | `7.4-alpine` | Ready, 0 restarts, `redis_version` from INFO, Linguacafe login 200 | `ecdabad` | upgraded |
+| gotify | `3.1.1` | `3.1.1` | — | — | skipped — already newest on Docker Hub |
+| reactive-resume | `v5.3.1` | `v6.0.7` | — | — | **skipped — major jump with Postgres migrations** |
+
+### Findings
+
+- **The gate failed twice on calibre-web, and both times the app was healthy.**
+  First it grepped for `1/1` on a two-container pod (`calibre-web` +
+  `calibre-importer`), so it saw "no ready pod" and rolled back a good rollout.
+  Then an in-cluster probe pod returned no parseable output and failed again.
+  Step 5 now records both traps; the working gate uses the pod's `Ready`
+  condition (which implies the manifest's `readinessProbe` GET `:8083/` passed).
+- **`calibre-web`'s tailnet node is dead independently of the image.** It answers
+  `tailscale ping` but has neither 80 nor 443 open, so no hostname probe can
+  work. Pre-existing: its proxy pod is 28 days old.
+- **`reactive-resume` is a migration, not a bump**: `v5.3.1` → `v6.0.7` carries
+  Postgres schema changes. Added to the step 4 table rather than swept.
+- **redis stops at 7.4.** `7.2-alpine` → `7.4-alpine` is the last 7.x minor;
+  `8.10-alpine` is a major for a service holding session and queue state.
+
+Both gate failures were reverted cleanly (`rollout undo` + `git restore`), so no
+broken commit reached `origin` — the gate-before-commit ordering did its job.
