@@ -2906,7 +2906,7 @@ Write-Verbose "Survivor set: $($survivors -join ', ') (control plane: $($cpSurvi
 Write-Verbose "Protected (never cordon/drain): $($protectedNodes -join ', ')"
 Write-Verbose "Never power off: $($neverPowerOffNodes -join ', ')"
 
-if ($WakeNodes) {
+if ($WakeNodes -and -not $script:DryRun) {
     foreach ($w in @(Get-WolNodes)) {
         try {
             $hex = ($w.Mac -replace '[:-]', '')
