@@ -1,6 +1,7 @@
 #Requires -Version 7.0
 # Stop-K3sHomelab-Minimal.ps1
-# Powers off high-consumption nodes, keeping only nuc + kubernetes5 + kubernetes7 running
+# Powers off high-consumption nodes, keeping the registry survivor set running:
+# nuc + server-236 + server-252 (3-member etcd quorum) + kubernetes5.
 # Hardware saved: kubernetes1, kubernetes2, kubernetes3, kubernetes4, kubernetes6, kubernetes8-debian
 
 <#
@@ -8,8 +9,11 @@
     Gracefully stops high-consumption nodes in the K3s cluster to reduce power.
 .DESCRIPTION
     Cordon and drains workloads from power-hungry nodes (kubernetes1-4, 6, 8-debian),
-    preserving the minimal surviving set: nuc (control plane) + kubernetes5 + kubernetes7.
-    Then cleanly executes remote poweroff via SSH with connectivity pre-checks and credential caching.
+    preserving the minimal surviving set from homelab-nodes.json: nuc + server-236 +
+    server-252 (etcd quorum) + kubernetes5. Then cleanly executes remote poweroff via SSH
+    with connectivity pre-checks and credential caching, and writes a restart manifest.
+.PARAMETER DryRun
+    Preview every action, write no changes. Safe to run any time.
 .PARAMETER Force
     Skip confirmation prompts.
 .PARAMETER SkipDrain
@@ -29,6 +33,9 @@
 
 [CmdletBinding(SupportsShouldProcess = $true)]
 param(
+    [Parameter()]
+    [switch]$DryRun,
+
     [Parameter()]
     [switch]$Force,
 
@@ -51,11 +58,26 @@ if (-not (Test-Path -Path $registryModule)) {
 }
 Import-Module $registryModule -Force -DisableNameChecking
 
-$registryNodes = @(Get-HomelabNodes | ForEach-Object { @{ Name = $_.name; IP = $_.ip } })
+$registry = Get-HomelabRegistry
+$registryNodes = @(Get-HomelabNodes | ForEach-Object {
+    [pscustomobject]@{
+        Name      = $_.name
+        IP        = $_.ip
+        SshUser   = $_.sshUser
+        Mac       = if ($_.PSObject.Properties['mac']) { $_.mac } else { $null }
+        Wol       = if ($_.PSObject.Properties['wol']) { $_.wol } else { $false }
+        WolIface  = if ($_.PSObject.Properties['wolIface']) { $_.wolIface } else { $null }
+    }
+})
+# Workloads scaled to zero in minimal mode; original replicas are restored by Start -Minimal.
+$scaleDownTargets = @()
+if ($registry.PSObject.Properties['minimalProfile'] -and $registry.minimalProfile.PSObject.Properties['scaleDown']) {
+    $scaleDownTargets = @($registry.minimalProfile.scaleDown)
+}
 $survivorNames = @(Get-HomelabSurvivorNames)
 $neverPowerOff = @(Get-NeverPowerOffNodeNames)
 
-# Nodes to keep running: the minimal quorum (nuc + kubernetes5 + kubernetes7).
+# Nodes to keep running: the registry survivor set (3 etcd members + kubernetes5).
 $nodesToKeep = @($registryNodes | Where-Object { $survivorNames -contains $_.Name })
 
 # Nodes to power off: every registered node that is NOT a designated survivor.
@@ -163,29 +185,85 @@ if (-not $plainPass) {
 }
 
 $b64Pass = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($plainPass))
+# sshpass (when present) gives us password auth for nodes whose SSH key is rejected,
+# e.g. kubernetes8-debian. Public-key auth still works for the other nodes.
+$env:SSHPASS = $plainPass
+$useSshpass = [bool](Get-Command sshpass -ErrorAction SilentlyContinue)
+
+# ── Restart manifest (written before any mutation, updated after each poweroff) ──
+$manifestPath = Join-Path -Path $PSScriptRoot -ChildPath 'logs\shutdown-manifest.latest.json'
+$manifestDir = Split-Path -Path $manifestPath -Parent
+if (-not (Test-Path -Path $manifestDir)) { New-Item -ItemType Directory -Path $manifestDir -Force | Out-Null }
+$restartManifest = [ordered]@{
+    schemaVersion   = 1
+    mode            = 'minimal'
+    startedAt       = (Get-Date).ToString('o')
+    survivors       = @($survivorNames)
+    powerOnOrder    = @('nuc','server-236','server-252','kubernetes5')
+    etcd            = @{ expectedVoters = 3; quorum = 2; rule = 'never leave one member running while the other two reboot' }
+    wol             = @($nodesToShutdown | Where-Object { $_.Wol -and $_.Mac } | ForEach-Object {
+        [pscustomobject]@{ name=$_.Name; ip=$_.IP; mac=$_.Mac; iface=$_.WolIface }
+    })
+    scaledDown      = @()
+    nodes           = @($nodesToShutdown | ForEach-Object {
+        [pscustomobject]@{ name=$_.Name; ip=$_.IP; intendedAction='poweroff'; status='pending'; at=$null }
+    })
+}
+if ($DryRun) {
+    Write-Host "`n[DRY-RUN] Would write restart manifest: $manifestPath" -ForegroundColor Magenta
+}
+else {
+    $restartManifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8
+}
 
 # ── Step 1: Cordon target nodes ────────────────────────────────────────
 Write-Host "`n[1/4] Cordoning target nodes..." -ForegroundColor Yellow
 foreach ($node in $nodesToShutdown) {
     $name = $node.Name
+    if ($DryRun) { Write-Host "  [DRY-RUN] cordon $name" -ForegroundColor Magenta; continue }
     Write-Host "  Cordoning $name..." -ForegroundColor DarkGray
-    $null = kubectl cordon $name 2>$null
+    kubectl cordon $name 2>$null
+    if ($LASTEXITCODE -ne 0) { Write-Warning "cordon $name failed (exit $LASTEXITCODE)" }
 }
-Write-Host "  [+] Cordon complete." -ForegroundColor Green
+Write-Host "  [+] Cordon phase complete." -ForegroundColor Green
 
 # ── Step 2: Gracefully drain target nodes ──────────────────────────────
 if (-not $SkipDrain) {
     Write-Host "`n[2/4] Evicting workloads (kubectl drain, timeout: ${Timeout}s)..." -ForegroundColor Yellow
     foreach ($node in $nodesToShutdown) {
         $name = $node.Name
+        if ($DryRun) { Write-Host "  [DRY-RUN] drain $name" -ForegroundColor Magenta; continue }
         Write-Host "  Draining $name..." -ForegroundColor Cyan
-        $null = kubectl drain $name --ignore-daemonsets --delete-emptydir-data --force --grace-period=30 --timeout="${Timeout}s" 2>$null
+        kubectl drain $name --ignore-daemonsets --delete-emptydir-data --force --grace-period=30 --timeout="${Timeout}s" 2>$null
+        if ($LASTEXITCODE -ne 0) { Write-Warning "drain $name was blocked/failed (exit $LASTEXITCODE) - check PDBs before poweroff" }
     }
     Write-Host "  [+] Drain phase complete." -ForegroundColor Green
 }
 else {
     Write-Host "`n[2/4] Skipping workload drain (-SkipDrain active)." -ForegroundColor Gray
 }
+
+# ── Step 2b: Scale non-essential workloads to zero (minimal profile) ───
+# This lets their RWO volumes detach cleanly before the workers are powered off.
+Write-Host "`n[2b/4] Scaling down non-essential workloads..." -ForegroundColor Yellow
+foreach ($target in $scaleDownTargets) {
+    $parts = $target.Split('/')
+    if ($parts.Count -ne 2) { Write-Warning "Bad minimal profile entry: $target"; continue }
+    $ns = $parts[0]; $name = $parts[1]
+    if ($DryRun) { Write-Host "  [DRY-RUN] scale deploy $ns/$name -> 0" -ForegroundColor Magenta; continue }
+    $replicas = kubectl get deploy $name -n $ns -o jsonpath='{.spec.replicas}' 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($replicas)) {
+        Write-Warning "  Could not read replicas for $ns/$name - skipping"
+        continue
+    }
+    kubectl scale deploy $name -n $ns --replicas=0 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $restartManifest.scaledDown += [pscustomobject]@{ namespace=$ns; name=$name; replicas=[int]$replicas }
+        Write-Host "  [+] $ns/$name scaled 0 (was $replicas)" -ForegroundColor DarkGray
+    }
+    else { Write-Warning "  Failed to scale down $ns/$name" }
+}
+if (-not $DryRun) { $restartManifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8 }
 
 # ── Step 3: Power off reachable nodes via SSH ──────────────────────────
 Write-Host "`n[3/4] Sending shutdown signal to target nodes..." -ForegroundColor Yellow
@@ -195,6 +273,11 @@ foreach ($node in $nodesToShutdown) {
     $name = $node.Name
     $ip = $node.IP
     $nodeSshUser = Get-NodeSshUser -Node $node
+
+    if ($DryRun) {
+        Write-Host "  [DRY-RUN] would power off $name ($ip) as '$nodeSshUser'" -ForegroundColor Magenta
+        continue
+    }
 
     Write-Host "  Connecting to $name ($ip) as '$nodeSshUser'..." -NoNewline
     # Fast pre-check if node is responding
@@ -218,8 +301,30 @@ foreach ($node in $nodesToShutdown) {
         continue
     }
 
+    # Enable NIC WoL while the host is still up (ethtool setting is runtime-only).
+    if ($node.WolIface) {
+        $wolCmd = "echo $b64Pass | base64 -d | sudo -S -p '' ethtool -s $($node.WolIface) wol g"
+        if ($useSshpass) {
+            $null = sshpass -e ssh -n -o PreferredAuthentications=password,publickey -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$nodeSshUser@$ip" "$wolCmd" 2>$null
+        }
+        else {
+            $null = ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$nodeSshUser@$ip" "$wolCmd" 2>$null
+        }
+    }
+
     Write-Host " [SENDING POWEROFF]" -ForegroundColor Red
-    $null = ssh -n -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$nodeSshUser@$ip" "$poweroffCmd" 2>$null
+    if ($useSshpass) {
+        $null = sshpass -e ssh -n -o PreferredAuthentications=password,publickey -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$nodeSshUser@$ip" "$poweroffCmd" 2>$null
+    }
+    else {
+        $null = ssh -n -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=4 "$nodeSshUser@$ip" "$poweroffCmd" 2>$null
+    }
+    $entry = @($restartManifest.nodes | Where-Object { $_.name -eq $name })[0]
+    if ($entry) {
+        $entry.status = if ($LASTEXITCODE -eq 0) { 'poweroff-sent' } else { 'ssh-failed' }
+        $entry.at = (Get-Date).ToString('o')
+    }
+    $restartManifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8
     Start-Sleep -Milliseconds 500
 }
 
@@ -234,6 +339,7 @@ kubectl get nodes -o wide
 
 Write-Host "`n========================================" -ForegroundColor Cyan
 Write-Host "  Minimal mode complete." -ForegroundColor Green
-Write-Host "  Survivors: nuc (control plane) + kubernetes5 + kubernetes7" -ForegroundColor Green
+Write-Host "  Survivors: $($survivorNames -join ', ')" -ForegroundColor Green
+if (-not $DryRun) { Write-Host "  Restart manifest: $manifestPath" -ForegroundColor Green }
 Write-Host "========================================" -ForegroundColor Cyan
 

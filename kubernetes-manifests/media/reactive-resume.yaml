@@ -189,6 +189,7 @@ spec:
                     operator: NotIn
                     values:
                       - kubernetes4
+                      - kubernetes8-debian
       securityContext:
         fsGroup: 1000
       initContainers:

@@ -185,6 +185,20 @@ spec:
         app.kubernetes.io/name: netbox
         app.kubernetes.io/component: worker
     spec:
+      # netbox-media-data is a Longhorn RWO volume shared by the app and worker.
+      # Co-locate the worker with the app pod so both can mount it on one node.
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values: ["app"]
+                  - key: app.kubernetes.io/name
+                    operator: In
+                    values: ["netbox"]
+              topologyKey: kubernetes.io/hostname
       enableServiceLinks: false
       securityContext:
         fsGroup: 0

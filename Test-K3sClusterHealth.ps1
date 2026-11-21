@@ -42,18 +42,16 @@ function Test-K3sClusterHealth {
     Write-Host "Initializing K3s Cluster Scan..." -ForegroundColor Cyan
 
     # 1. NODE DEFINITIONS & ARP RESOLUTION
+    # Inventory comes from WindowsLab/homelab-nodes.json - the single source of truth.
+    # kubernetes7 was decommissioned 2026-10-17 and is intentionally absent.
+    $registry = Get-Content -Raw -Path (Join-Path (Join-Path $PSScriptRoot 'WindowsLab') 'homelab-nodes.json') | ConvertFrom-Json
     $NodeDefs = @(
-        @{ Name = "kubernetes1"; IP = "192.168.0.19"; Role = "worker" }
-        @{ Name = "kubernetes2"; IP = "192.168.0.20"; Role = "worker" }
-        @{ Name = "nuc";         IP = "192.168.0.21"; Role = "control-plane" }
-        @{ Name = "kubernetes3"; IP = "192.168.0.22"; Role = "worker" }
-        @{ Name = "kubernetes4"; IP = "192.168.0.23"; Role = "worker" }
-        @{ Name = "kubernetes5"; IP = "192.168.0.24"; Role = "worker" }
-        @{ Name = "kubernetes6"; IP = "192.168.0.25"; Role = "worker" }
-        @{ Name = "kubernetes7"; IP = "192.168.0.26"; Role = "worker" }
-        @{ Name = "kubernetes8-debian"; IP = "192.168.0.27"; Role = "worker" }
-        @{ Name = "NASECDE55";   IP = "192.168.0.128"; Role = "nas" }
-        @{ Name = "DESKTOP-32";  IP = "192.168.0.120"; Role = "desktop" }
+        foreach ($n in $registry.nodes) {
+            [pscustomobject]@{ Name = $n.name; IP = $n.ip; Role = $n.role; SshUser = $n.sshUser }
+        }
+        # Non-Kubernetes hosts kept only for physical reachability context:
+        [pscustomobject]@{ Name = 'NASECDE55'; IP = '192.168.0.128'; Role = 'nas';     SshUser = '' }
+        [pscustomobject]@{ Name = 'DESKTOP-32'; IP = '192.168.0.120'; Role = 'desktop'; SshUser = '' }
     )
 
     Write-Verbose "Resolving MAC addresses..."
@@ -69,11 +67,12 @@ function Test-K3sClusterHealth {
     Write-Host "Pinging nodes and fetching SSH telemetry..." -ForegroundColor Cyan
     $pingResults = $NodeDefs | ForEach-Object {
         $ip = $_.IP
+        $sshUser = $_.SshUser
         $up = Test-Connection -ComputerName $ip -Count 1 -Quiet -ErrorAction SilentlyContinue
         $uptime = ""; $rootDisk = ""
-        if ($up -and $_.Role -ne 'desktop' -and $_.Role -ne 'nas') {
+        if ($up -and $_.Role -ne 'desktop' -and $_.Role -ne 'nas' -and $sshUser) {
             try {
-                $sshCmdArray = @("-o", "ConnectTimeout=1", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "suryendub@$ip", "uptime -p; df -h / | tail -n 1")
+                $sshCmdArray = @("-o", "ConnectTimeout=1", "-o", "StrictHostKeyChecking=no", "-o", "BatchMode=yes", "${sshUser}@$ip", "uptime -p; df -h / | tail -n 1")
                 $sshRes = & ssh $sshCmdArray 2>$null
                 if ($sshRes -and $sshRes.Count -ge 2) {
                     $uptime = $sshRes[0] -replace '^up\s+',''
@@ -364,12 +363,25 @@ function Test-K3sClusterHealth {
                 $bState   = $b.status.state
                 $bVol     = $b.status.volumeName
                 $bSize    = $b.status.size
-                $bDone    = $b.status.completedAt   # ISO8601 or empty
+                # Longhorn v1.12 writes backupCreatedAt; status.completedAt does not exist here.
+                $bDone    = $b.status.backupCreatedAt
+                if (-not $bDone) { $bDone = $b.status.lastSyncedAt }
                 $bCreated = $b.metadata.creationTimestamp
                 $ageHours = $null
                 if ($bDone) {
                     try {
-                        $doneTime = [datetime]::Parse($bDone, $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+                        # ConvertFrom-Json has already turned the ISO string into a DateTime.
+                        # Re-parsing its culture-formatted ToString() fails in en-US, which made
+                        # fresh backups look ~100 days old. Use the DateTime value directly.
+                        if ($bDone -is [datetime]) {
+                            $doneTime = $bDone
+                            if ($doneTime.Kind -eq [System.DateTimeKind]::Unspecified) {
+                                $doneTime = [datetime]::SpecifyKind($doneTime, [System.DateTimeKind]::Utc)
+                            }
+                        }
+                        else {
+                            $doneTime = [datetime]::Parse([string]$bDone, $null, [System.Globalization.DateTimeStyles]::RoundtripKind)
+                        }
                         $ageHours = [math]::Round(([datetime]::UtcNow - $doneTime.ToUniversalTime()).TotalHours, 1)
                     } catch {}
                 }

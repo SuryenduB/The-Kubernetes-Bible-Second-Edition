@@ -20,6 +20,7 @@ This repo is two things: Packt "Kubernetes Bible 2e" chapter examples (`Chapter0
 - SSH usernames are case-sensitive: `suryendub` on Ubuntu workers/`nuc`/`server-252` (lowercase verified live 2026-10-17), `SuryenduB` (capital S) only on `server-236`.
 - Bring-up: `pwsh -File WindowsLab/Start-K3sHomelab.ps1 -DryRun` first, then `-RepairStorage`; watch `kubectl get nodes -w` then `kubectl get pods -A`. Shutdown must run detached: `pwsh -File WindowsLab/shutdown_homelab.ps1 -Force > shutdown.log 2>&1 < /dev/null &`. Rehearse with `-DryRun`, check creds with `-VerifyCredentials -Force`.
 - Embedded etcd: after the 2026-10-17 post-shutdown recovery, all three members (nuc leader, server-236, server-252) sit in ONE lineage after stale forks were archived + rejoined via `K3S_URL` (procedure in the power runbook; `etcdctl` on nuc). Never leave one etcd member running while the other two reboot — that forks the lineage and a node shows as permanently `NotReady` until the archive-and-rejoin surgery is repeated.
+- `server-236` stuck `activating`/NotReady with etcd "cluster ID mismatch" or an empty `k3s.service.env`: use `server-236-k3s-repair/SKILL.md` (archive-and-rejoin; treat as lineage, never as networking).
 - Health check: `Test-K3sClusterHealth.ps1` at repo root. Runbooks: `docs/homelab/how-to-manage-homelab-power.md`, `docs/operations/`.
 
 ## AD/IAM lab: `WindowsLab/AutomatedLabAD.ps1` + `WindowsLab/README.md`

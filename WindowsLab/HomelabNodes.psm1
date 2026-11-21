@@ -314,7 +314,25 @@ function Get-HomelabNodeIpMap {
     return $map
 }
 
+function Get-WolNodes {
+    <#
+    .SYNOPSIS
+        Nodes with a verified WoL MAC in homelab-nodes.json (single source of truth).
+    #>
+    [CmdletBinding()]
+    [OutputType([pscustomobject[]])]
+    param([Parameter()] [switch]$Refresh)
+    $registry = Get-HomelabRegistry -Refresh:$Refresh
+    return @($registry.nodes | Where-Object {
+        ($_.PSObject.Properties['wol'] -and $_.wol -eq $true) -and
+        ($_.PSObject.Properties['mac'] -and $_.mac)
+    } | ForEach-Object {
+        [pscustomobject]@{ Name = $_.name; IP = $_.ip; Mac = $_.mac; Role = $_.role }
+    })
+}
+
 Export-ModuleMember -Function @(
+    'Get-WolNodes',
     'Get-HomelabRegistry',
     'Get-HomelabNodes',
     'Get-HomelabNode',

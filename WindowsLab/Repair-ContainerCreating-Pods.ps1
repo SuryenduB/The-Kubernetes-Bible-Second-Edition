@@ -111,11 +111,11 @@ function Write-Warning {
 
 function Invoke-Kubectl {
     param(
-        [string[]]$Args,
+        [string[]]$KubeArgs,
         [switch]$IgnoreErrors = $false
     )
     try {
-        $result = kubectl $Args 2>$null
+        $result = kubectl @KubeArgs 2>$null
         if ($LASTEXITCODE -ne 0 -and -not $IgnoreErrors) {
             throw "kubectl exited with code $LASTEXITCODE"
         }
@@ -136,7 +136,7 @@ function Get-StuckPods {
     Write-Status "Scanning for pods stuck in ContainerCreating or Init states..."
     
     # Get all pods with ContainerCreating or Init status
-    $podsJson = Invoke-Kubectl -Args @("get", "pods", "--all-namespaces", "-o", "json") -IgnoreErrors
+    $podsJson = Invoke-Kubectl -KubeArgs @("get", "pods", "--all-namespaces", "-o", "json") -IgnoreErrors
     if (-not $podsJson) {
         Write-Warning "No pods found or error getting pods"
         return @()
@@ -172,7 +172,7 @@ function Get-StuckPods {
                 
                 # Also check events for volume issues
                 if (-not $hasVolumeIssue) {
-                    $eventsJson = Invoke-Kubectl -Args @("get", "events", "-n", $pod.metadata.namespace, 
+                    $eventsJson = Invoke-Kubectl -KubeArgs @("get", "events", "-n", $pod.metadata.namespace, 
                         "--field-selector", "involvedObject.name=$($pod.metadata.name)", "-o", "json") -IgnoreErrors
                     if ($eventsJson) {
                         $events = $eventsJson | ConvertFrom-Json
@@ -211,37 +211,31 @@ function Get-VolumeAttachmentForPod {
         [string]$Namespace,
         [string]$PodName
     )
-    
-    # Get the pod to find its PVCs
-    $podJson = Invoke-Kubectl -Args @("get", "pod", "-n", $Namespace, $PodName, "-o", "json") -IgnoreErrors
-    if (-not $podJson) {
-        return @()
-    }
-    
+
+    $podJson = Invoke-Kubectl -KubeArgs @("get", "pod", "-n", $Namespace, $PodName, "-o", "json") -IgnoreErrors
+    if (-not $podJson) { return @() }
     $pod = $podJson | ConvertFrom-Json
-    $pvcNames = @()
-    
-    # Find PVCs from volumes
+
+    # PVC claim name is NOT the PV name - resolve claim -> PV first.
+    $pvNames = @()
     foreach ($volume in $pod.spec.volumes) {
         if ($volume.persistentVolumeClaim) {
-            $pvcNames += $volume.persistentVolumeClaim.claimName
-        }
-    }
-    
-    # Get volumeattachments for these PVCs
-    $attachments = @()
-    foreach ($pvcName in $pvcNames) {
-        $vaJson = Invoke-Kubectl -Args @("get", "volumeattachment", "-o", "json") -IgnoreErrors
-        if ($vaJson) {
-            $vas = $vaJson | ConvertFrom-Json
-            foreach ($va in $vas.items) {
-                if ($va.spec.source.persistentVolumeName -like "*$pvcName*") {
-                    $attachments += $va
-                }
+            $pvcJson = Invoke-Kubectl -KubeArgs @("get", "pvc", "-n", $Namespace,
+                $volume.persistentVolumeClaim.claimName, "-o", "json") -IgnoreErrors
+            if ($pvcJson) {
+                $pv = [string](($pvcJson | ConvertFrom-Json).spec.volumeName)
+                if ($pv) { $pvNames += $pv }
             }
         }
     }
-    
+    if ($pvNames.Count -eq 0) { return @() }
+
+    $vaJson = Invoke-Kubectl -KubeArgs @("get", "volumeattachment", "-o", "json") -IgnoreErrors
+    if (-not $vaJson) { return @() }
+    $attachments = @()
+    foreach ($va in ($vaJson | ConvertFrom-Json).items) {
+        if ($pvNames -contains [string]$va.spec.source.persistentVolumeName) { $attachments += $va }
+    }
     return $attachments
 }
 
@@ -251,7 +245,7 @@ function Get-LonghornVolumeForPVC {
         [string]$PVCName
     )
     
-    $pvcJson = Invoke-Kubectl -Args @("get", "pvc", "-n", $Namespace, $PVCName, "-o", "json") -IgnoreErrors
+    $pvcJson = Invoke-Kubectl -KubeArgs @("get", "pvc", "-n", $Namespace, $PVCName, "-o", "json") -IgnoreErrors
     if (-not $pvcJson) {
         return $null
     }
@@ -260,7 +254,7 @@ function Get-LonghornVolumeForPVC {
     $volumeName = $pvc.spec.volumeName
     
     if ($volumeName) {
-        $volJson = Invoke-Kubectl -Args @("get", "volume", "-n", "longhorn-system", $volumeName, "-o", "json") -IgnoreErrors
+        $volJson = Invoke-Kubectl -KubeArgs @("get", "volume", "-n", "longhorn-system", $volumeName, "-o", "json") -IgnoreErrors
         if ($volJson) {
             return $volJson | ConvertFrom-Json
         }
@@ -272,7 +266,7 @@ function Get-LonghornVolumeForPVC {
 function Test-LonghornCSIConnection {
     Write-Status "Testing Longhorn CSI driver connectivity..."
     
-    $csiPods = Invoke-Kubectl -Args @("get", "pods", "-n", "longhorn-system", "-l", "app=longhorn-csi-plugin", "-o", "json") -IgnoreErrors
+    $csiPods = Invoke-Kubectl -KubeArgs @("get", "pods", "-n", "longhorn-system", "-l", "app=longhorn-csi-plugin", "-o", "json") -IgnoreErrors
     if ($csiPods) {
         $pods = $csiPods | ConvertFrom-Json
         if ($pods.items.Count -gt 0) {
@@ -349,7 +343,7 @@ foreach ($pod in $stuckPods) {
         Write-Status "  Found $($attachments.Count) volume attachment(s)"
         
         foreach ($attachment in $attachments) {
-            Write-Status "    Attachment: $($attachment.metadata.name) -> Node: $($attachment.spec.node)"
+            Write-Status "    Attachment: $($attachment.metadata.name) -> Node: $($attachment.spec.nodeName)"
             
             if ($DryRun) {
                 Write-Status "    [DRY-RUN] Would delete volumeattachment: $($attachment.metadata.name)" -ForegroundColor Yellow
@@ -359,7 +353,7 @@ foreach ($pod in $stuckPods) {
             # Delete the volumeattachment
             Write-Status "    Deleting volumeattachment: $($attachment.metadata.name)"
             try {
-                Invoke-Kubectl -Args @("delete", "volumeattachment", $attachment.metadata.name, "--ignore-not-found")
+                Invoke-Kubectl -KubeArgs @("delete", "volumeattachment", $attachment.metadata.name, "--ignore-not-found")
                 Write-Success "    Deleted volumeattachment: $($attachment.metadata.name)"
             } catch {
                 Write-ErrorMsg "    Failed to delete volumeattachment: $_"
@@ -367,32 +361,78 @@ foreach ($pod in $stuckPods) {
         }
     }
     
-    # Get Longhorn volumes for this pod's PVCs
-    $podJson = Invoke-Kubectl -Args @("get", "pod", "-n", $pod.Namespace, $pod.Name, "-o", "json") -IgnoreErrors
+    # Longhorn VA CRs hold csi-attacher tickets in spec.attachmentTickets (a map).
+    # A ticket with NO matching Kubernetes VolumeAttachment pins the volume to a stale
+    # node and blocks reattachment. Patching /status/ownerID is a no-op (status subresource).
+    $podJson = Invoke-Kubectl -KubeArgs @("get", "pod", "-n", $pod.Namespace, $pod.Name, "-o", "json") -IgnoreErrors
     if ($podJson) {
         $podObj = $podJson | ConvertFrom-Json
+        $allPodsJson = Invoke-Kubectl -KubeArgs @("get", "pods", "-A", "-o", "json") -IgnoreErrors
+        $allPods = if ($allPodsJson) { @((($allPodsJson | ConvertFrom-Json).items)) } else { @() }
+        $k8sVaJson = Invoke-Kubectl -KubeArgs @("get", "volumeattachment", "-o", "json") -IgnoreErrors
+        $liveVaPvs = @()
+        if ($k8sVaJson) {
+            $liveVaPvs = @((($k8sVaJson | ConvertFrom-Json).items |
+                ForEach-Object { [string]$_.spec.source.persistentVolumeName }) | Where-Object { $_ })
+        }
+        $lhVaJson = Invoke-Kubectl -KubeArgs @("get", "volumeattachments.longhorn.io", "-n", "longhorn-system", "-o", "json") -IgnoreErrors
+
         foreach ($volume in $podObj.spec.volumes) {
-            if ($volume.persistentVolumeClaim) {
-                $pvcName = $volume.persistentVolumeClaim.claimName
-                $longhornVol = Get-LonghornVolumeForPVC -Namespace $pod.Namespace -PVCName $pvcName
-                
-                if ($longhornVol -and $longhornVol.status.ownerID) {
-                    Write-Status "  Longhorn volume $($longhornVol.metadata.name) has ownerID: $($longhornVol.status.ownerID)"
-                    
-                    if ($DryRun) {
-                        Write-Status "    [DRY-RUN] Would clear ownerID for volume: $($longhornVol.metadata.name)" -ForegroundColor Yellow
-                        continue
-                    }
-                    
-                    # Clear the ownerID to allow reattachment
-                    Write-Status "    Clearing ownerID for volume: $($longhornVol.metadata.name)"
-                    try {
-                        Invoke-Kubectl -Args @("patch", "volume", "-n", "longhorn-system", $longhornVol.metadata.name, 
-                            "--type=json", "-p", '[{"op": "replace", "path": "/status/ownerID", "value": ""}]')
-                        Write-Success "    Cleared ownerID for volume: $($longhornVol.metadata.name)"
-                    } catch {
-                        Write-ErrorMsg "    Failed to clear ownerID: $_"
-                    }
+            if (-not $volume.persistentVolumeClaim) { continue }
+            $pvcName = $volume.persistentVolumeClaim.claimName
+            $pvcJson = Invoke-Kubectl -KubeArgs @("get", "pvc", "-n", $pod.Namespace, $pvcName, "-o", "json") -IgnoreErrors
+            if (-not $pvcJson) { continue }
+            $pvName = [string](($pvcJson | ConvertFrom-Json).spec.volumeName)
+            if (-not $pvName) { continue }
+
+            if ($liveVaPvs -contains $pvName) {
+                Write-Status "  PV $pvName still has a Kubernetes VolumeAttachment - leaving Longhorn tickets alone"
+                continue
+            }
+
+            # The Longhorn VA CR is named after the CSI volumeHandle (normally == PV name).
+            $lhVol = $pvName
+            $pvJson = Invoke-Kubectl -KubeArgs @("get", "pv", $pvName, "-o", "json") -IgnoreErrors
+            if ($pvJson) {
+                $handle = [string](($pvJson | ConvertFrom-Json).spec.csi.volumeHandle)
+                if ($handle) { $lhVol = $handle }
+            }
+            $lhVa = @()
+            if ($lhVaJson) {
+                $lhVa = @((($lhVaJson | ConvertFrom-Json).items) | Where-Object { $_.metadata.name -eq $lhVol })
+            }
+            if ($lhVa.Count -eq 0) { continue }
+
+            $tickets = $lhVa[0].spec.attachmentTickets
+            if (-not $tickets) { continue }
+
+            foreach ($prop in $tickets.PSObject.Properties) {
+                $ticket = $prop.Value
+                if ([string]$ticket.type -ne 'csi-attacher') { continue }
+
+                # Safety: never yank a ticket whose node still runs a pod consuming this PVC.
+                $consumerOnTicketNode = @($allPods | Where-Object {
+                    $_.spec.nodeName -eq [string]$ticket.nodeID -and
+                    @($_.spec.volumes | Where-Object {
+                        $_.persistentVolumeClaim -and $_.persistentVolumeClaim.claimName -eq $pvcName
+                    }).Count -gt 0
+                }).Count -gt 0
+                if ($consumerOnTicketNode) {
+                    Write-Warning "  Ticket $($prop.Name) on $($ticket.nodeID): live consumer on that node - skipping"
+                    continue
+                }
+
+                if ($DryRun) {
+                    Write-Status "  [DRY-RUN] Would remove orphan Longhorn ticket $($prop.Name) (node $($ticket.nodeID), PV $pvName)" -ForegroundColor Yellow
+                    continue
+                }
+                $ptr = ([string]$prop.Name) -replace '~', '~0' -replace '/', '~1'
+                $patch = '[{"op":"remove","path":"/spec/attachmentTickets/{0}"}]' -f $ptr
+                try {
+                    Invoke-Kubectl -KubeArgs @("patch", "volumeattachment.longhorn.io", "-n", "longhorn-system", $lhVol, "--type=json", "-p", $patch)
+                    Write-Success "  Removed orphan Longhorn ticket $($prop.Name) for $lhVol"
+                } catch {
+                    Write-ErrorMsg "  Failed to remove Longhorn ticket $($prop.Name): $_"
                 }
             }
         }
@@ -406,7 +446,7 @@ foreach ($pod in $stuckPods) {
     
     Write-Status "  Deleting pod to force reschedule: [$($pod.Namespace)] $($pod.Name)"
     try {
-        Invoke-Kubectl -Args @("delete", "pod", "-n", $pod.Namespace, $pod.Name, "--grace-period=0", "--force")
+        Invoke-Kubectl -KubeArgs @("delete", "pod", "-n", $pod.Namespace, $pod.Name, "--grace-period=0", "--force")
         Write-Success "  Deleted pod: [$($pod.Namespace)] $($pod.Name)"
         $issuesFixed++
     } catch {

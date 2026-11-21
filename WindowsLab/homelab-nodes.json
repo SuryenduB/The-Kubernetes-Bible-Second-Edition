@@ -5,10 +5,17 @@
     "name": "k3s-homelab",
     "apiServer": "https://192.168.0.21:6443",
     "kubeconfigContext": "default",
-    "expectedNodes": 11,
+    "expectedNodes": 10,
     "storageClass": "longhorn"
   },
-  "survivors": ["nuc", "kubernetes5", "server-236", "server-252"],
+  "survivors": [
+    "nuc",
+    "server-236",
+    "server-252",
+    "kubernetes1",
+    "kubernetes3",
+    "kubernetes5"
+  ],
   "nodes": [
     {
       "name": "nuc",
@@ -18,7 +25,8 @@
       "sshUser": "suryendub",
       "neverCordon": true,
       "neverPowerOff": false,
-      "notes": "K3s control plane and API server endpoint. Never cordon/drain: the API lives here."
+      "notes": "K3s control plane and API server endpoint. Never cordon/drain: the API lives here.",
+      "mac": "C0:3F:D5:6D:45:85"
     },
     {
       "name": "kubernetes1",
@@ -28,7 +36,10 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "General worker. Hosts iiq db-mysql after recovery."
+      "notes": "General worker. Hosts iiq db-mysql after recovery.",
+      "mac": "90:1B:0E:89:B9:66",
+      "wol": true,
+      "wolIface": "enp0s25"
     },
     {
       "name": "kubernetes2",
@@ -38,7 +49,10 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "General worker. Hosts iiq db after recovery."
+      "notes": "General worker. Hosts iiq db after recovery.",
+      "mac": "40:B0:76:0F:3C:72",
+      "wol": true,
+      "wolIface": "enp2s0"
     },
     {
       "name": "kubernetes3",
@@ -48,7 +62,10 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "General worker."
+      "notes": "General worker.",
+      "mac": "40:8D:5C:AA:D9:1F",
+      "wol": true,
+      "wolIface": "enp0s31f6"
     },
     {
       "name": "kubernetes4",
@@ -58,7 +75,10 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "General worker."
+      "notes": "General worker.",
+      "mac": "64:00:6A:62:72:DC",
+      "wol": true,
+      "wolIface": "eno1"
     },
     {
       "name": "kubernetes5",
@@ -68,7 +88,9 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "Minimal-mode survivor (kept running with nuc + kubernetes7 during power-down)."
+      "notes": "Minimal-mode survivor (kept running with the three control-plane members during power-down).",
+      "mac": "44:8A:5B:2C:B8:83",
+      "wol": true
     },
     {
       "name": "kubernetes6",
@@ -78,7 +100,10 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "General worker."
+      "notes": "General worker.",
+      "mac": "90:1B:0E:56:D7:BB",
+      "wol": true,
+      "wolIface": "enp0s25"
     },
     {
       "name": "kubernetes8-debian",
@@ -88,7 +113,10 @@
       "sshUser": "suryendub",
       "neverCordon": false,
       "neverPowerOff": false,
-      "notes": "Debian worker. Frequently powered off during minimal mode; expect it NotReady with stale Longhorn instance-managers."
+      "notes": "Debian worker. WoL MAC 00:14:0B:45:02:83 verified live 2026-11-21; frequently powered off during minimal mode.",
+      "mac": "00:14:0B:45:02:83",
+      "wol": true,
+      "wolIface": "enp10s0"
     },
     {
       "name": "server-236",
@@ -98,7 +126,8 @@
       "sshUser": "SuryenduB",
       "neverCordon": true,
       "neverPowerOff": false,
-      "notes": "2nd K3s server (embedded etcd), joined 2026-09-19. HP-1 host. Also runs the local Docker registry on :5000 (pinned by kube-system/registry-fixer), so it must not be wiped."
+      "notes": "2nd K3s server (embedded etcd), joined 2026-09-19. HP-1 host. Also runs the local Docker registry on :5000 (pinned by kube-system/registry-fixer), so it must not be wiped.",
+      "mac": "00:15:5D:00:78:2E"
     },
     {
       "name": "server-252",
@@ -112,7 +141,40 @@
     }
   ],
   "external": [
-    { "name": "nas", "ip": "192.168.0.128", "role": "nas", "os": "QNAP QTS", "notes": "NFS backup target for k3s-backup-to-nas.sh." },
-    { "name": "registry", "ip": "192.168.0.236", "role": "registry", "os": "unknown", "notes": "Local docker registry on port 5000; pinned by kube-system/registry-fixer. Since 2026-09-19 it is co-hosted on the control-plane node 'server-236' (the planned move to 192.168.0.249 never happened - .249 does not exist on this LAN)." }
-  ]
+    {
+      "name": "nas",
+      "ip": "192.168.0.128",
+      "role": "nas",
+      "os": "QNAP QTS",
+      "notes": "NFS backup target for k3s-backup-to-nas.sh."
+    },
+    {
+      "name": "registry",
+      "ip": "192.168.0.236",
+      "role": "registry",
+      "os": "unknown",
+      "notes": "Local docker registry on port 5000; pinned by kube-system/registry-fixer. Since 2026-09-19 it is co-hosted on the control-plane node 'server-236' (the planned move to 192.168.0.249 never happened - .249 does not exist on this LAN)."
+    }
+  ],
+  "minimalProfile": {
+    "description": "Workloads scaled to 0 in minimal mode; originals recorded in shutdown manifest and restored by Start-K3sHomelab.ps1 -Minimal.",
+    "scaleDown": [
+      "ai/ollama",
+      "ai/openwebui",
+      "media/audiobookshelf",
+      "media/calibre-web",
+      "media/chaptarr",
+      "media/flick-api",
+      "media/immich-server",
+      "media/reactive-resume",
+      "iiqstack/iiq",
+      "iiqstack/counter",
+      "iiqstack/phpldapadmin",
+      "linguacafe/linguacafe",
+      "netbox/netbox",
+      "netbox/netbox-worker",
+      "monitoring/dozzle",
+      "monitoring/uptime-kuma"
+    ]
+  }
 }

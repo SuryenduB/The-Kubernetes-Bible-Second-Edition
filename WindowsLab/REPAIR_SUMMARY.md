@@ -12,10 +12,10 @@ Two pods were stuck in `ContainerCreating` state:
 - **Root Cause**: Stale VolumeAttachment object preventing the volume from being attached to the correct node
 - **Error**: `Multi-Attach` - Volume was already attached to a different node
 
-### 2. Longhorn Volume OwnerID Stale (iiqstack/iiq)
-- **Symptom**: Pod stuck in ContainerCreating with Longhorn volume mount failure
-- **Root Cause**: Longhorn volume had a stale `ownerID` from a previous node, preventing detachment and reattachment
-- **Error**: Volume mount timeout due to ownerID mismatch
+### 2. Orphaned Longhorn attachment tickets (2026-11-21)
+- **Symptom**: Nine pods stuck in ContainerCreating/Init with `the volume is currently attached to different node kubernetes5`
+- **Root Cause**: `volumeattachments.longhorn.io` CRs held `csi-attacher` tickets for a node that no longer hosted the consumer, with no matching Kubernetes `VolumeAttachment`. Patching `status.ownerID` is a no-op because `status` is a subresource.
+- **Fix**: Remove the orphaned `/spec/attachmentTickets/<id>` entries with a JSON-patch `remove`; Longhorn then detaches and reattaches to the pod's node.
 
 ## Actions Taken
 
@@ -48,7 +48,7 @@ Created: `WindowsLab/Repair-ContainerCreating-Pods.ps1`
 - **Root Cause Analysis**: Identifies volume attachment issues (Multi-Attach errors, stale attachments)
 - **Auto-Repair**: 
   - Deletes stale VolumeAttachment objects
-  - Clears Longhorn volume ownerID to allow reattachment
+  - Removes orphaned Longhorn `csi-attacher` tickets (`/spec/attachmentTickets/<id>`) with no matching Kubernetes VolumeAttachment
   - Deletes stuck pods to force rescheduling
 - **Safety**: Dry-run mode, verbose logging, Longhorn CSI health check
 

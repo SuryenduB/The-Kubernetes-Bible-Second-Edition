@@ -353,6 +353,15 @@ param(
     [Parameter()]
     [string]$ExpectedServer,
 
+    [Parameter(HelpMessage = 'Expect only the registry survivor set (nuc + 2 masters + kubernetes5); other workers are intentionally off.')]
+    [switch]$Minimal,
+
+    [Parameter(HelpMessage = 'Send WoL magic packets to nodes with a registered MAC before recovery.')]
+    [switch]$WakeNodes,
+
+    [Parameter(HelpMessage = 'Restart manifest written by the minimal shutdown; used to restore scaled-down workloads.')]
+    [string]$Manifest,
+
     [Parameter()]
     [string]$LogPath,
 
@@ -534,7 +543,7 @@ function Invoke-Kubectl {
             return [pscustomobject]@{ Ok = $true; ExitCode = 0; Output = @($output); Stderr = $stderr }
         }
 
-        $transient = $text -match 'Unable to connect to the server|connection refused|TLS handshake timeout|i/o timeout|EOF|etcdserver: request timed out|context deadline exceeded'
+        $transient = $text -match 'Unable to connect to the server|connection refused|TLS handshake timeout|i/o timeout|EOF|etcdserver: request timed out|context deadline exceeded|no endpoints available|cluster ID mismatch'
         if ($transient -and $attempt -lt $Retries) {
             $wait = [math]::Pow(2, $attempt) * 2
             Write-Verbose "kubectl $($KubectlArgs -join ' ') failed (transient); retry $($attempt + 1)/$Retries in ${wait}s"
@@ -559,7 +568,14 @@ function Get-K8sJson {
     param([Parameter(Mandatory)][string[]]$KubectlArgs)
 
     $result = Invoke-Kubectl -KubectlArgs ($KubectlArgs + @('-o', 'json')) -AllowFailure
-    if (-not $result.Ok) { return @() }
+    if (-not $result.Ok) {
+        # v2 swallowed every API failure as "no objects", which made stale-attachment
+        # detection silently report success. Surface it as a finding instead.
+        $msg = ($result.Output | Out-String).Trim()
+        Write-Verbose "Get-K8sJson: kubectl $($KubectlArgs -join ' ') failed: $msg"
+        Add-Finding "API query failed (treated as empty): kubectl $($KubectlArgs -join ' ')"
+        return @()
+    }
     $joined = ($result.Output | Out-String)
     if ([string]::IsNullOrWhiteSpace($joined)) { return @() }
     try { $parsed = $joined | ConvertFrom-Json } catch { return @() }
@@ -763,31 +779,34 @@ function Get-StaleVolumeAttachment {
     #>
     [CmdletBinding()]
     [OutputType([object[]])]
-    param()
+    param([object[]]$DownNodes = @())
 
     $out = [System.Collections.Generic.List[object]]::new()
     $vas = Get-K8sJson -KubectlArgs @('get', 'volumeattachment')
     if ($vas.Count -eq 0) { return @() }
 
+    $downNames = @($DownNodes | ForEach-Object { if ($_ -is [string]) { $_ } else { [string](Get-Prop $_ 'Name') } })
     foreach ($va in $vas) {
-        $name = [string](Get-Prop (Get-Prop $va 'metadata') 'name')
+        $md = Get-Prop $va 'metadata'
+        $name = [string](Get-Prop $md 'name')
         $node = [string](Get-Prop (Get-Prop $va 'spec') 'nodeName')
         $pv = [string](Get-Prop (Get-Prop (Get-Prop $va 'spec') 'source') 'persistentVolumeName')
         $attached = (Get-Prop (Get-Prop $va 'status') 'attached') -eq $true
-        if (-not $attached) { continue }   # already detaching/detached - not our problem
+        $deleting = $null -ne (Get-Prop $md 'deletionTimestamp')
 
         $volume = @(Get-K8sJson -KubectlArgs @('get', 'volumes.longhorn.io', '-n', $StorageNamespace, $pv))
-        if ($volume.Count -eq 0) { continue }
-        $lhNode = [string](Get-Prop (Get-Prop $volume[0] 'status') 'currentNodeID')
-        if (-not $lhNode) { continue }
-        if ($lhNode -eq $node) { continue }   # attachment agrees with Longhorn - healthy
+        $lhNode = if ($volume.Count) { [string](Get-Prop (Get-Prop $volume[0] 'status') 'currentNodeID') } else { '' }
 
-        $out.Add([pscustomobject]@{
+        $mismatch = ($lhNode -and $lhNode -ne $node) -or (-not $lhNode -and $attached)
+        $pinnedToDown = ($downNames -contains $node)
+        if (($attached -and ($mismatch -or $pinnedToDown)) -or $deleting) {
+            $out.Add([pscustomobject]@{
                 Name        = $name
                 Node        = $node
                 Volume      = $pv
                 LonghornNode = $lhNode
             })
+        }
     }
     return @($out)
 }
@@ -801,9 +820,9 @@ function Clear-StaleVolumeAttachment {
     #>
     [CmdletBinding()]
     [OutputType([string[]])]
-    param()
+    param([object[]]$DownNodes = @())
 
-    $stale = @(Get-StaleVolumeAttachment)
+    $stale = @(Get-StaleVolumeAttachment -DownNodes $DownNodes)
     if ($stale.Count -eq 0) {
         Write-Ok 'No stale VolumeAttachments found.'
         return @()
@@ -826,7 +845,10 @@ function Clear-StaleVolumeAttachment {
         $ok = Invoke-KubectlMutation -Description "delete stale volumeattachment $($item.Name)" `
             -KubectlArgs @('delete', 'volumeattachment', $item.Name) `
             -ActionType 'stale-attachment-cleanup' -Target $item.Volume -AllowFailure
-        if ($ok) { $cleared.Add($item.Name) }
+        if ($ok) {
+            $null = Wait-K8sObjectAbsent -Kind 'volumeattachment' -Name $item.Name -TimeoutSeconds 30
+            $cleared.Add($item.Name)
+        }
     }
     return @($cleared)
 }
@@ -2137,9 +2159,9 @@ function Get-FaultedVolumeRestoreTriggerNodes {
 
     if ($Names.Count -gt 0) { return @($Names) }
 
-    return @(Get-HomelabNodes -Role 'worker' |
-        Where-Object { $_.name -match '^kubernetes[1-6]$' } |
-        ForEach-Object { [string]$_.name })
+    # All registered workers, including kubernetes8-debian. A regex over kubernetes1..6
+    # previously excluded the node that was actually off during the 2026-11-21 incident.
+    return @(Get-HomelabNodes -Role 'worker' | ForEach-Object { [string]$_.name })
 }
 
 function Get-LonghornReplicaNodeMap {
@@ -2662,15 +2684,14 @@ function Start-FaultedLonghornVolumeRestore {
         -BackupName $Candidate.BackupName -ReplicaCount $ReplicaCount -AccessMode $oldAccessMode `
         -DataLocality $oldDataLocality -Size ([string]$Candidate.BackupSize)
     $manifestPath = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "longhorn-restore-$volumeName.yaml"
-    Set-Content -Path $manifestPath -Value $manifest -Encoding utf8
 
     if ($script:DryRun) {
         Write-Info "[DRY-RUN] would delete $volumeName, recreate it from $($Candidate.BackupUrl), and rebuild PV/PVC $($target.Namespace)/$($target.PvcName)"
         Add-Action -Type 'dry-run' -Target $volumeName `
             -Detail "restore from $($Candidate.BackupUrl) + rebuild PV/PVC $($target.Namespace)/$($target.PvcName)"
-        Remove-Item -Path $manifestPath -Force -ErrorAction SilentlyContinue
         return $true
     }
+    Set-Content -Path $manifestPath -Value $manifest -Encoding utf8
 
     # Validate BEFORE deleting anything. The earlier version deleted the volume first and only
     # then discovered the manifest was invalid YAML - leaving the volume with no replacement.
@@ -2793,8 +2814,8 @@ function Wait-FaultedLonghornVolumeRestore {
 
 # ── Preflight ──────────────────────────────────────────────────────────
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  K3s Homelab - Resuming Full Capacity" -ForegroundColor Cyan
-Write-Host "  (full recovery by default)" -ForegroundColor Cyan
+Write-Host "  K3s Homelab - Resuming Capacity" -ForegroundColor Cyan
+Write-Host "  $(if ($Minimal) { 'MINIMAL MODE: 3 etcd members + 3 Longhorn workers (registry survivor set)' } else { 'full recovery by default' })" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 if ($script:DryRun) {
     Write-Host "  MODE: DRY RUN - no changes will be made" -ForegroundColor Magenta
@@ -2811,6 +2832,8 @@ $phasePlan = @(
     "Longhorn control-plane recovery : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
     "multipathd remediation          : $(if ($DoMultipathRepair) { 'ON' } else { 'SKIPPED (-SkipMultipathRepair)' })"
     "purge stranded/zombie pods      : ON (always)"
+    "stale VolumeAttachment cleanup  : $(if ($DoStaleAttachmentCleanup) { 'ON' } else { 'SKIPPED (-SkipStaleAttachmentCleanup)' })"
+    "faulted-volume trigger nodes    : $(if ($FaultedVolumeRestoreNodes.Count) { $FaultedVolumeRestoreNodes -join ', ' } else { 'all registered workers (registry)' })"
     "repair Longhorn + recycle CSI   : $(if ($DoStorageRepair) { 'ON' } else { 'SKIPPED (-SkipStorageRepair)' })"
     "restore faulted volumes (backup): $(if ($DoFaultedVolumeRestore) { 'ON (-Force)' } elseif ($SkipFaultedVolumeRestore) { 'SKIPPED (-SkipFaultedVolumeRestore)' } elseif (-not $DoStorageRepair) { 'SKIPPED (-SkipStorageRepair)' } else { 'DETECT-ONLY (add -Force to restore)' })"
     "engine-frontend recovery        : $(if ($DoHostMountRepair) { 'ON' } else { 'SKIPPED (-SkipHostMountRepair)' })"
@@ -2872,9 +2895,66 @@ Import-Module $registryModule -Force -DisableNameChecking
 $expectedNodes = @(Get-HomelabNodeNames)
 $protectedNodes = @(Get-ProtectedNodeNames)
 $neverPowerOffNodes = @(Get-NeverPowerOffNodeNames)
+$survivors = @(Get-HomelabSurvivorNames)
+$cpNames = @(Get-HomelabNodes -Role 'control-plane' | ForEach-Object { [string]$_.name })
+$cpSurvivors = @($survivors | Where-Object { $cpNames -contains $_ })
+$workerSurvivors = @($survivors | Where-Object { $cpNames -notcontains $_ })
+$targetNodes = if ($Minimal) { @($survivors) } else { @($expectedNodes) }
 Write-Verbose "Expected nodes: $($expectedNodes -join ', ')"
+Write-Verbose "Target nodes: $($targetNodes -join ', ')"
+Write-Verbose "Survivor set: $($survivors -join ', ') (control plane: $($cpSurvivors -join ', '); worker: $($workerSurvivors -join ', '))"
 Write-Verbose "Protected (never cordon/drain): $($protectedNodes -join ', ')"
 Write-Verbose "Never power off: $($neverPowerOffNodes -join ', ')"
+
+if ($WakeNodes) {
+    foreach ($w in @(Get-WolNodes)) {
+        try {
+            $hex = ($w.Mac -replace '[:-]', '')
+            $macBytes = [byte[]]::new(6)
+            for ($i = 0; $i -lt 6; $i++) { $macBytes[$i] = [Convert]::ToByte($hex.Substring($i * 2, 2), 16) }
+            $packet = [byte[]]::new(102)
+            for ($i = 0; $i -lt 6; $i++) { $packet[$i] = 0xFF }
+            for ($i = 1; $i -le 16; $i++) { [Array]::Copy($macBytes, 0, $packet, $i * 6, 6) }
+            $udp = [System.Net.Sockets.UdpClient]::new()
+            $udp.EnableBroadcast = $true
+            $null = $udp.Send($packet, $packet.Length, '192.168.0.255', 9)
+            $udp.Dispose()
+            Write-Ok "WoL packet sent to $($w.Name) ($($w.Mac))"
+        }
+        catch { Write-Warn "WoL failed for $($w.Name): $($_.Exception.Message)" }
+    }
+    Write-Info 'Use -WaitForNodesMinutes 5 if nodes were just powered on.'
+}
+
+# Minimal profile: restore Deployments that the minimal shutdown scaled to zero.
+if ($Minimal) {
+    if (-not $Manifest) {
+        $Manifest = Join-Path -Path $PSScriptRoot -ChildPath 'logs\shutdown-manifest.latest.json'
+    }
+    if (Test-Path -Path $Manifest) {
+        try {
+            $shutdownManifest = Get-Content -Raw -Path $Manifest | ConvertFrom-Json
+            foreach ($entry in @($shutdownManifest.scaledDown)) {
+                $ns = [string]$entry.namespace
+                $name = [string]$entry.name
+                $replicas = [int]$entry.replicas
+                if (-not $ns -or -not $name -or $replicas -lt 1) { continue }
+                if ($script:DryRun) {
+                    Write-Info "[DRY-RUN] would restore $ns/$name to $replicas replica(s)"
+                    continue
+                }
+                $ok = Invoke-KubectlMutation -Description "restore $ns/$name to $replicas replicas" `
+                    -KubectlArgs @('scale', 'deploy', $name, '-n', $ns, "--replicas=$replicas") `
+                    -ActionType 'minimal-profile-restore' -Target "$ns/$name"
+                if ($ok) { Write-Ok "Restored $ns/$name to $replicas replica(s)" }
+            }
+        }
+        catch { Write-Warn "Could not read restart manifest '$Manifest': $($_.Exception.Message)" }
+    }
+    else {
+        Write-Info "No restart manifest at '$Manifest' - skipping minimal workload restore."
+    }
+}
 
 # Concurrency lock - v1 allowed two overlapping recovery runs to fight each other.
 if (Test-Path -Path $script:LockFile) {
@@ -2919,6 +2999,36 @@ if ($ExpectedServer -and $actualServer -and $actualServer -ne $ExpectedServer) {
 }
 Write-Ok "Cluster identity verified: $actualServer"
 
+# ── etcd lineage / env preflight (read-only, fail fast) ──────────────────────
+# A 0-byte k3s.service.env makes a bare `k3s server` bootstrap its own single-node
+# etcd (the 2026-11-15 and 2026-11-21 server-236 forks). Refuse to mutate anything
+# until every registered control-plane member is pointed at the live cluster.
+$cpPre = Get-ControlPlaneStatus -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) -ApiServerUrl $actualServer
+if (-not $cpPre.HasQuorum) {
+    throw "etcd preflight FAILED: no quorum ($($cpPre.ReadyCount)/$($cpPre.MemberCount) Ready, need $($cpPre.Quorum)). Restore a control-plane member before recovery (never leave one member running while the other two reboot)."
+}
+foreach ($cpName in $cpNames) {
+    # nuc is the original server and legitimately bootstraps etcd with no K3S_URL.
+    if ($cpName -eq 'nuc') { continue }
+    $cpNode = @(Get-HomelabNode -Name $cpName)[0]
+    if (-not $cpNode) { continue }
+    $envBytes = @(& ssh -o BatchMode=yes -o ConnectTimeout=5 "$($cpNode.sshUser)@$($cpNode.ip)" `
+        'stat -c %s /etc/systemd/system/k3s.service.env 2>/dev/null || echo 0' 2>$null)
+    if ($envBytes.Count -gt 0) {
+        $size = 0
+        if ([int]::TryParse([string]$envBytes[-1], [ref]$size) -and $size -eq 0) {
+            throw "$cpName has a 0-byte k3s.service.env - it will fork etcd on next start. Repair per server-236-k3s-repair/SKILL.md before continuing."
+        }
+    }
+}
+$missingVoters = @($cpNames | Where-Object { $cpPre.Members.Name -notcontains $_ })
+if ($missingVoters.Count -gt 0) {
+    if ($Minimal) { throw "etcd preflight FAILED in minimal mode: registered voter(s) absent from member set: $($missingVoters -join ', ')" }
+    Write-Warn "Registered voter(s) absent from etcd member set: $($missingVoters -join ', ')"
+    Add-Finding "etcd member set missing registered voter(s): $($missingVoters -join ', ')"
+}
+Write-Ok "etcd preflight passed: $($cpPre.ReadyCount)/$($cpPre.MemberCount) voters Ready, env files non-empty"
+
 $finalExitCode = 0
 
 try {
@@ -2926,17 +3036,22 @@ try {
     Write-Step "[1/9] Inventory - expected vs actual nodes"
 
     $nodeState = Get-NodeState -NodeObjects (Get-K8sJson -KubectlArgs @('get', 'nodes')) `
-        -ProtectedNodes $protectedNodes -ExpectedNodes $expectedNodes
+        -ProtectedNodes $protectedNodes -ExpectedNodes $targetNodes
 
-    Write-Info "Registry expects $($expectedNodes.Count) node(s); cluster reports $($nodeState.Count)."
+    Write-Info "Target node set: $($targetNodes.Count) node(s); cluster reports $($nodeState.Count)."
 
-    $missingNodes = @($expectedNodes | Where-Object { -not $nodeState.Contains($_) })
+    $missingNodes = @($targetNodes | Where-Object { -not $nodeState.Contains($_) })
     if ($missingNodes.Count -gt 0) {
-        Write-Bad "Expected node(s) absent from the cluster: $($missingNodes -join ', ')"
-        Add-Finding "Expected node(s) absent from cluster: $($missingNodes -join ', ')"
+        Write-Bad "Target node(s) absent from the cluster: $($missingNodes -join ', ')"
+        Add-Finding "Target node(s) absent from cluster: $($missingNodes -join ', ')"
+    }
+    if ($Minimal) {
+        $intentionallyOff = @($expectedNodes | Where-Object { $survivors -notcontains $_ })
+        Write-Info "Minimal mode: intentionally off: $($intentionallyOff -join ', ')"
     }
 
-    $unexpectedNodes = @($nodeState.Values | Where-Object { -not $_.IsExpected } | ForEach-Object { $_.Name })
+    # In minimal mode the non-survivor nodes are intentionally off, not registry drift.
+    $unexpectedNodes = @($nodeState.Values | Where-Object { $expectedNodes -notcontains $_.Name } | ForEach-Object { $_.Name })
     if ($unexpectedNodes.Count -gt 0) {
         Write-Warn "Node(s) present but not in the registry (registry drift): $($unexpectedNodes -join ', ')"
         Add-Finding "Unregistered node(s) present: $($unexpectedNodes -join ', ')"
@@ -2959,6 +3074,21 @@ try {
     elseif ($controlPlane.NotReady.Count -gt 0) {
         Write-Warn "Control-plane member(s) NotReady: $($controlPlane.NotReady -join ', ') - quorum is held by the remaining $(($controlPlane.Members | Where-Object { $_.Ready }).Count) member(s), with zero further tolerance."
         Add-Finding "Control-plane member(s) NotReady at start of run: $($controlPlane.NotReady -join ', ')"
+    }
+
+    # Survivor gate: in minimal mode the 3 etcd members + kubernetes5 must all be present.
+    foreach ($s in $cpSurvivors) {
+        if (-not $nodeState.Contains($s) -or -not $nodeState[$s].Ready) {
+            $msg = "Survivor control-plane member '$s' is missing/NotReady - quorum cannot be assumed."
+            if ($Minimal) { throw $msg }
+            Write-Bad $msg; Add-Finding $msg
+        }
+    }
+    foreach ($s in $workerSurvivors) {
+        if (-not $nodeState.Contains($s) -or -not $nodeState[$s].Ready) {
+            $msg = "Survivor worker '$s' is not Ready - RWO workloads have no designated home."
+            Write-Warn $msg; Add-Finding $msg
+        }
     }
 
     if ($WaitForNodesMinutes -gt 0 -and $notReadyNodes.Count -gt 0) {
@@ -3175,7 +3305,7 @@ try {
     # This fixes the case where pods are stuck in Pending because Kubernetes holds
     # onto old attachments for volumes that Longhorn has reattached elsewhere.
     if ($DoStorageRepair -and $DoStaleAttachmentCleanup -and $storageStatus.Available) {
-        $cleared = @(Clear-StaleVolumeAttachment)
+        $cleared = @(Clear-StaleVolumeAttachment -DownNodes @($deadNodeNames | ForEach-Object { [pscustomobject]@{ Name = $_ } }))
         if ($cleared.Count -gt 0) {
             Write-Info "Cleared $($cleared.Count) stale VolumeAttachment(s)"
             $repairedSomething = $true
@@ -3214,7 +3344,10 @@ try {
     #      because every write made after that backup is discarded.
     if ($DoStorageRepair -and $storageStatus.Available) {
         $triggerNodes = @(Get-FaultedVolumeRestoreTriggerNodes -Names $FaultedVolumeRestoreNodes)
-        $downTriggerNodes = @($triggerNodes | Where-Object { $nodeState.Contains($_) -and -not $nodeState[$_].Ready })
+        # A powered-off worker whose Node object was GC'd is still down for restore purposes.
+        $downTriggerNodes = @($triggerNodes | Where-Object {
+            (-not $nodeState.Contains($_)) -or (-not $nodeState[$_].Ready)
+        })
 
         if ($downTriggerNodes.Count -eq 0) {
             Write-Info "Faulted-volume restore: no restore-trigger node is down ($($triggerNodes -join ', '))."
@@ -3385,6 +3518,14 @@ try {
                             continue
                         }
                         if (-not ($nodeState.Contains($item.Node) -and $nodeState[$item.Node].Unschedulable)) {
+                            $schedulableWorkers = @($nodeState.Values | Where-Object {
+                                $_.Ready -and -not $_.Unschedulable -and -not $_.IsProtected
+                            } | ForEach-Object { $_.Name })
+                            if ($schedulableWorkers.Count -le 1 -and $schedulableWorkers -contains $item.Node) {
+                                Write-Warn "reschedule skipped for [$($item.Namespace)] $($item.Name): '$($item.Node)' is the last schedulable worker - the RWO pod would have nowhere to attach."
+                                Add-Finding "RWO reschedule blocked: last schedulable worker is $($item.Node)"
+                                continue
+                            }
                             Test-Budget "cordoning $($item.Node) for reschedule"
                             $ok = Invoke-KubectlMutation -Description "cordon $($item.Node) to reschedule stuck volume consumer $($item.Namespace)/$($item.Name)" `
                                 -KubectlArgs @('cordon', $item.Node) `
@@ -3733,7 +3874,10 @@ function Get-ManagedResource {
         Write-Info "Skipped (-SkipRebalance)."
     }
     else {
-        # Protected nodes (control plane, kubernetes7) are never cordoned or drained.
+        # Protected nodes (control plane) are never cordoned or drained.
+        # Refresh the pod snapshot: step 7 restarted workloads, so the diagnosis-time
+        # snapshot would otherwise rebalance against stale placement.
+        $allPods = Get-K8sJson -KubectlArgs @('get', 'pods', '-A')
         $candidates = @($nodeState.Values | Where-Object { $_.Ready -and -not $_.IsProtected } | ForEach-Object { $_.Name })
         Write-Info "Rebalance-eligible nodes: $($candidates.Count) (protected excluded: $($protectedNodes -join ', '))"
 
@@ -3847,6 +3991,30 @@ function Get-ManagedResource {
     }
     else {
         Write-Ok "All $($controlPlaneAfter.MemberCount) embedded-etcd member(s) are Ready."
+    }
+
+    # Shared-RWO co-location: two pods mounting the same RWO PVC must run on one node.
+    # netbox + netbox-worker hit this on 2026-11-21; affinity now prevents it, but verify anyway.
+    $pvcMapAfter = Get-PvcMap
+    $rwoClaimNodes = @{}
+    foreach ($pod in $allPods) {
+        $podNs = [string](Get-Prop (Get-Prop $pod 'metadata') 'namespace')
+        $podName = [string](Get-Prop (Get-Prop $pod 'metadata') 'name')
+        $podNode = [string](Get-Prop (Get-Prop $pod 'spec') 'nodeName')
+        if (-not $podNode) { continue }
+        foreach ($claim in @(Get-PodPvcClaims -Pod $pod)) {
+            $key = "$podNs/$claim"
+            if (-not $pvcMapAfter.ContainsKey($key) -or -not $pvcMapAfter[$key].IsRwo) { continue }
+            if (-not $rwoClaimNodes.ContainsKey($key)) { $rwoClaimNodes[$key] = @{} }
+            $rwoClaimNodes[$key][$podNode] = @($rwoClaimNodes[$key][$podNode]) + "$podNs/$podName"
+        }
+    }
+    foreach ($key in $rwoClaimNodes.Keys) {
+        if ($rwoClaimNodes[$key].Count -gt 1) {
+            $detail = ($rwoClaimNodes[$key].GetEnumerator() | ForEach-Object { "$($_.Key): $($_.Value -join ',')" }) -join ' | '
+            $msg = "Shared RWO PVC '$key' has consumers on different nodes: $detail"
+            Write-Bad $msg; Add-Finding $msg
+        }
     }
     # Client-side endpoint: reported, never counted as a failure. Every kubeconfig here points
     # at one member address, so the API still dies with nuc even though etcd quorum survives.
@@ -4023,7 +4191,7 @@ function Get-ManagedResource {
     }
 
     # ── Summary ──────────────────────────────────────────────────────────
-    $degradedTotal = $unhealthyPods.Count + $badPdbs.Count + $badAttachments.Count + $stillCordonedReady.Count
+    $degradedTotal = $unhealthyPods.Count + $badPdbs.Count + $badAttachments.Count + $stillCordonedReady.Count + $stillNotReady.Count
     if ($storageAfter.Available) {
         $degradedTotal += $storageAfter.AttachedDegraded.Count
         $degradedTotal += $storageAfter.Faulted.Count
