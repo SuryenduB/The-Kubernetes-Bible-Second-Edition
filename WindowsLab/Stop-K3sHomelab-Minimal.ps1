@@ -71,8 +71,10 @@ $registryNodes = @(Get-HomelabNodes | ForEach-Object {
 })
 # Workloads scaled to zero in minimal mode; original replicas are restored by Start -Minimal.
 $scaleDownTargets = @()
-if ($registry.PSObject.Properties['minimalProfile'] -and $registry.minimalProfile.PSObject.Properties['scaleDown']) {
-    $scaleDownTargets = @($registry.minimalProfile.scaleDown)
+$scaleDownStatefulSets = @()
+if ($registry.PSObject.Properties['minimalProfile']) {
+    if ($registry.minimalProfile.PSObject.Properties['scaleDown']) { $scaleDownTargets = @($registry.minimalProfile.scaleDown) }
+    if ($registry.minimalProfile.PSObject.Properties['scaleDownStatefulSets']) { $scaleDownStatefulSets = @($registry.minimalProfile.scaleDownStatefulSets) }
 }
 $survivorNames = @(Get-HomelabSurvivorNames)
 $neverPowerOff = @(Get-NeverPowerOffNodeNames)
@@ -205,6 +207,7 @@ $restartManifest = [ordered]@{
         [pscustomobject]@{ name=$_.Name; ip=$_.IP; mac=$_.Mac; iface=$_.WolIface }
     })
     scaledDown      = @()
+    scaledDownStatefulSets = @()
     nodes           = @($nodesToShutdown | ForEach-Object {
         [pscustomobject]@{ name=$_.Name; ip=$_.IP; intendedAction='poweroff'; status='pending'; at=$null }
     })
@@ -262,6 +265,23 @@ foreach ($target in $scaleDownTargets) {
         Write-Host "  [+] $ns/$name scaled 0 (was $replicas)" -ForegroundColor DarkGray
     }
     else { Write-Warning "  Failed to scale down $ns/$name" }
+}
+foreach ($target in $scaleDownStatefulSets) {
+    $parts = $target.Split('/')
+    if ($parts.Count -ne 2) { Write-Warning "Bad minimal profile entry: $target"; continue }
+    $ns = $parts[0]; $name = $parts[1]
+    if ($DryRun) { Write-Host "  [DRY-RUN] scale sts $ns/$name -> 0" -ForegroundColor Magenta; continue }
+    $replicas = kubectl get sts $name -n $ns -o jsonpath='{.spec.replicas}' 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($replicas)) {
+        Write-Warning "  Could not read replicas for sts $ns/$name - skipping"
+        continue
+    }
+    kubectl scale sts $name -n $ns --replicas=0 2>$null
+    if ($LASTEXITCODE -eq 0) {
+        $restartManifest.scaledDownStatefulSets += [pscustomobject]@{ namespace=$ns; name=$name; replicas=[int]$replicas }
+        Write-Host "  [+] sts $ns/$name scaled 0 (was $replicas)" -ForegroundColor DarkGray
+    }
+    else { Write-Warning "  Failed to scale down sts $ns/$name" }
 }
 if (-not $DryRun) { $restartManifest | ConvertTo-Json -Depth 6 | Set-Content -Path $manifestPath -Encoding UTF8 }
 

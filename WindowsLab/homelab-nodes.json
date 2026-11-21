@@ -175,6 +175,18 @@
       "netbox/netbox-worker",
       "monitoring/dozzle",
       "monitoring/uptime-kuma"
+    ],
+    "scaleDownStatefulSets": [
+      "iiqstack/activemq",
+      "iiqstack/db",
+      "iiqstack/ldap",
+      "iiqstack/mail",
+      "linguacafe/mariadb",
+      "media/flick-db",
+      "media/immich-db",
+      "media/reactive-resume-db",
+      "netbox/netbox-postgres",
+      "netbox/netbox-redis"
     ]
   }
 }

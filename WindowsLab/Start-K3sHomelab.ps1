@@ -2940,13 +2940,27 @@ if ($Minimal) {
                 $replicas = [int]$entry.replicas
                 if (-not $ns -or -not $name -or $replicas -lt 1) { continue }
                 if ($script:DryRun) {
-                    Write-Info "[DRY-RUN] would restore $ns/$name to $replicas replica(s)"
+                    Write-Info "[DRY-RUN] would restore deploy $ns/$name to $replicas replica(s)"
                     continue
                 }
                 $ok = Invoke-KubectlMutation -Description "restore $ns/$name to $replicas replicas" `
                     -KubectlArgs @('scale', 'deploy', $name, '-n', $ns, "--replicas=$replicas") `
                     -ActionType 'minimal-profile-restore' -Target "$ns/$name"
-                if ($ok) { Write-Ok "Restored $ns/$name to $replicas replica(s)" }
+                if ($ok) { Write-Ok "Restored deploy $ns/$name to $replicas replica(s)" }
+            }
+            foreach ($entry in @($shutdownManifest.scaledDownStatefulSets)) {
+                $ns = [string]$entry.namespace
+                $name = [string]$entry.name
+                $replicas = [int]$entry.replicas
+                if (-not $ns -or -not $name -or $replicas -lt 1) { continue }
+                if ($script:DryRun) {
+                    Write-Info "[DRY-RUN] would restore sts $ns/$name to $replicas replica(s)"
+                    continue
+                }
+                $ok = Invoke-KubectlMutation -Description "restore sts $ns/$name to $replicas replicas" `
+                    -KubectlArgs @('scale', 'sts', $name, '-n', $ns, "--replicas=$replicas") `
+                    -ActionType 'minimal-profile-restore' -Target "$ns/$name"
+                if ($ok) { Write-Ok "Restored sts $ns/$name to $replicas replica(s)" }
             }
         }
         catch { Write-Warn "Could not read restart manifest '$Manifest': $($_.Exception.Message)" }
