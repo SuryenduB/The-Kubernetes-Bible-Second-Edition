@@ -1,5 +1,12 @@
 #!/bin/bash
 # ============================================================
+# DEPRECATED 2026-11-22 - do not schedule this script.
+# Superseded by k3s-etcd-safe-backup.sh (APP-01, applied 2026-10-17).
+# The live cron on nuc runs `k3s etcd-snapshot save` every 6h without
+# stopping k3s. This script is retained for historical reference only:
+# it stops k3s daily to copy an obsolete 0-byte SQLite state.db.
+# Restored by the rollback note in k3s-homelab-optimisation/docs/approval-required.md.
+# ============================================================
 # K3s Backup to NAS (NFS) - Triple Protection System
 # Backs up SQLite datastore + config + server identity to NAS
 # via NFS mount.

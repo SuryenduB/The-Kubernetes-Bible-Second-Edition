@@ -1,6 +1,6 @@
 # K3s Homelab Approval-Required Change Proposals
 
-**Document Status:** APP-01 through APP-05 APPLIED & VERIFIED 2026-10-17; APP-06 excluded (architecture change outside mission scope)  
+**Document Status:** APP-01 through APP-05 APPLIED & VERIFIED 2026-10-17; APP-06 excluded (architecture change outside mission scope); APP-10 APPLIED 2026-11-22 (orphan Longhorn backup pruning)  
 **Operating Boundary:** Originally drafted under the **Ralph Loop Change Boundary** (no live changes). The catalog was subsequently approved and executed the same day; execution evidence is recorded in `docs/change-log.md` §7–§9.
 
 Each proposed change includes technical rationale grounded in measured evidence, prepared assets, verification commands, and rollback procedures.
@@ -191,3 +191,9 @@ Each proposed change includes technical rationale grounded in measured evidence,
 - **Context (observed 2026-10-17 ~04:00 CEST):** `openlingo` (openlingo ns) has been `ImagePullBackOff` for ~9 h pulling `192.168.0.236:5000/openlingo:v10-dynamic-models`; the private registry is reachable and healthy (Kuma `registry-docker-tcp` monitor up), so the tag is simply not built/pushed yet. Kuma monitor `openlingo` correctly reports DOWN — detection works.
 - **Staged Action:** build & push the tag (per shipped flow `k3s-build` to the private registry or equivalent), then the deployment self-recovers on the next pull.
 - **Approval gate:** user-owned build/change of their dev application — deliberately out of this reliability mission's scope.
+
+### APP-10: Prune backups of deleted Longhorn volumes (2026-11-22)
+- **Problem Statement:** Deleting a PVC does not cascade to its Longhorn backups. 430 backups for 40 volumes with no surviving PVC or VolumeSnapshot occupied 5.62 GiB on the NAS; recurring-job retention never applies once the volume is gone.
+- **Prepared Asset:** `scripts/longhorn-orphan-backup-cleanup.sh` — dry-run by default, 30-day recovery floor, keep-list, and guards for current volumes, PVCs and VolumeSnapshots. See `docs/longhorn-orphan-backup-cleanup.md`.
+- **Applied:** installed on `nuc` (0750) and scheduled weekly `0 3 * * 0 ... --apply`. The one-off cleanup deleted 430 Backup CRs and 40 BackupVolume CRs with zero failures; backupstore dropped 10,803,512 → 4,909,528 KiB. Cluster stayed healthy.
+- **Rollback:** remove the cron line; deleted backups are irreversible (30-day floor + keep list are the recovery window).
