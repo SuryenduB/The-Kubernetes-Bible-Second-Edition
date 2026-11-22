@@ -3,9 +3,9 @@
 > **Superseded control-plane note (2026-11-22):** `WindowsLab/k3s-backup-to-nas.sh`
 > was removed from the repo. The live control-plane job is
 > `k3s-etcd-safe-backup.sh` (APP-01, 6-hourly, non-disruptive online etcd snapshot
-> + config/identity archives). The old 02:00 `state.db` description below is
-> historical. `Restore-K3sCluster.ps1` still expects `k3s-state.db` and needs a
-> separate update to restore from etcd snapshots — treat that as an open gap.
+> + config/identity archives). `Restore-K3sCluster.ps1` has been updated to
+> restore from those snapshots (with `-ListOnly` / `-DryRun` for safe planning).
+> The old 02:00 `state.db` description below is historical.
 
 **Status: OPERATIONAL** (volume layer since 2026-09-06; control-plane layer pre-existing).
 **Last validated against live state: 2026-09-06 ~13:00 UTC** — see §7 Validation record.
@@ -61,12 +61,11 @@ Known design limits (accepted, not oversights):
 
 - **What:** `/var/lib/rancher/k3s/server/db/state.db` (~205 MB, WAL-checkpointed) +
   `/etc/rancher/k3s/` as `k3s-config.tar.gz` (CA keys, certs, tokens, registries config).
-- **How:** `k3s-backup-to-nas.sh` (in-repo: `WindowsLab/k3s-backup-to-nas.sh`, installed at
-  `/usr/local/bin/k3s-backup-to-nas.sh` on `nuc`) via root crontab, nightly 02:00 UTC.
-  Stops K3s, checkpoints WAL (`PRAGMA wal_checkpoint(TRUNCATE)` — never `rm` the `-wal`),
-  copies the db, integrity-checks the copy (aborts + restarts K3s on corruption), archives config
-  + identity, restarts K3s. An EXIT trap restarts K3s even if any step fails (proven necessary 2026-09-06).
-- **Retention:** rolling last 10 snapshots (prune policy per `how-to-audit-homelab.md`).
+- **How:** `k3s-etcd-safe-backup.sh` (in-repo: `k3s-homelab-optimisation/scripts/k3s-etcd-safe-backup.sh`,
+  installed at `/usr/local/bin/k3s-etcd-safe-backup.sh` on `nuc`) via root crontab, every 6 hours.
+  K3s stays online: `k3s etcd-snapshot save`, config + identity archives, sha256/tar verification
+  into a staging dir, then atomic publish to the NAS.
+- **Retention:** rolling last 14 snapshots.
 - **Restore:** `pwsh -File WindowsLab/Restore-K3sCluster.ps1 [-BackupTimestamp "…"] [-ListOnly] [-Force]`.
   5 phases: discover → validate filenames → stop K3s → restore config + identity + db → start + `kubectl get nodes` check.
 - **Full-rebuild status (verified 2026-09-06):** each snapshot now ships `k3s-identity.tar.gz`

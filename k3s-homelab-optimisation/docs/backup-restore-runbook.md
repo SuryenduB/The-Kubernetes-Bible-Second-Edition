@@ -78,6 +78,17 @@ sudo umount /mnt/k3s-nas-backup
 > [!CAUTION]
 > Do NOT execute an etcd restore on a functioning, healthy cluster. A restore rewinds cluster state to the timestamp of the snapshot. Only perform this procedure during total control plane failure or disaster recovery.
 
+> [!NOTE]
+> `WindowsLab/Restore-K3sCluster.ps1` automates this scenario from the Mac. It
+> discovers only directories containing a real `etcd-snapshot-*` (legacy dirs
+> with a 0-byte `state.db` are ignored), validates config/identity archives and
+> snapshot size, then stops all three etcd members, restores config + identity,
+> runs `--cluster-reset --cluster-reset-restore-path` on `nuc`, archives the old
+> db directories on `server-236`/`server-252` before they rejoin, and verifies
+> node readiness. Use `-ListOnly` to inspect backups and `-DryRun` to validate a
+> chosen backup and print the plan without changing anything. `-BackupTimestamp`
+> selects a specific backup; `-Force` skips the confirmation prompt.
+
 ### Scenario A: Restoring on Existing `nuc` Node
 If the etcd datastore is corrupted but the node is intact:
 
