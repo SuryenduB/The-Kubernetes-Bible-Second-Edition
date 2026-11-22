@@ -54,6 +54,11 @@ WindowsLab/0
 __pycache__/
 *.pyc
 
+# VÖBB audiobook sweep caches (regenerable, hundreds of MB)
+voebb-audiobook-check/.cache/
+voebb-audiobook-check/.cache_sweep/
+voebb-audiobook-check/.cache_onleihe/
+
 # K3s Homelab Secrets, Keys, and Raw Diagnostics
 *.key
 *.pem

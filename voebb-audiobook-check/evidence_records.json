@@ -1,0 +1,1317 @@
+[
+ {
+  "book": 1,
+  "title": "The Complete Plays",
+  "author": "Joe Orton",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 2,
+  "title": "Things Fall Apart",
+  "author": "Chinua Achebe",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 3,
+  "title": "Uncle Tom's Cabin",
+  "author": "Harriet Beecher Stowe",
+  "status": "AVAILABLE_NOW",
+  "platform": "Onleihe (VÖBB)",
+  "evidence_link": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+  "records": [
+   {
+    "book": 3,
+    "source": "Onleihe (VÖBB)",
+    "title": "Uncle Tom's cabin",
+    "edition": "",
+    "duration": [
+     "1076"
+    ],
+    "narrator": "",
+    "language": "Englisch",
+    "format": [
+     "eAudio Stream"
+    ],
+    "publisher": "Literizon",
+    "copies": "1",
+    "ownedCopies": "1",
+    "holds": "0",
+    "waitDays": null,
+    "holdable": false,
+    "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+    "displayed": "Jetzt ausleihen; Verfügbar"
+   }
+  ],
+  "other_language_or_physical": [
+   "Other-language eAudio (Onleihe): Onkel Toms Hütte (German-language edition, language not shown on list card)",
+   "physical CD: Onkel Toms Hütte : [Hörbuch] ; [CD] — Harriet Beecher-Stowe. Gelesen von Bodo Primus. - Ueberreuter (Verfügbar)",
+   "physical CD: Onkel Toms Hütte : [Hörbuch] ; [CD] — Harriet Beecher Stowe. Gesamtleitung: Jürgen Nola, Markus Steffen, Marco Nola. B (Verfügbar)",
+   "physical CD: Onkel Toms Hütte = [Uncle Tom's cabin — Harriet Beecher Stowe. Gesprochen von Brigitte Trübenbach. - Hörmedia-Audioverl. (Verfügbar)"
+  ]
+ },
+ {
+  "book": 4,
+  "title": "Gilead",
+  "author": "Marilynne Robinson",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/335520",
+  "records": [
+   {
+    "book": 4,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Gilead",
+    "edition": "Unabridged",
+    "duration": "08:55:02",
+    "narrator": "Tim Jerome",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Macmillan Audio",
+    "copies": 0,
+    "ownedCopies": 2,
+    "holds": 4,
+    "waitDays": 35,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/335520",
+    "displayed": "0 of 2 copies available; Wait time: About 5 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Gilead : [Hörbuch] — Marilynne Robinson ; Otto Mellies liest ; aus dem amerikanischen Englisch von Ud (Verfügbar)"
+  ]
+ },
+ {
+  "book": 5,
+  "title": "White Teeth",
+  "author": "Zadie Smith",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/3886722",
+  "records": [
+   {
+    "book": 5,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "White Teeth",
+    "edition": "Unabridged",
+    "duration": "18:38:28",
+    "narrator": "Pippa Bennett-Warner, Ray Panthaki, Lenny Henry, Sagar Arya",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Penguin Books Ltd",
+    "copies": 0,
+    "ownedCopies": 2,
+    "holds": 2,
+    "waitDays": 21,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/3886722",
+    "displayed": "0 of 2 copies available; Wait time: About 3 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 6,
+  "title": "Time Shelter",
+  "author": "Georgi Gospodinov",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 7,
+  "title": "Do Androids Dream of Electric Sheep?",
+  "author": "Philip K. Dick",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/123544",
+  "records": [
+   {
+    "book": 7,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Do Androids Dream of Electric Sheep?",
+    "edition": "Unabridged",
+    "duration": "09:12:32",
+    "narrator": "Scott Brick",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Books on Tape",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 3,
+    "waitDays": 56,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/123544",
+    "displayed": "Wait time: About 8 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Blade Runner : träumen Androiden ; Hörspiel ; [Hörbuch] ; [C — Philip K. Dick. Hörspielbearb. und Regie: Marina Dietz. Mit Udo Wachtveitl ; Sop (Verfügbar)"
+  ]
+ },
+ {
+  "book": 8,
+  "title": "The Man in the High Castle",
+  "author": "Philip K. Dick",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "Other-language eAudio (OverDrive): The Man in the High Castle--Das Orakel vom Berge [de], argon, 0/2 copies",
+   "physical CD: The man in the high castle : [Hörbuch] ; [CD] — Philip K. Dick. Read by Tom Weiner. - Unabridged. - Blackstone Audio (Verfügbar)"
+  ]
+ },
+ {
+  "book": 9,
+  "title": "No Country for Old Men",
+  "author": "Cormac McCarthy",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Kein Land für alte Männer : [Hörbuch] ; [CD] — Christian Brückner liest Cormac McCarthy. Regie: Waltraut Brückner. Dt. von Niko (Verfügbar)",
+   "physical CD: No country for old men : [Hörbuch] ; [CD] — Cormac McCarthy [Textverf.] ; Tom Stechschulte [Sprecher/in]. - Unabridged. - Re (Verfügbar)"
+  ]
+ },
+ {
+  "book": 10,
+  "title": "Midnight's Children",
+  "author": "Salman Rushdie",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 11,
+  "title": "Waiting for the Barbarians",
+  "author": "J. M. Coetzee",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 12,
+  "title": "Charlotte's Web",
+  "author": "E. B. White",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Wilbur und Charlotte : Kinderhörspiel ; [CD] ; [Hörbuch] — Elwyn Brooks White. Sprecher: Hermann Beyer ; Sophie Rois ; Jens Wawrczeck ... H (Verfügbar)",
+   "physical CD: Charlotte's Web : [Hörbuch] ; [CD] — Elwyn B. White, read by the author. - Unabridged. - Listening Library (Zurzeit nicht verfügbar)"
+  ]
+ },
+ {
+  "book": 13,
+  "title": "Plainsong",
+  "author": "Kent Haruf",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "Other-language eAudio (Onleihe): Das Band, das uns hält (German-language edition, language not shown on list card)"
+  ]
+ },
+ {
+  "book": 14,
+  "title": "The Stand",
+  "author": "Stephen King",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/589885",
+  "records": [
+   {
+    "book": 14,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "The Stand",
+    "edition": "Unabridged",
+    "duration": "47:47:51",
+    "narrator": "Grover Gardner",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Books on Tape",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 4,
+    "waitDays": 70,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/589885",
+    "displayed": "Wait time: About 10 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "Other-language eAudio (OverDrive): The Stand--Das letzte Gefecht [de], Lübbe Audio, 0/2 copies"
+  ]
+ },
+ {
+  "book": 15,
+  "title": "How to Change Your Mind: The New Science of Psychedelics",
+  "author": "Michael Pollan",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/3619131",
+  "records": [
+   {
+    "book": 15,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "How to Change Your Mind",
+    "edition": "Unabridged",
+    "duration": "13:35:45",
+    "narrator": "Michael Pollan",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Books on Tape",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 1,
+    "waitDays": 28,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/3619131",
+    "displayed": "Wait time: About 4 weeks; Place a hold"
+   },
+   {
+    "book": 15,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "How to Change Your Mind",
+    "edition": "Unabridged",
+    "duration": "13:41:01",
+    "narrator": "Michael Pollan",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Penguin Books Ltd",
+    "copies": 0,
+    "ownedCopies": 3,
+    "holds": 0,
+    "waitDays": 5,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/3946564",
+    "displayed": "0 of 3 copies available; Wait time: Available soon; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 16,
+  "title": "The Bell Jar",
+  "author": "Sylvia Plath",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/4554951",
+  "records": [
+   {
+    "book": 16,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "The Bell Jar",
+    "edition": "Unabridged",
+    "duration": "07:25:05",
+    "narrator": "Maggie Gyllenhaal",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Clipper Audiobooks",
+    "copies": 0,
+    "ownedCopies": 4,
+    "holds": 6,
+    "waitDays": 25,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/4554951",
+    "displayed": "0 of 4 copies available; Wait time: About 4 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 17,
+  "title": "The Amazing Adventures of Kavalier & Clay",
+  "author": "Michael Chabon",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 18,
+  "title": "The Shining",
+  "author": "Stephen King",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/858758",
+  "records": [
+   {
+    "book": 18,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "The Shining",
+    "edition": "Unabridged",
+    "duration": "15:50:30",
+    "narrator": "Campbell Scott",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Books on Tape",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 4,
+    "waitDays": 70,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/858758",
+    "displayed": "Wait time: About 10 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: The shining — Stephen King ; read by Campbell Scott ; prducer and director: Kelly Gildea. - Un (Verfügbar)"
+  ]
+ },
+ {
+  "book": 19,
+  "title": "Middlesex",
+  "author": "Jeffrey Eugenides",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/86990",
+  "records": [
+   {
+    "book": 19,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Middlesex",
+    "edition": "Unabridged",
+    "duration": "21:21:21",
+    "narrator": "Kristoffer Tabori",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Macmillan Audio",
+    "copies": 0,
+    "ownedCopies": 3,
+    "holds": 0,
+    "waitDays": 5,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/86990",
+    "displayed": "0 of 3 copies available; Wait time: Available soon; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Middlesex : [Hörbuch] ; [CD] — Jeffrey Eugenides. Gelesen von Ulrich Matthes. Aus dem Amerik. von Eike Schönfel (Verfügbar)"
+  ]
+ },
+ {
+  "book": 20,
+  "title": "Austerlitz",
+  "author": "W. G. Sebald",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "Other-language eAudio (OverDrive): Austerlitz [de], der Hörverlag, 0/1 copies",
+   "physical CD: Austerlitz : [Hörbuch] — W. G. Sebald. - Vollständige Lesung/O-Ton. - Der Hörverlag (Verfügbar)",
+   "physical CD: Austerlitz : [Hörbuch] ; [CD] — W. G. Sebald. Hörspielbearb. und Regie: Stefan Kanis. Mit Ulrich Matthes ; Ernst (Verfügbar)"
+  ]
+ },
+ {
+  "book": 21,
+  "title": "Zen and the Art of Motorcycle Maintenance: An Inquiry into Values",
+  "author": "Robert M. Pirsig",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 22,
+  "title": "The Unbearable Lightness of Being",
+  "author": "Milan Kundera",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/3995095",
+  "records": [
+   {
+    "book": 22,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "The Unbearable Lightness of Being",
+    "edition": "edition not stated in record",
+    "duration": "09:36:55",
+    "narrator": "Richmond Hoxie",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Faber & Faber",
+    "copies": 0,
+    "ownedCopies": 2,
+    "holds": 0,
+    "waitDays": 7,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/3995095",
+    "displayed": "0 of 2 copies available; Wait time: Available soon; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 23,
+  "title": "A Confederacy of Dunces",
+  "author": "John Kennedy Toole",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 24,
+  "title": "The Human Stain",
+  "author": "Philip Roth",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Der menschliche Makel : [Hörbuch] ; [CD] — Philip Roth. Bearb.: Valerie Stiegele. Regie: Norbert Schaeffer. Sprecher: Jürge (Verfügbar)"
+  ]
+ },
+ {
+  "book": 25,
+  "title": "The Whites",
+  "author": "Richard Price",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Die Unantastbaren : [Hörbuch] — Richard Price. Lesung mit Oliver Rohrbeck und David Nathan. Bearbeitung: Marie K (Verfügbar)"
+  ]
+ },
+ {
+  "book": 26,
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "status": "AVAILABLE_NOW",
+  "platform": "Onleihe (VÖBB)",
+  "evidence_link": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+  "records": [
+   {
+    "book": 26,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Great Expectations",
+    "edition": "Unabridged",
+    "duration": "18:32:28",
+    "narrator": "Simon Prebble",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Blackstone Publishing",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 0,
+    "waitDays": 14,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/66481",
+    "displayed": "Wait time: About 2 weeks; Place a hold"
+   },
+   {
+    "book": 26,
+    "source": "Onleihe (VÖBB)",
+    "title": "Great expectations",
+    "edition": "",
+    "duration": [
+     "1203"
+    ],
+    "narrator": "",
+    "language": "Englisch",
+    "format": [
+     "eAudio Stream"
+    ],
+    "publisher": "Literizon",
+    "copies": "1",
+    "ownedCopies": "1",
+    "holds": "0",
+    "waitDays": null,
+    "holdable": false,
+    "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+    "displayed": "Jetzt ausleihen; Verfügbar"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Great expectations : [Hörbuch] ; [CD] — Charles Dickens. Narrated by Martin Jarvis. - Unabridged. - BBC Audiobooks Ameri (Verfügbar)"
+  ]
+ },
+ {
+  "book": 27,
+  "title": "Lullaby",
+  "author": "Leïla Slimani",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 28,
+  "title": "Spring",
+  "author": "Ali Smith",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 29,
+  "title": "Fear and Loathing in Las Vegas",
+  "author": "Hunter S. Thompson",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Fear and loathing in Las Vegas : [Hörbuch] — Hunter S. Thompson. Mit Martin Semmelrogge ; Günther Amendt ; Smudo... Lesefassu (Verfügbar)"
+  ]
+ },
+ {
+  "book": 30,
+  "title": "Atonement",
+  "author": "Ian McEwan",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/122671",
+  "records": [
+   {
+    "book": 30,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Atonement",
+    "edition": "Abridged",
+    "duration": "06:03:02",
+    "narrator": "Josephine Bailey",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Phoenix Books, Inc.",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 0,
+    "waitDays": 14,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/122671",
+    "displayed": "Wait time: About 2 weeks; Place a hold"
+   },
+   {
+    "book": 30,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Atonement",
+    "edition": "Unabridged",
+    "duration": "12:26:31",
+    "narrator": "Carole Boyd",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Random House",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 0,
+    "waitDays": 14,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/3171769",
+    "displayed": "Wait time: About 2 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "Other-language eAudio (Onleihe): Abbitte (German-language edition, language not shown on list card)",
+   "physical CD: Abbitte : [Hörbuch] — Ian McEwan. Sprecherin: Barbara Auer. Aus dem Engl. von Bernhard Robben. - Gekür (Verfügbar)",
+   "physical CD: Abbitte : Roman ; [Hörbuch] ; [CD] — Ian McEwan. Gelesen von Barbara Auer. Aus dem Engl. von Bernhard Robben. - Gekür (Verfügbar)",
+   "physical CD: Atonement : [Hörbuch] ; [CD] — Ian McEwan. Read by Carole Boyd. - Complete & unabridged. - AudioGo (Verfügbar)",
+   "physical CD: Atonement : [Hörbuch] ; [CD] — Ian McEwan. Read by Isla Blair. - Abridged. - HarperCollins (Verfügbar)"
+  ]
+ },
+ {
+  "book": 31,
+  "title": "We Need to Talk About Kevin",
+  "author": "Lionel Shriver",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/681057",
+  "records": [
+   {
+    "book": 31,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "We Need to Talk About Kevin",
+    "edition": "Unabridged",
+    "duration": "16:09:57",
+    "narrator": "Coleen Marlo",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "HarperCollins",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 1,
+    "waitDays": 28,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/681057",
+    "displayed": "Wait time: About 4 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 32,
+  "title": "A Good Man Is Hard to Find and Other Stories",
+  "author": "Flannery O'Connor",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 33,
+  "title": "Amsterdam",
+  "author": "Ian McEwan",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 34,
+  "title": "American Pastoral",
+  "author": "Philip Roth",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/122669",
+  "records": [
+   {
+    "book": 34,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "American Pastoral",
+    "edition": "Unabridged",
+    "duration": "15:31:10",
+    "narrator": "Ron Silver",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Phoenix Books, Inc.",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 2,
+    "waitDays": 42,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/122669",
+    "displayed": "Wait time: About 6 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 35,
+  "title": "Knots & Crosses",
+  "author": "Ian Rankin",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 36,
+  "title": "The Color Purple",
+  "author": "Alice Walker",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/9920633",
+  "records": [
+   {
+    "book": 36,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "The Color Purple",
+    "edition": "Unabridged",
+    "duration": "07:56:57",
+    "narrator": "Alice Walker",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Books on Tape",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 1,
+    "waitDays": 28,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/9920633",
+    "displayed": "Wait time: About 4 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 37,
+  "title": "The House of the Spirits",
+  "author": "Isabel Allende",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 38,
+  "title": "The Joke",
+  "author": "Milan Kundera",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 39,
+  "title": "Vernon Subutex 1",
+  "author": "Virginie Despentes",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "Other-language eAudio (OverDrive): Das Leben des Vernon Subutex 1 [de], Der Audio Verlag, 0/1 copies",
+   "Other-language eAudio (Onleihe): Das Leben des Vernon Subutex (German-language edition, language not shown on list card)",
+   "Other-language eAudio (Onleihe): Das Leben des Vernon Subutex 2 (German-language edition, language not shown on list card)",
+   "physical CD: Vernon Subutex 1 : [Hörbuch] — Virginie Despentes. Lu par Jacques Frantz. - Audiolib (Verfügbar)"
+  ]
+ },
+ {
+  "book": 40,
+  "title": "The Poisonwood Bible",
+  "author": "Barbara Kingsolver",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 41,
+  "title": "Atomised",
+  "author": "Michel Houellebecq",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 42,
+  "title": "Independence Day",
+  "author": "Richard Ford",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 43,
+  "title": "The Glass Hotel",
+  "author": "Emily St. John Mandel",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: The glass hotel : a novel — Emily St. John Mandel ; Dylan Moore. - Random House (Zurzeit nicht verfügbar)"
+  ]
+ },
+ {
+  "book": 44,
+  "title": "The Death of Ivan Ilyich and Other Stories",
+  "author": "Leo Tolstoy",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 45,
+  "title": "The Waiter",
+  "author": "Matias Faldbakken",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 46,
+  "title": "The History Boys",
+  "author": "Alan Bennett",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 47,
+  "title": "The Woman Who Walked Into Doors",
+  "author": "Roddy Doyle",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 48,
+  "title": "The Living Sea of Waking Dreams",
+  "author": "Richard Flanagan",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 49,
+  "title": "The Watcher in the Shadows",
+  "author": "Carlos Ruiz Zafón",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 50,
+  "title": "Everything Is Illuminated",
+  "author": "Jonathan Safran Foer",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Alles ist erleuchtet : [Hörbuch] ; [CD] — Jonathan Safran Foer. Gelesen von Boris Aljinovic und Florian Lukas. - Universal (Verfügbar)"
+  ]
+ },
+ {
+  "book": 51,
+  "title": "The Corrections",
+  "author": "Jonathan Franzen",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Die Korrekturen : [Hörbuch] — Jonathan Franzen. Gelesen von Ulrich Pleitgen. Regie: Margrit Osterwold. - Gekür (Verfügbar)",
+   "physical CD: Ulrich Pleitgen liest \"Die Korrekturen\" — Jonathan Franzen. Regie: Margrit Osterwold. Aus dem Amerikan. von Bettina Abarba (Verfügbar)"
+  ]
+ },
+ {
+  "book": 52,
+  "title": "The Narrow Road to the Deep North",
+  "author": "Richard Flanagan",
+  "status": "AVAILABLE_NOW",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/1817988",
+  "records": [
+   {
+    "book": 52,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "The Narrow Road to the Deep North",
+    "edition": "Unabridged",
+    "duration": "14:59:47",
+    "narrator": "David Linski",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Blackstone Publishing",
+    "copies": 1,
+    "ownedCopies": 2,
+    "holds": 0,
+    "waitDays": 7,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/1817988",
+    "displayed": "1 of 2 copies available; Borrow"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: The narrow road to the deep north : a novel ; [Hörbuch] ; [M — Richard Flanagan. Read by David Atlas. - unabridged. - Blackstone Audio (Verfügbar)",
+   "physical CD: The narrow road to the deep north : a novel ;  [Hörbuch] ; [ — Richard Flanagan. Read by David Atlas. - Unabridged. - Blackstone Audio (Verfügbar)"
+  ]
+ },
+ {
+  "book": 53,
+  "title": "Station Eleven",
+  "author": "Emily St. John Mandel",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/1499830",
+  "records": [
+   {
+    "book": 53,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Station Eleven",
+    "edition": "Unabridged",
+    "duration": "10:41:02",
+    "narrator": "Kirsten Potter",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Books on Tape",
+    "copies": 0,
+    "ownedCopies": 2,
+    "holds": 6,
+    "waitDays": 49,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/1499830",
+    "displayed": "0 of 2 copies available; Wait time: About 7 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Station eleven : a novel ; [Hörbuch] ; [CD] — Emily St. John Mandel. Read by Kirsten Potter. - Unabridged. - Random House Audi (Verfügbar)",
+   "physical CD: Das Licht der letzten Tage : Roman ; [Hörbuch] ; [CD] — Emily St.John Mandel ; Stephanie Keller ; Deutsch von Wibke Kuhn. - gekürzte Les (Verfügbar)"
+  ]
+ },
+ {
+  "book": 54,
+  "title": "The Little Goblin Girl",
+  "author": "Illy Hymen",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 55,
+  "title": "The Luminaries",
+  "author": "Eleanor Catton",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "Other-language eAudio (Onleihe): Der Wald (German-language edition, language not shown on list card)"
+  ]
+ },
+ {
+  "book": 56,
+  "title": "Empire of the Sun",
+  "author": "J. G. Ballard",
+  "status": "WAITLIST",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/143657",
+  "records": [
+   {
+    "book": 56,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Empire of the Sun",
+    "edition": "Abridged",
+    "duration": "03:08:15",
+    "narrator": "Jeremy Irons",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Simon & Schuster Audio",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 2,
+    "waitDays": 42,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/143657",
+    "displayed": "Wait time: About 6 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 57,
+  "title": "Notes from Underground",
+  "author": "Fyodor Dostoevsky",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 58,
+  "title": "Celestial Bodies",
+  "author": "Jokha Alharthi",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 59,
+  "title": "Freedom",
+  "author": "Jonathan Franzen",
+  "status": "AVAILABLE_NOW",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/389422",
+  "records": [
+   {
+    "book": 59,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Freedom",
+    "edition": "Unabridged",
+    "duration": "24:09:28",
+    "narrator": "David Ledoux",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "Macmillan Audio",
+    "copies": 1,
+    "ownedCopies": 2,
+    "holds": 0,
+    "waitDays": 7,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/389422",
+    "displayed": "1 of 2 copies available; Borrow"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Freedom : [Hörbuch] ; [CD] — Jonathan Franzen. Read by David Ledoux. - Unabridged. - Harper Collins (Verfügbar)",
+   "physical CD: Freiheit : [Hörbuch] ; [CD] — Jonathan Franzen. Gelesen von Ulrich Matthes. Regie: Ralph Schäfer. Prod.: rbb . (Verfügbar)"
+  ]
+ },
+ {
+  "book": 60,
+  "title": "The Blind Assassin",
+  "author": "Margaret Atwood",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "—"
+  ]
+ },
+ {
+  "book": 61,
+  "title": "Wolf Hall",
+  "author": "Hilary Mantel",
+  "status": "AVAILABLE_NOW",
+  "platform": "OverDrive/Libby (VÖBB)",
+  "evidence_link": "https://voebb.overdrive.com/media/1004466",
+  "records": [
+   {
+    "book": 61,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Wolf Hall",
+    "edition": "Abridged",
+    "duration": "07:11:43",
+    "narrator": "Dan Stevens",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "HarperCollins Publishers",
+    "copies": 1,
+    "ownedCopies": 3,
+    "holds": 0,
+    "waitDays": 5,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/1004466",
+    "displayed": "1 of 3 copies available; Borrow"
+   },
+   {
+    "book": 61,
+    "source": "OverDrive/Libby (VÖBB)",
+    "title": "Wolf Hall",
+    "edition": "Unabridged",
+    "duration": "24:17:31",
+    "narrator": "Simon Slater",
+    "language": "en",
+    "format": [
+     "OverDrive Listen audiobook",
+     "MP3 audiobook"
+    ],
+    "publisher": "W. F. Howes Ltd",
+    "copies": 0,
+    "ownedCopies": 1,
+    "holds": 1,
+    "waitDays": 28,
+    "holdable": true,
+    "url": "https://voebb.overdrive.com/media/3836264",
+    "displayed": "Wait time: About 4 weeks; Place a hold"
+   }
+  ],
+  "other_language_or_physical": [
+   "physical CD: Wölfe : [Hörbuch] ; [CD] — Hilary Mantel. Sprecher: Frank Stöckle. - Gekürzte Lesung. - Audiobuch (Verfügbar)",
+   "physical CD: Wolf hall : a novel ; [Hörbuch] ; [CD] — Hilary Mantel. Read by Simon Slater. - unabridged. - Macmillan Audio (Verfügbar)"
+  ]
+ },
+ {
+  "book": 62,
+  "title": "The Sea",
+  "author": "John Banville",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Die See : [Hörbuch] ; [CD] — John Banville. Sprecher: Burghart Klaußner. Regie: Felix Partenzi. - Ungekürzte  (Verfügbar)"
+  ]
+ },
+ {
+  "book": 63,
+  "title": "The Sense of an Ending",
+  "author": "Julian Barnes",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Vom Ende einer Geschichte : [Hörbuch] ; [CD] — Julian Barnes. Manfred Zapatka liest. Regie: Ralf Ebel. Aus dem Engl. von Gertra (Verfügbar)",
+   "physical CD: The sense of an ending : [Hörbuch] ; [CD] — Julian Barnes. Narrated by Richard Morant. - Unabridged. - AudioGo (Verfügbar)"
+  ]
+ },
+ {
+  "book": 64,
+  "title": "The Dying Animal",
+  "author": "Philip Roth",
+  "status": "NOT_FOUND_AFTER_FULL_SEARCH",
+  "platform": "—",
+  "evidence_link": "—",
+  "records": [],
+  "other_language_or_physical": [
+   "physical CD: Das sterbende Tier : [Hörbuch] — Philip Roth. Gelesen von Max Volkert Martens. Aus dem Amerik. von Dirk van Gunst (Verfügbar)"
+  ]
+ }
+]

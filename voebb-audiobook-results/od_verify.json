@@ -1,0 +1,186 @@
+{
+ "3255516": {
+  "title": "Sapiens",
+  "subtitle": "A Brief History of Humankind",
+  "author": "Yuval Noah Harari",
+  "narrator": "Derek Perkins",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": false,
+  "availableCopies": 0,
+  "ownedCopies": 10,
+  "holdsCount": 0,
+  "isHoldable": true,
+  "estimatedWaitDays": 2,
+  "publisher": "HarperCollins",
+  "publishDate": "08/15/2017",
+  "duration": [
+   "15:18:10"
+  ]
+ },
+ "3512899": {
+  "title": "Mythos",
+  "subtitle": "The Greek Myths Retold",
+  "author": "Stephen Fry",
+  "narrator": "Stephen Fry",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": false,
+  "availableCopies": 0,
+  "ownedCopies": 6,
+  "holdsCount": 7,
+  "isHoldable": true,
+  "estimatedWaitDays": 19,
+  "publisher": "Penguin Books Ltd",
+  "publishDate": "11/02/2017",
+  "duration": [
+   "15:25:36"
+  ]
+ },
+ "589885": {
+  "title": "The Stand",
+  "subtitle": null,
+  "author": "Stephen King",
+  "narrator": "Grover Gardner",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": false,
+  "availableCopies": 0,
+  "ownedCopies": 1,
+  "holdsCount": 4,
+  "isHoldable": true,
+  "estimatedWaitDays": 70,
+  "publisher": "Books on Tape",
+  "publishDate": "02/14/2012",
+  "duration": [
+   "47:47:51"
+  ]
+ },
+ "3995095": {
+  "title": "The Unbearable Lightness of Being",
+  "subtitle": "'A dark and brilliant achievement' (Ian McEwan)",
+  "author": "Milan Kundera",
+  "narrator": "Richmond Hoxie",
+  "type": "Audiobook",
+  "edition": null,
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": false,
+  "availableCopies": 0,
+  "ownedCopies": 2,
+  "holdsCount": 0,
+  "isHoldable": true,
+  "estimatedWaitDays": 7,
+  "publisher": "Faber & Faber",
+  "publishDate": "09/06/2012",
+  "duration": [
+   "09:36:55"
+  ]
+ },
+ "86990": {
+  "title": "Middlesex",
+  "subtitle": "A Novel",
+  "author": "Jeffrey Eugenides",
+  "narrator": "Kristoffer Tabori",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": false,
+  "availableCopies": 0,
+  "ownedCopies": 3,
+  "holdsCount": 0,
+  "isHoldable": true,
+  "estimatedWaitDays": 5,
+  "publisher": "Macmillan Audio",
+  "publishDate": "3/1/2003",
+  "duration": [
+   "21:21:21"
+  ]
+ },
+ "1817988": {
+  "title": "The Narrow Road to the Deep North",
+  "subtitle": null,
+  "author": "Richard Flanagan",
+  "narrator": "David Linski",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": true,
+  "availableCopies": 1,
+  "ownedCopies": 2,
+  "holdsCount": 0,
+  "isHoldable": true,
+  "estimatedWaitDays": 7,
+  "publisher": "Blackstone Publishing",
+  "publishDate": "08/12/2014",
+  "duration": [
+   "14:59:47"
+  ]
+ },
+ "4235624": {
+  "title": "The Overstory",
+  "subtitle": null,
+  "author": "Richard Powers",
+  "narrator": "Suzanne Toren",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": true,
+  "availableCopies": 1,
+  "ownedCopies": 5,
+  "holdsCount": 0,
+  "isHoldable": true,
+  "estimatedWaitDays": 3,
+  "publisher": "Random House",
+  "publishDate": "09/06/2018",
+  "duration": [
+   "22:58:04"
+  ]
+ },
+ "389422": {
+  "title": "Freedom",
+  "subtitle": "A Novel",
+  "author": "Jonathan Franzen",
+  "narrator": "David Ledoux",
+  "type": "Audiobook",
+  "edition": "Unabridged",
+  "lang": [
+   "en"
+  ],
+  "isOwned": true,
+  "isAvailable": true,
+  "availableCopies": 1,
+  "ownedCopies": 2,
+  "holdsCount": 0,
+  "isHoldable": true,
+  "estimatedWaitDays": 7,
+  "publisher": "Macmillan Audio",
+  "publishDate": "08/31/2010",
+  "duration": [
+   "24:09:28"
+  ]
+ }
+}

@@ -1,0 +1,1214 @@
+[
+ {
+  "id": 4,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/335520",
+  "parsed": {
+   "copies": [
+    "0 of 2 copies available"
+   ],
+   "wait": [
+    "Wait time: About 5 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Macmillan Audio"
+   ],
+   "duration": [
+    "Duration: 08:55:02"
+   ],
+   "isbn": [
+    "ISBN: 9781593978365"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "April 1, 2005"
+   ],
+   "narrators": [
+    "Tim Jerome"
+   ]
+  }
+ },
+ {
+  "id": 5,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3886722",
+  "parsed": {
+   "copies": [
+    "0 of 2 copies available"
+   ],
+   "wait": [
+    "Wait time: About 3 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Penguin Books Ltd"
+   ],
+   "duration": [
+    "Duration: 18:38:28"
+   ],
+   "isbn": [
+    "ISBN: 9780241983652"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "April 24, 2018"
+   ],
+   "narrators": [
+    "Pippa Bennett-Warner"
+   ]
+  }
+ },
+ {
+  "id": 7,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/123544",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 8 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Books on Tape"
+   ],
+   "duration": [
+    "Duration: 09:12:32"
+   ],
+   "isbn": [
+    "ISBN: 9781415936795"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "November 27, 2007"
+   ],
+   "narrators": [
+    "Scott Brick"
+   ]
+  }
+ },
+ {
+  "id": 14,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/589885",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 10 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Books on Tape"
+   ],
+   "duration": [
+    "Duration: 47:47:51"
+   ],
+   "isbn": [
+    "ISBN: 9780307987587"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "February 14, 2012"
+   ],
+   "narrators": [
+    "Grover Gardner"
+   ]
+  }
+ },
+ {
+  "id": 15,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3619131",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 4 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Books on Tape"
+   ],
+   "duration": [
+    "Duration: 13:35:45"
+   ],
+   "isbn": [
+    "ISBN: 9780525627180"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "May 15, 2018"
+   ],
+   "narrators": [
+    "Michael Pollan"
+   ]
+  }
+ },
+ {
+  "id": 15,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3946564",
+  "parsed": {
+   "copies": [
+    "0 of 3 copies available"
+   ],
+   "wait": [
+    "Wait time: Available soon"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Penguin Books Ltd"
+   ],
+   "duration": [
+    "Duration: 13:41:01"
+   ],
+   "isbn": [
+    "ISBN: 9780141988993"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "May 17, 2018"
+   ],
+   "narrators": [
+    "Michael Pollan"
+   ]
+  }
+ },
+ {
+  "id": 16,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/4554951",
+  "parsed": {
+   "copies": [
+    "0 of 4 copies available"
+   ],
+   "wait": [
+    "Wait time: About 4 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Clipper Audiobooks"
+   ],
+   "duration": [
+    "Duration: 07:25:05"
+   ],
+   "isbn": [
+    "ISBN: 9781510030237"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "April 1, 2016"
+   ],
+   "narrators": [
+    "Maggie Gyllenhaal"
+   ]
+  }
+ },
+ {
+  "id": 18,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/858758",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 10 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Books on Tape"
+   ],
+   "duration": [
+    "Duration: 15:50:30"
+   ],
+   "isbn": [
+    "ISBN: 9780385360135"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "August 7, 2012"
+   ],
+   "narrators": [
+    "Campbell Scott"
+   ]
+  }
+ },
+ {
+  "id": 19,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/86990",
+  "parsed": {
+   "copies": [
+    "0 of 3 copies available"
+   ],
+   "wait": [
+    "Wait time: Available soon"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Macmillan Audio"
+   ],
+   "duration": [
+    "Duration: 21:21:21"
+   ],
+   "isbn": [
+    "ISBN: 9781593971045"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "March 1, 2003"
+   ],
+   "narrators": [
+    "Kristoffer Tabori"
+   ]
+  }
+ },
+ {
+  "id": 22,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3995095",
+  "parsed": {
+   "copies": [
+    "0 of 2 copies available"
+   ],
+   "wait": [
+    "Wait time: Available soon"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [],
+   "publisher": [
+    "Audiobook",
+    "Faber & Faber"
+   ],
+   "duration": [
+    "Duration: 09:36:55"
+   ],
+   "isbn": [
+    "ISBN: 9780571308439"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "September 6, 2012"
+   ],
+   "narrators": [
+    "Richmond Hoxie"
+   ]
+  }
+ },
+ {
+  "id": 26,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/66481",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 2 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Blackstone Publishing"
+   ],
+   "duration": [
+    "Duration: 18:32:28"
+   ],
+   "isbn": [
+    "ISBN: 9781483090474"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "October 18, 2011"
+   ],
+   "narrators": [
+    "Simon Prebble"
+   ]
+  }
+ },
+ {
+  "id": 30,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/122671",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 2 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Abridged"
+   ],
+   "publisher": [
+    "Audiobook"
+   ],
+   "duration": [
+    "Duration: 06:03:02"
+   ],
+   "isbn": [
+    "ISBN: 9781614674603"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "April 18, 2006"
+   ],
+   "narrators": []
+  }
+ },
+ {
+  "id": 30,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3171769",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 2 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Random House"
+   ],
+   "duration": [
+    "Duration: 12:26:31"
+   ],
+   "isbn": [
+    "ISBN: 9781473513815"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "November 13, 2014"
+   ],
+   "narrators": [
+    "Carole Boyd"
+   ]
+  }
+ },
+ {
+  "id": 31,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/681057",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 4 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "HarperCollins"
+   ],
+   "duration": [
+    "Duration: 16:09:57"
+   ],
+   "isbn": [
+    "ISBN: 9780062188076"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "December 27, 2011"
+   ],
+   "narrators": [
+    "Coleen Marlo"
+   ]
+  }
+ },
+ {
+  "id": 34,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/122669",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 6 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook"
+   ],
+   "duration": [
+    "Duration: 15:31:10"
+   ],
+   "isbn": [],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "February 6, 2007"
+   ],
+   "narrators": [
+    "Ron Silver"
+   ]
+  }
+ },
+ {
+  "id": 34,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1679581",
+  "parsed": {
+   "copies": [],
+   "wait": [],
+   "actions": [
+    "Borrow",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Blackstone Publishing"
+   ],
+   "duration": [
+    "Duration: 02:30:37"
+   ],
+   "isbn": [
+    "ISBN: 9781483024981"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author"
+   ],
+   "release": [
+    "May 1, 2014"
+   ],
+   "narrators": []
+  }
+ },
+ {
+  "id": 36,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/9920633",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 4 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Books on Tape"
+   ],
+   "duration": [
+    "Duration: 07:56:57"
+   ],
+   "isbn": [
+    "ISBN: 9780593863565"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "November 21, 2023"
+   ],
+   "narrators": [
+    "Alice Walker"
+   ]
+  }
+ },
+ {
+  "id": 44,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/168206",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 6 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Naxos AudioBooks"
+   ],
+   "duration": [
+    "Duration: 02:51:09"
+   ],
+   "isbn": [
+    "ISBN: 9789629545703"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "May 13, 2008"
+   ],
+   "narrators": [
+    "Oliver Ford Davies"
+   ]
+  }
+ },
+ {
+  "id": 52,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1817988",
+  "parsed": {
+   "copies": [
+    "1 of 2 copies available"
+   ],
+   "wait": [],
+   "actions": [
+    "Borrow",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Blackstone Publishing"
+   ],
+   "duration": [
+    "Duration: 14:59:47"
+   ],
+   "isbn": [
+    "ISBN: 9781483021416"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "August 12, 2014"
+   ],
+   "narrators": [
+    "David Linski"
+   ]
+  }
+ },
+ {
+  "id": 53,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1499830",
+  "parsed": {
+   "copies": [
+    "0 of 2 copies available"
+   ],
+   "wait": [
+    "Wait time: About 7 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Books on Tape"
+   ],
+   "duration": [
+    "Duration: 10:41:02"
+   ],
+   "isbn": [
+    "ISBN: 9780553397987"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "September 9, 2014"
+   ],
+   "narrators": [
+    "Kirsten Potter"
+   ]
+  }
+ },
+ {
+  "id": 56,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/143657",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 6 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Abridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Simon & Schuster Audio"
+   ],
+   "duration": [
+    "Duration: 03:08:15"
+   ],
+   "isbn": [
+    "ISBN: 9780743546850"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "December 15, 1987"
+   ],
+   "narrators": [
+    "Jeremy Irons"
+   ]
+  }
+ },
+ {
+  "id": 59,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/389422",
+  "parsed": {
+   "copies": [
+    "1 of 2 copies available"
+   ],
+   "wait": [],
+   "actions": [
+    "Borrow",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "Macmillan Audio"
+   ],
+   "duration": [
+    "Duration: 24:09:28"
+   ],
+   "isbn": [
+    "ISBN: 9781427210500"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "August 31, 2010"
+   ],
+   "narrators": [
+    "David Ledoux"
+   ]
+  }
+ },
+ {
+  "id": 61,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3836264",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 4 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook"
+   ],
+   "duration": [
+    "Duration: 24:17:31"
+   ],
+   "isbn": [
+    "ISBN: 9781407453439"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "January 1, 2010"
+   ],
+   "narrators": [
+    "Simon Slater"
+   ]
+  }
+ },
+ {
+  "id": 61,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1004466",
+  "parsed": {
+   "copies": [
+    "1 of 3 copies available"
+   ],
+   "wait": [],
+   "actions": [
+    "Borrow",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Abridged"
+   ],
+   "publisher": [
+    "Audiobook",
+    "HarperCollins Publishers"
+   ],
+   "duration": [
+    "Duration: 07:11:43"
+   ],
+   "isbn": [
+    "ISBN: 9780007237258"
+   ],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [
+    "Author",
+    "Narrator"
+   ],
+   "release": [
+    "November 6, 2009"
+   ],
+   "narrators": [
+    "Dan Stevens"
+   ]
+  }
+ },
+ {
+  "id": 62,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/154540",
+  "parsed": {
+   "copies": [],
+   "wait": [
+    "Wait time: About 2 weeks"
+   ],
+   "actions": [
+    "Place a hold",
+    "Listen to a sample",
+    "Add to wish list",
+    "Add to history"
+   ],
+   "edition": [
+    "Edition: Unabridged"
+   ],
+   "publisher": [
+    "Audiobook"
+   ],
+   "duration": [
+    "Duration: 00:53:51"
+   ],
+   "isbn": [],
+   "language": [
+    "English"
+   ],
+   "format_line": [
+    "Audiobook"
+   ],
+   "narrator_block": [],
+   "release": [
+    "January 3, 2008"
+   ],
+   "narrators": []
+  }
+ },
+ {
+  "id": 3,
+  "kind": "onleihe",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+  "parsed": {
+   "fields": [
+    "Sprachen:",
+    "Autor*in:",
+    "Sprache:",
+    "Dauer:",
+    "Verlag:",
+    "Format:"
+   ],
+   "status": [
+    "Vormerker pro Nutzer:",
+    "Verfügbar",
+    "Vormerker"
+   ],
+   "actions": [
+    "Jetzt ausleihen"
+   ]
+  }
+ },
+ {
+  "id": 26,
+  "kind": "onleihe",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+  "parsed": {
+   "fields": [
+    "Sprachen:",
+    "Autor*in:",
+    "Sprache:",
+    "Dauer:",
+    "Verlag:",
+    "Format:"
+   ],
+   "status": [
+    "Vormerker pro Nutzer:",
+    "Verfügbar",
+    "Vormerker"
+   ],
+   "actions": [
+    "Jetzt ausleihen"
+   ]
+  }
+ },
+ {
+  "id": 39,
+  "kind": "onleihe",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-586417031-200-0-0-0-0-0-0-0.html",
+  "parsed": {
+   "fields": [
+    "Sprachen:",
+    "Autor*in:",
+    "Sprache:",
+    "Dauer:",
+    "Verlag:",
+    "ISBN:",
+    "Format:"
+   ],
+   "status": [
+    "Vormerker pro Nutzer:",
+    "Verfügbar",
+    "Vormerker"
+   ],
+   "actions": [
+    "Jetzt ausleihen"
+   ]
+  }
+ }
+]

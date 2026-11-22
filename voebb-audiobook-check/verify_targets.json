@@ -1,0 +1,167 @@
+[
+ {
+  "id": 4,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/335520",
+  "rec_id": "335520"
+ },
+ {
+  "id": 5,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3886722",
+  "rec_id": "3886722"
+ },
+ {
+  "id": 7,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/123544",
+  "rec_id": "123544"
+ },
+ {
+  "id": 14,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/589885",
+  "rec_id": "589885"
+ },
+ {
+  "id": 15,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3619131",
+  "rec_id": "3619131"
+ },
+ {
+  "id": 15,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3946564",
+  "rec_id": "3946564"
+ },
+ {
+  "id": 16,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/4554951",
+  "rec_id": "4554951"
+ },
+ {
+  "id": 18,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/858758",
+  "rec_id": "858758"
+ },
+ {
+  "id": 19,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/86990",
+  "rec_id": "86990"
+ },
+ {
+  "id": 22,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3995095",
+  "rec_id": "3995095"
+ },
+ {
+  "id": 26,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/66481",
+  "rec_id": "66481"
+ },
+ {
+  "id": 30,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/122671",
+  "rec_id": "122671"
+ },
+ {
+  "id": 30,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3171769",
+  "rec_id": "3171769"
+ },
+ {
+  "id": 31,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/681057",
+  "rec_id": "681057"
+ },
+ {
+  "id": 34,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/122669",
+  "rec_id": "122669"
+ },
+ {
+  "id": 34,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1679581",
+  "rec_id": "1679581"
+ },
+ {
+  "id": 36,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/9920633",
+  "rec_id": "9920633"
+ },
+ {
+  "id": 44,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/168206",
+  "rec_id": "168206"
+ },
+ {
+  "id": 52,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1817988",
+  "rec_id": "1817988"
+ },
+ {
+  "id": 53,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1499830",
+  "rec_id": "1499830"
+ },
+ {
+  "id": 56,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/143657",
+  "rec_id": "143657"
+ },
+ {
+  "id": 59,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/389422",
+  "rec_id": "389422"
+ },
+ {
+  "id": 61,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/3836264",
+  "rec_id": "3836264"
+ },
+ {
+  "id": 61,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/1004466",
+  "rec_id": "1004466"
+ },
+ {
+  "id": 62,
+  "kind": "overdrive",
+  "url": "https://voebb.overdrive.com/media/154540",
+  "rec_id": "154540"
+ },
+ {
+  "id": 3,
+  "kind": "onleihe",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html"
+ },
+ {
+  "id": 26,
+  "kind": "onleihe",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html"
+ },
+ {
+  "id": 39,
+  "kind": "onleihe",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-586417031-200-0-0-0-0-0-0-0.html"
+ }
+]

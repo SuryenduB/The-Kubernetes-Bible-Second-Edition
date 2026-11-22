@@ -1,0 +1,5753 @@
+[
+ {
+  "id": 1,
+  "title": "The Complete Plays",
+  "author": "Joe Orton",
+  "searches": [
+   {
+    "query": "The Complete Plays",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Complete Plays Joe Orton",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Complete Plays Orton",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 2,
+  "title": "Things Fall Apart",
+  "author": "Chinua Achebe",
+  "searches": [
+   {
+    "query": "Things Fall Apart",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Things Fall Apart Achebe",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 3,
+  "title": "Uncle Tom's Cabin",
+  "author": "Harriet Beecher Stowe",
+  "searches": [
+   {
+    "query": "Uncle Tom's Cabin",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "Uncle Toms Cabin",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "Uncle Tom's Cabin Stowe",
+    "total": 1,
+    "cards": 1
+   }
+  ],
+  "hits": [
+   {
+    "title": "Uncle Tom&#039;s cabin",
+    "author": "Stowe, Harriet Beecher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Uncle Tom's Cabin"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Uncle Tom&#039;s cabin",
+    "author": "Stowe, Harriet Beecher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Uncle Tom's Cabin"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "Uncle Tom&#039;s cabin",
+    "author": "Stowe, Harriet Beecher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Uncle Tom's Cabin"
+   }
+  ]
+ },
+ {
+  "id": 4,
+  "title": "Gilead",
+  "author": "Marilynne Robinson",
+  "searches": [
+   {
+    "query": "Gilead",
+    "total": 6,
+    "cards": 6
+   },
+   {
+    "query": "Gilead Robinson",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Das Buch des Wisperns (Die Gilead-Saga 1)",
+    "author": "Schwindt, Peter",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1609842842-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Gilead"
+   },
+   {
+    "title": "Stephen King DER DUNKLE TURM, Bd.",
+    "author": "King, Stephen;",
+    "subtitle": "Der Untergang Gileads",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364029183-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Gilead"
+   },
+   {
+    "title": "Bauer Giles von Ham",
+    "author": "Tolkien, J.R.R.",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362539907-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Gilead"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Das Buch des Wisperns (Die Gilead-Saga 1)",
+    "author": "Schwindt, Peter",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1609842842-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Gilead"
+   }
+  ],
+  "audio_hits": []
+ },
+ {
+  "id": 5,
+  "title": "White Teeth",
+  "author": "Zadie Smith",
+  "searches": [
+   {
+    "query": "White Teeth",
+    "total": 3,
+    "cards": 3
+   },
+   {
+    "query": "White Teeth Smith",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Lightroom Quick Tips",
+    "author": "Fobes, Natalie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505354068-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "White Teeth"
+   },
+   {
+    "title": "Retouching Bridal Portraits with Photoshop",
+    "author": "Orwig,  Chris",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505237590-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "White Teeth"
+   },
+   {
+    "title": "Learning Photoshop Portrait Retouching",
+    "author": "Orwig,  Chris",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505188948-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "White Teeth"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 6,
+  "title": "Time Shelter",
+  "author": "Georgi Gospodinov",
+  "searches": [
+   {
+    "query": "Time Shelter",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Timeshelter",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Time Shelter Gospodinov",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 7,
+  "title": "Do Androids Dream of Electric Sheep?",
+  "author": "Philip K. Dick",
+  "searches": [
+   {
+    "query": "Do Androids Dream of Electric Sheep?",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Do Androids Dream of Electric Sheep",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Do Androids Dream of Electric Sheep? Dick",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 8,
+  "title": "The Man in the High Castle",
+  "author": "Philip K. Dick",
+  "searches": [
+   {
+    "query": "The Man in the High Castle",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Man in the High Castle Dick",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 9,
+  "title": "No Country for Old Men",
+  "author": "Cormac McCarthy",
+  "searches": [
+   {
+    "query": "No Country for Old Men",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "No Country for Old Men McCarthy",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 10,
+  "title": "Midnight's Children",
+  "author": "Salman Rushdie",
+  "searches": [
+   {
+    "query": "Midnight's Children",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Midnights Children",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Midnight's Children Rushdie",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 11,
+  "title": "Waiting for the Barbarians",
+  "author": "J. M. Coetzee",
+  "searches": [
+   {
+    "query": "Waiting for the Barbarians",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Waiting for the Barbarians A Novel",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Waiting for the Barbarians Coetzee",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 12,
+  "title": "Charlotte's Web",
+  "author": "E. B. White",
+  "searches": [
+   {
+    "query": "Charlotte's Web",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Charlottes Web",
+    "total": 10,
+    "cards": 10
+   },
+   {
+    "query": "Charlotte's Web White",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Die schönsten Familienkonzerte. Das Schaf Charlotte",
+    "author": "Stohner, Anu",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1318498851-200-0-0-0-0-0-0-0.html",
+    "match": 0.33,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Eine Nacht im November 1938",
+    "author": "Heiden, Konrad",
+    "subtitle": "Ein zeitgenössischer Bericht",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362368432-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Glückwunsch",
+    "author": "",
+    "subtitle": "15 Erzählungen über Abtreibung",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1920541404-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Ein Fall für die Schwarze Pfote: Halloween!",
+    "author": "Weber, Benedikt",
+    "subtitle": "",
+    "availability": "02.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-365524983-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Ein Fall für die Schwarze Pfote: Angriff des T-Rex!",
+    "author": "Weber, Benedikt",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364215612-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Ein Fall für die Schwarze Pfote: Giftalarm!",
+    "author": "Weber, Benedikt",
+    "subtitle": "",
+    "availability": "02.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-359107407-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Ein Fall für die Schwarze Pfote: Hugo auf heißer Spur",
+    "author": "Weber, Benedikt",
+    "subtitle": "",
+    "availability": "01.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-359107479-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Ein Fall für die Schwarze Pfote: Piraten!",
+    "author": "Weber, Benedikt",
+    "subtitle": "Piraten!",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-385270579-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Hansetochter",
+    "author": "Weiß, Sabine",
+    "subtitle": "Historischer Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362986908-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   },
+   {
+    "title": "Ein Fall für die Schwarze Pfote - Hugo in Gefahr",
+    "author": "Weber, Benedikt",
+    "subtitle": "Band 6",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-360699673-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Charlottes Web"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 13,
+  "title": "Plainsong",
+  "author": "Kent Haruf",
+  "searches": [
+   {
+    "query": "Plainsong",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Plainsong Haruf",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 14,
+  "title": "The Stand",
+  "author": "Stephen King",
+  "searches": [
+   {
+    "query": "The Stand",
+    "total": 914,
+    "cards": 20
+   },
+   {
+    "query": "The Stand Uncut",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Stand unabridged",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Stand King",
+    "total": 7,
+    "cards": 7
+   }
+  ],
+  "hits": [
+   {
+    "title": "The Benefits of Standardization and Standard Work",
+    "author": "Academy, Gemba",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505296158-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Learning the Go Standard Library",
+    "author": "Marini, Joe",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611186127-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Learning the Standard PHP Library",
+    "author": "Powers, David",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505197524-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Learning the Python 3 Standard Library",
+    "author": "Hodge, Kathryn",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505331208-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Diane Domeyer on Standing out in the Creative Job Market",
+    "author": "Ellison, Kristin;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505229352-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Reden aus dem Stand",
+    "author": "Nöllke, Matthias",
+    "subtitle": "Mehr Sicherheit für den spontanen Auftritt",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-384600926-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Wir standen nicht abseits",
+    "author": "Geyken, Frauke",
+    "subtitle": "Frauen im Widerstand gegen Hitler",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364468878-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "How to Stand Out Remotely",
+    "author": "Madecraft;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611191009-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Get Promoted Faster: Stand Out",
+    "author": "Arruda, William;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611186531-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Stand und Entwicklung von Konzepten zur City-Logistik",
+    "author": "Erd, Julian",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-374134140-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Gene, Zufall, Selektion",
+    "author": "Krauß, Veiko",
+    "subtitle": "Populäre Vorstellungen zur Evolution und der Stand des Wissens",
+    "availability": "28.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-380591929-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Medien und Gewalt",
+    "author": "Kunczik, Michael",
+    "subtitle": "Überblick über den aktuellen Stand der Forschung und der Theoriediskussion",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-534115010-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Technische Potenzialanalyse der Elektromobilität",
+    "author": "Füßel, Andreas",
+    "subtitle": "Stand der Technik, Forschungsausblick und Projektion auf das Jahr 2025",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-534063385-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "HOW TO STAND UP TO A DICTATOR - Der Kampf um unsere Zukunft",
+    "author": "Ressa, Maria",
+    "subtitle": "Ungekürzt",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1940115141-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Das Verjüngungs-Kochbuch",
+    "author": "Ruge, Nina;",
+    "subtitle": "60 Rezepte für gesunde Langlebigkeit - auf dem neuesten Stand der Forschung",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1766358953-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Das Klima-Buch von Greta Thunberg",
+    "author": "Thunberg, Greta",
+    "subtitle": "Der aktuellste Stand der Wissenschaft unter Mitarbeit der weltweit führenden Expert:innen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1929467442-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Die Verkrempelung der Welt",
+    "author": "Yoran, Gabriel",
+    "subtitle": "Zum Stand der Dinge (des Alltags) | Über Scheininnovationen und Bauhaus-Kitsch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956933110-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "PowerPoint: Eight Easy Ways to Make Your Presentation Stand Out",
+    "author": "Simmons, Jole",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611181078-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Geschichte der Welt 600-1350 Geteilte Welten",
+    "author": "",
+    "subtitle": "",
+    "availability": "04.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1933357445-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "MDAA: Windows 10 (MD-101) - Teil 1: Bereitstellung und Aktualisierung von Betriebssystemen",
+    "author": "Laue,  Nicole",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505266822-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "King Cotton",
+    "author": "Beckert, Sven",
+    "subtitle": "Eine Globalgeschichte des Kapitalismus",
+    "availability": "22.12.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-367321265-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   },
+   {
+    "title": "Martin Luther King",
+    "author": "Dietrich, Tobias",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-352263366-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   },
+   {
+    "title": "Stephen King. 100 Seiten",
+    "author": "Dath, Dietmar",
+    "subtitle": "Reclam 100 Seiten",
+    "availability": "28.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1883496861-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   },
+   {
+    "title": "Married into Magic: Deal with the Elf King",
+    "author": "Kova, Elise",
+    "subtitle": "Magische Slow-Burn Romantasy zwischen einer menschlichen Königin und einem kaltherzigen Elfenkönig",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957165764-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   },
+   {
+    "title": "Die Arena",
+    "author": "King, Stephen",
+    "subtitle": "",
+    "availability": "02.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-354806243-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   },
+   {
+    "title": "Weihnachten mit Thomas Müller &amp; Thomas Müller und der Zirkusbär",
+    "author": "Duve, Karen",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-521108232-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   },
+   {
+    "title": "MUSIK. Ein Streifzug durch 12 Jahrhunderte",
+    "author": "",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957044097-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Stand King"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Reden aus dem Stand",
+    "author": "Nöllke, Matthias",
+    "subtitle": "Mehr Sicherheit für den spontanen Auftritt",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-384600926-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "How to Stand Out Remotely",
+    "author": "Madecraft;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611191009-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Get Promoted Faster: Stand Out",
+    "author": "Arruda, William;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611186531-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Stand und Entwicklung von Konzepten zur City-Logistik",
+    "author": "Erd, Julian",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-374134140-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Gene, Zufall, Selektion",
+    "author": "Krauß, Veiko",
+    "subtitle": "Populäre Vorstellungen zur Evolution und der Stand des Wissens",
+    "availability": "28.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-380591929-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Medien und Gewalt",
+    "author": "Kunczik, Michael",
+    "subtitle": "Überblick über den aktuellen Stand der Forschung und der Theoriediskussion",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-534115010-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Technische Potenzialanalyse der Elektromobilität",
+    "author": "Füßel, Andreas",
+    "subtitle": "Stand der Technik, Forschungsausblick und Projektion auf das Jahr 2025",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-534063385-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "HOW TO STAND UP TO A DICTATOR - Der Kampf um unsere Zukunft",
+    "author": "Ressa, Maria",
+    "subtitle": "Ungekürzt",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1940115141-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Das Verjüngungs-Kochbuch",
+    "author": "Ruge, Nina;",
+    "subtitle": "60 Rezepte für gesunde Langlebigkeit - auf dem neuesten Stand der Forschung",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1766358953-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Das Klima-Buch von Greta Thunberg",
+    "author": "Thunberg, Greta",
+    "subtitle": "Der aktuellste Stand der Wissenschaft unter Mitarbeit der weltweit führenden Expert:innen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1929467442-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "Die Verkrempelung der Welt",
+    "author": "Yoran, Gabriel",
+    "subtitle": "Zum Stand der Dinge (des Alltags) | Über Scheininnovationen und Bauhaus-Kitsch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956933110-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   },
+   {
+    "title": "PowerPoint: Eight Easy Ways to Make Your Presentation Stand Out",
+    "author": "Simmons, Jole",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611181078-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "HOW TO STAND UP TO A DICTATOR - Der Kampf um unsere Zukunft",
+    "author": "Ressa, Maria",
+    "subtitle": "Ungekürzt",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1940115141-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Stand"
+   }
+  ]
+ },
+ {
+  "id": 15,
+  "title": "How to Change Your Mind: The New Science of Psychedelics",
+  "author": "Michael Pollan",
+  "searches": [
+   {
+    "query": "How to Change Your Mind: The New Science of Psychedelics",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "How to Change Your Mind",
+    "total": 5,
+    "cards": 5
+   },
+   {
+    "query": "How to Change Your Mind: The New Science of Psychedelics Pollan",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "How to Successfully Lead a PMO",
+    "author": "Bandukwala, Hussain",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611192010-200-0-0-0-0-0-0-0.html",
+    "match": 0.14,
+    "query": "How to Change Your Mind"
+   },
+   {
+    "title": "Embracing Change with Mindfulness",
+    "author": "Anywhere, Chill",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611208114-200-0-0-0-0-0-0-0.html",
+    "match": 0.14,
+    "query": "How to Change Your Mind"
+   },
+   {
+    "title": "Mindfulness Practices",
+    "author": "Inam, Henna",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505269093-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "How to Change Your Mind"
+   },
+   {
+    "title": "Learning Windows 10 Universal App and Cross-Platform Development",
+    "author": "Ritscher, Walt",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505291719-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "How to Change Your Mind"
+   },
+   {
+    "title": "Inclusion During Difficult Times",
+    "author": "Wadors, Pat",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611209820-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "How to Change Your Mind"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 16,
+  "title": "The Bell Jar",
+  "author": "Sylvia Plath",
+  "searches": [
+   {
+    "query": "The Bell Jar",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Bell Jar Plath",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 17,
+  "title": "The Amazing Adventures of Kavalier & Clay",
+  "author": "Michael Chabon",
+  "searches": [
+   {
+    "query": "The Amazing Adventures of Kavalier & Clay",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Amazing Adventures of Kavalier and Clay",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Amazing Adventures of Kavalier & Clay Chabon",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 18,
+  "title": "The Shining",
+  "author": "Stephen King",
+  "searches": [
+   {
+    "query": "The Shining",
+    "total": 8,
+    "cards": 8
+   },
+   {
+    "query": "The Shining King",
+    "total": 3,
+    "cards": 3
+   }
+  ],
+  "hits": [
+   {
+    "title": "Skyhunter – A Shining Rise",
+    "author": "Lu, Marie",
+    "subtitle": "Das atemberaubende Finale der New-York-Times-Bestsellerreihe auf Deutsch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956936083-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "A Shining Rise - Skyhunter, Band 2 (Ungekürzt)",
+    "author": "Lu, Marie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956936092-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "Doctor Sleep",
+    "author": "King, Stephen",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364210584-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "Arne Duncan Interview: Education and Reducing Violence",
+    "author": "Kennedy, Ashley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505184533-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "Stephen King. 100 Seiten",
+    "author": "Dath, Dietmar",
+    "subtitle": "Reclam 100 Seiten",
+    "availability": "28.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1883496861-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "9mm Cut",
+    "author": "Ruge, Sybille",
+    "subtitle": "Roman | Der neue Thriller der Krimipreis-Trägerin",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956383874-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "Skyhunter – A Silent Fall",
+    "author": "Lu, Marie",
+    "subtitle": "Actionreiche Fantasy mit starker Heldin und Slow-Burn-Romance – der New-York-Times-Bestseller auf Deutsch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956609599-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Shining"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Skyhunter – A Shining Rise",
+    "author": "Lu, Marie",
+    "subtitle": "Das atemberaubende Finale der New-York-Times-Bestsellerreihe auf Deutsch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956936083-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Shining"
+   },
+   {
+    "title": "A Shining Rise - Skyhunter, Band 2 (Ungekürzt)",
+    "author": "Lu, Marie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956936092-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Shining"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "A Shining Rise - Skyhunter, Band 2 (Ungekürzt)",
+    "author": "Lu, Marie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956936092-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Shining"
+   }
+  ]
+ },
+ {
+  "id": 19,
+  "title": "Middlesex",
+  "author": "Jeffrey Eugenides",
+  "searches": [
+   {
+    "query": "Middlesex",
+    "total": 3,
+    "cards": 3
+   },
+   {
+    "query": "Middlesex Eugenides",
+    "total": 1,
+    "cards": 1
+   }
+  ],
+  "hits": [
+   {
+    "title": "Middlesex",
+    "author": "Eugenides, Jeffrey",
+    "subtitle": "Roman",
+    "availability": "22.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957059311-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Middlesex"
+   },
+   {
+    "title": "Die Fletchers von Long Island",
+    "author": "Brodesser-Akner, Taffy",
+    "subtitle": "Roman | »Dieses Buch steht Klassikern wie DIE KORREKTUREN und MIDDLESEX in nichts nach.« LOS ANGELES TIMES",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956942993-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Middlesex"
+   },
+   {
+    "title": "Der Hobbit",
+    "author": "Tolkien, J.R.R.",
+    "subtitle": "oder Hin und zurück. Mit Illustrationen von Alan Lee.",
+    "availability": "29.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1840643659-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Middlesex"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Middlesex",
+    "author": "Eugenides, Jeffrey",
+    "subtitle": "Roman",
+    "availability": "22.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957059311-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Middlesex"
+   },
+   {
+    "title": "Die Fletchers von Long Island",
+    "author": "Brodesser-Akner, Taffy",
+    "subtitle": "Roman | »Dieses Buch steht Klassikern wie DIE KORREKTUREN und MIDDLESEX in nichts nach.« LOS ANGELES TIMES",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956942993-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Middlesex"
+   }
+  ],
+  "audio_hits": []
+ },
+ {
+  "id": 20,
+  "title": "Austerlitz",
+  "author": "W. G. Sebald",
+  "searches": [
+   {
+    "query": "Austerlitz",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "Austerlitz Sebald",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Paris-Austerlitz",
+    "author": "Chirbes, Rafael",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-465062928-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Austerlitz"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Paris-Austerlitz",
+    "author": "Chirbes, Rafael",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-465062928-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Austerlitz"
+   }
+  ],
+  "audio_hits": []
+ },
+ {
+  "id": 21,
+  "title": "Zen and the Art of Motorcycle Maintenance: An Inquiry into Values",
+  "author": "Robert M. Pirsig",
+  "searches": [
+   {
+    "query": "Zen and the Art of Motorcycle Maintenance: An Inquiry into Values",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Zen and the Art of Motorcycle Maintenance",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Zen and the Art of Motorcycle Maintenance: An Inquiry into Values Pirsig",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 22,
+  "title": "The Unbearable Lightness of Being",
+  "author": "Milan Kundera",
+  "searches": [
+   {
+    "query": "The Unbearable Lightness of Being",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Unbearable Lightness of Being Kundera",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 23,
+  "title": "A Confederacy of Dunces",
+  "author": "John Kennedy Toole",
+  "searches": [
+   {
+    "query": "A Confederacy of Dunces",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "A Confederacy of Dunces Toole",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 24,
+  "title": "The Human Stain",
+  "author": "Philip Roth",
+  "searches": [
+   {
+    "query": "The Human Stain",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Human Stain Roth",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 25,
+  "title": "The Whites",
+  "author": "Richard Price",
+  "searches": [
+   {
+    "query": "The Whites",
+    "total": 158,
+    "cards": 20
+   },
+   {
+    "query": "The Whites Price",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "White fang",
+    "author": "London, Jack",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593575-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "White Zero",
+    "author": "Falk, Thilo",
+    "subtitle": "Die Kälte ist dein Tod | Der neue temporeiche Klima-Thriller – perfekt für Fans von Wolf Harlander und Uwe Laub",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1943181690-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "White Riot",
+    "author": "Thomas, Joe",
+    "subtitle": "Kriminalroman",
+    "availability": "26.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956935253-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Writing White Papers",
+    "author": "Geller, Tom",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505273748-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "The Piano in Black and White",
+    "author": "Tanner, Mark",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956891624-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Walter White &amp; Co",
+    "author": "Gormász, Kathi",
+    "subtitle": "die neuen Heldenfiguren in amerikanischen Fernsehserien",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-385360326-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Straight White Male",
+    "author": "Niven, John",
+    "subtitle": "",
+    "availability": "24.10.2026",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-367320393-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "White Bird - Wie ein Vogel",
+    "author": "Palacio, R. J.;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1931077888-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Photography Foundations: Black and White",
+    "author": "Long, Ben",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505279255-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "James White: Visual Artist, Designer",
+    "author": "White, James",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505303941-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "White Zone - Letzte Chance",
+    "author": "Brandis, Katja",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-530321372-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Black-and-White Darkroom: Printing Techniques",
+    "author": "Eek, Konrad",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505317728-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Lightroom and Photoshop: Black and White Photography",
+    "author": "Hughes, Bryan O'Neil",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505362741-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "James White, illustrateur et designer",
+    "author": "White, James",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505281622-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Die Pforte des Schicksals - White Fox, Teil 4 (Ungekürzt)",
+    "author": "Jiatong, Jiatong",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1919551218-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Auf dem Pfad der Bestimmung - White Fox, Teil 3 (Ungekürzt)",
+    "author": "Jiatong, Jiatong",
+    "subtitle": "",
+    "availability": "24.10.2026",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1858647296-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "Exploring Photography: White Balance and Color Temperature",
+    "author": "Long, Ben",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505297465-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   },
+   {
+    "title": "James White et son cheval laser",
+    "author": "White, James",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505208406-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Whites"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 26,
+  "title": "Great Expectations",
+  "author": "Charles Dickens",
+  "searches": [
+   {
+    "query": "Great Expectations",
+    "total": 13,
+    "cards": 13
+   },
+   {
+    "query": "Great Expectations Dickens",
+    "total": 2,
+    "cards": 2
+   }
+  ],
+  "hits": [
+   {
+    "title": "Great expectations",
+    "author": "Dickens, Charles",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Leading Virtual Meetings",
+    "author": "Eikenberry, Kevin",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505337198-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Providing Legendary Customer Service",
+    "author": "Harris, Elaine;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611189324-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Interviewing Techniques",
+    "author": "Bruno, Barbara",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505146674-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Hiring a Marketing Agency",
+    "author": "Shapiro, Dina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505354845-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Learning Logo Design",
+    "author": "Glitschka, Von",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611209305-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Working with Recruiters",
+    "author": "Bruno, Barbara",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505199488-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Succeeding as a First-Time Tech Manager",
+    "author": "Mogha, Rashim",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505255133-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Getting the Most from Recruiters While Job Hunting",
+    "author": "Careercake",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505255199-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "Recruiting Foundations",
+    "author": "Bruno, Barbara",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505202861-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "HR Leadership as We Move Back into the Office",
+    "author": "Wadors, Pat",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611194226-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   },
+   {
+    "title": "The age of innocence",
+    "author": "Wharton, Edith",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363592448-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Great Expectations"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Great expectations",
+    "author": "Dickens, Charles",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Great Expectations"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "Great expectations",
+    "author": "Dickens, Charles",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Great Expectations"
+   }
+  ]
+ },
+ {
+  "id": 27,
+  "title": "Lullaby",
+  "author": "Leila Slimani",
+  "searches": [
+   {
+    "query": "Lullaby",
+    "total": 4,
+    "cards": 4
+   },
+   {
+    "query": "The Perfect Nanny",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Lullaby Slimani",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "In jedem Augenblick ein Wir",
+    "author": "Wiley, Jennifer",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1943181901-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Lullaby"
+   },
+   {
+    "title": "Like Fire in the Night",
+    "author": "Wiley, Jennifer",
+    "subtitle": "Roman | Mitreißende Rockstar-Romance in New York",
+    "availability": "26.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956944387-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Lullaby"
+   },
+   {
+    "title": "Album for the Young",
+    "author": "Schumann, Robert",
+    "subtitle": "Op. 68: for Piano",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1664395670-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Lullaby"
+   },
+   {
+    "title": "Married into Magic: Deal with the Elf King",
+    "author": "Kova, Elise",
+    "subtitle": "Magische Slow-Burn Romantasy zwischen einer menschlichen Königin und einem kaltherzigen Elfenkönig",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957165764-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Lullaby"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 28,
+  "title": "Spring",
+  "author": "Ali Smith",
+  "searches": [
+   {
+    "query": "Spring",
+    "total": 3151,
+    "cards": 20
+   },
+   {
+    "query": "Spring Smith",
+    "total": 7,
+    "cards": 7
+   }
+  ],
+  "hits": [
+   {
+    "title": "Spring: Spring Integration",
+    "author": "Flint, Kathy",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611200992-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Cloud",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505315188-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring MVC",
+    "author": "Aryamane, Ketkee",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505142547-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Security",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505177305-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Batch",
+    "author": "Bowersox, Kevin",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505248289-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Learning Spring with Spring Boot",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505336898-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Data 2",
+    "author": "Bowman, Mary Ellen",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505261483-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Endymion Spring",
+    "author": "Skelton, Matthew",
+    "subtitle": "Die Macht des geheimen Buches",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362994754-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 3 und Spring Framework 6",
+    "author": "Ullenboom, Christian",
+    "subtitle": "Das umfassende Handbuch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1922134137-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 3",
+    "author": "Fernandès, François;",
+    "subtitle": "So geht moderne Java-Entwicklung – Konzepte und Anwendungen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956640104-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring 5.0 and Spring Boot 2.0 New Features",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505277152-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot Grundkurs",
+    "author": "Janietz, Christopher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505325148-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Framework Grundkurs",
+    "author": "Janietz, Christopher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505311431-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Storm 1: Blühender Verrat",
+    "author": "Graßhoff, Marie",
+    "subtitle": "LGBTQ+ Love Story trifft auf Dystopie",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1931194109-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Microservices mit Spring Boot",
+    "author": "Samaschke, Karsten",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505149654-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Storm 2: Dornen der Hoffnung",
+    "author": "Graßhoff, Marie",
+    "subtitle": "Dystopie mit ganzseitigen Illustrationen der fantastischen Welt",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1942895721-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "L&#039;essentiel de Spring Boot",
+    "author": "Ioualitene, Kahina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611199417-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Advanced Spring: Effective Integration Testing with Spring Boot",
+    "author": "Semenski, Terezija",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611210915-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 1.0 Essential Training",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505229596-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 2.0 Essential Training",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611199161-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Building Real-Time Web Apps with Spring Boot and WebSockets",
+    "author": "Smith, Shonna",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505170455-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Spring: Test-Driven Development with JUnit",
+    "author": "Smith, Shonna",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505294184-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Journalismus und Public Relations",
+    "author": "Rühl, Manfred",
+    "subtitle": "Theoriegeschichte zweier weltgesellschaftlicher Errungenschaften",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-483317819-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Soziologie &amp; Kommunikation",
+    "author": "Rommerskirchen, Jan",
+    "subtitle": "Theorien und Paradigmen von der Antike bis zur Gegenwart",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-534049825-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Friedrich List: Die Politik der Zukunft",
+    "author": "Wendler, Eugen",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-401245839-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Geld, Kognition, Vergesellschaftung. Soziologische Geldtheorie in kultur-evolutionärer Absicht",
+    "author": "Pahl, Hanno",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1489796376-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Im Taumel der Zwanziger",
+    "author": "Bleek, Tobias",
+    "subtitle": "1923: Musik in einem Jahr der Extreme",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1933080755-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Spring Smith"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Spring: Spring Integration",
+    "author": "Flint, Kathy",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611200992-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Cloud",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505315188-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring MVC",
+    "author": "Aryamane, Ketkee",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505142547-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Security",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505177305-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Batch",
+    "author": "Bowersox, Kevin",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505248289-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Learning Spring with Spring Boot",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505336898-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring: Spring Data 2",
+    "author": "Bowman, Mary Ellen",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505261483-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Endymion Spring",
+    "author": "Skelton, Matthew",
+    "subtitle": "Die Macht des geheimen Buches",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362994754-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 3 und Spring Framework 6",
+    "author": "Ullenboom, Christian",
+    "subtitle": "Das umfassende Handbuch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1922134137-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 3",
+    "author": "Fernandès, François;",
+    "subtitle": "So geht moderne Java-Entwicklung – Konzepte und Anwendungen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956640104-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring 5.0 and Spring Boot 2.0 New Features",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505277152-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot Grundkurs",
+    "author": "Janietz, Christopher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505325148-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Framework Grundkurs",
+    "author": "Janietz, Christopher",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505311431-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Storm 1: Blühender Verrat",
+    "author": "Graßhoff, Marie",
+    "subtitle": "LGBTQ+ Love Story trifft auf Dystopie",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1931194109-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Microservices mit Spring Boot",
+    "author": "Samaschke, Karsten",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505149654-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Storm 2: Dornen der Hoffnung",
+    "author": "Graßhoff, Marie",
+    "subtitle": "Dystopie mit ganzseitigen Illustrationen der fantastischen Welt",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1942895721-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "L&#039;essentiel de Spring Boot",
+    "author": "Ioualitene, Kahina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611199417-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Advanced Spring: Effective Integration Testing with Spring Boot",
+    "author": "Semenski, Terezija",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611210915-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 1.0 Essential Training",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505229596-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Spring Boot 2.0 Essential Training",
+    "author": "III, Frank P Moley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611199161-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   },
+   {
+    "title": "Building Real-Time Web Apps with Spring Boot and WebSockets",
+    "author": "Smith, Shonna",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505170455-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring Smith"
+   },
+   {
+    "title": "Spring: Test-Driven Development with JUnit",
+    "author": "Smith, Shonna",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505294184-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring Smith"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "Endymion Spring",
+    "author": "Skelton, Matthew",
+    "subtitle": "Die Macht des geheimen Buches",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362994754-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Spring"
+   }
+  ]
+ },
+ {
+  "id": 29,
+  "title": "Fear and Loathing in Las Vegas",
+  "author": "Hunter S. Thompson",
+  "searches": [
+   {
+    "query": "Fear and Loathing in Las Vegas",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Fear and Loathing in Las Vegas Thompson",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 30,
+  "title": "Atonement",
+  "author": "Ian McEwan",
+  "searches": [
+   {
+    "query": "Atonement",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Atonement McEwan",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 31,
+  "title": "We Need to Talk About Kevin",
+  "author": "Lionel Shriver",
+  "searches": [
+   {
+    "query": "We Need to Talk About Kevin",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "We Need to Talk About Kevin Shriver",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 32,
+  "title": "A Good Man Is Hard to Find and Other Stories",
+  "author": "Flannery O'Connor",
+  "searches": [
+   {
+    "query": "A Good Man Is Hard to Find and Other Stories",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "A Good Man Is Hard to Find and Other Stories O'Connor",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 33,
+  "title": "Amsterdam",
+  "author": "Ian McEwan",
+  "searches": [
+   {
+    "query": "Amsterdam",
+    "total": 92,
+    "cards": 20
+   },
+   {
+    "query": "Amsterdam McEwan",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Amsterdam",
+    "author": "Bokern, Anneke",
+    "subtitle": "reisen mit Insider-Tipps",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-357837114-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Amsterdam – Lieblingsorte",
+    "author": "Baltschev, Bettina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-829983288-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Verliebt in Amsterdam",
+    "author": "Mayer, Gina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-384201482-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Baedeker Reiseführer Amsterdam",
+    "author": "Bokern, Anneke;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362248463-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "MERIAN live! Reiseführer Amsterdam",
+    "author": "Johnen, Ralf",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-572052910-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Lonely Planet Reiseführer Amsterdam",
+    "author": "Le Nevez, Catherine;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-740087376-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "MARCO POLO Reiseführer Amsterdam",
+    "author": "Bokern, Anneke",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363353125-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "The Making of Amsterdam Mist: The Vehicles",
+    "author": "Monroy, Bert",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505314647-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "The Making of Amsterdam Mist: The Structures",
+    "author": "Monroy, Bert",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505348066-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "The Making of Amsterdam Mist: The Natural Elements",
+    "author": "Monroy, Bert",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505214377-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Leben mit dem Feind",
+    "author": "Beuys, Barbara",
+    "subtitle": "Amsterdam unter deutscher Besatzung 1940-1945",
+    "availability": "01.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-358260694-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Die Hausboot-Detektei - Tödlicher Stoff",
+    "author": "Achterop, Amy",
+    "subtitle": "Kriminalroman | Ein Amsterdam-Krimi zum Wohlfühlen",
+    "availability": "03.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956643529-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Der blaue Vogel kehrt zurück",
+    "author": "Visser, Arjan",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-367735952-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Tulpenfieber",
+    "author": "Moggach, Deborah",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-463495499-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Der Zauber eines Wintertages",
+    "author": "Swan, Karen",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1883854900-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Das Geheimnis des Spiegelmachers",
+    "author": "Lühmann, Antoinette",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363053152-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Ein Haufen Ärger",
+    "author": "Ludwig, Sabine",
+    "subtitle": "ungekürzte Lesung",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-353328265-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Amsterdam"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Amsterdam",
+    "author": "Bokern, Anneke",
+    "subtitle": "reisen mit Insider-Tipps",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-357837114-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Amsterdam – Lieblingsorte",
+    "author": "Baltschev, Bettina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-829983288-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Verliebt in Amsterdam",
+    "author": "Mayer, Gina",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-384201482-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Baedeker Reiseführer Amsterdam",
+    "author": "Bokern, Anneke;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362248463-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "MERIAN live! Reiseführer Amsterdam",
+    "author": "Johnen, Ralf",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-572052910-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Lonely Planet Reiseführer Amsterdam",
+    "author": "Le Nevez, Catherine;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-740087376-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "MARCO POLO Reiseführer Amsterdam",
+    "author": "Bokern, Anneke",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363353125-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "The Making of Amsterdam Mist: The Vehicles",
+    "author": "Monroy, Bert",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505314647-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "The Making of Amsterdam Mist: The Structures",
+    "author": "Monroy, Bert",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505348066-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "The Making of Amsterdam Mist: The Natural Elements",
+    "author": "Monroy, Bert",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505214377-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Leben mit dem Feind",
+    "author": "Beuys, Barbara",
+    "subtitle": "Amsterdam unter deutscher Besatzung 1940-1945",
+    "availability": "01.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-358260694-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   },
+   {
+    "title": "Die Hausboot-Detektei - Tödlicher Stoff",
+    "author": "Achterop, Amy",
+    "subtitle": "Kriminalroman | Ein Amsterdam-Krimi zum Wohlfühlen",
+    "availability": "03.11.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956643529-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Amsterdam"
+   }
+  ],
+  "audio_hits": []
+ },
+ {
+  "id": 34,
+  "title": "American Pastoral",
+  "author": "Philip Roth",
+  "searches": [
+   {
+    "query": "American Pastoral",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "American Pastoral Roth",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 35,
+  "title": "Knots & Crosses",
+  "author": "Ian Rankin",
+  "searches": [
+   {
+    "query": "Knots & Crosses",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Knots and Crosses",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Knots & Crosses Rankin",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 36,
+  "title": "The Color Purple",
+  "author": "Alice Walker",
+  "searches": [
+   {
+    "query": "The Color Purple",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Color Purple Walker",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 37,
+  "title": "The House of the Spirits",
+  "author": "Isabel Allende",
+  "searches": [
+   {
+    "query": "The House of the Spirits",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "The House of the Spirits Allende",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Happy Spirits",
+    "author": "Reichert, Amy E.",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956647126-200-0-0-0-0-0-0-0.html",
+    "match": 0.5,
+    "query": "The House of the Spirits"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 38,
+  "title": "The Joke",
+  "author": "Milan Kundera",
+  "searches": [
+   {
+    "query": "The Joke",
+    "total": 20,
+    "cards": 20
+   },
+   {
+    "query": "The Joke Kundera",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Der Joker",
+    "author": "Zusak, Markus",
+    "subtitle": "",
+    "availability": "28.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-354649769-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Der Joker im Schauspiel",
+    "author": "Koban, Ellen",
+    "subtitle": "Zur Reproduktion und Transgression von Typen im deutschen Ensembletheater am Beispiel des Theaterduos Vontobel/Schulz",
+    "availability": "21.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-735848328-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Žižek&#039;s Jokes",
+    "author": "Žižek, Slavoj",
+    "subtitle": "Treffen sich zwei Hegelianer ...",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-367838524-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "English jokes",
+    "author": "Taylor, Jeremy",
+    "subtitle": "= Englische Witze",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-360734839-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Ein Joker fürs Glück",
+    "author": "Landgraf, Annette",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1697220293-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Melancholie in unsicheren Zeiten",
+    "author": "Hermsen, Joke J.",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1613281109-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Wild Cards - Das Spiel der Spiele",
+    "author": "Martin, George R. R.",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-365740293-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Batman - Die gefährlichsten Abenteuer",
+    "author": "Stevens, Eric",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364511249-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Das Schöne",
+    "author": "Köhlmeier, Michael",
+    "subtitle": "59 Begeisterungen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1939141997-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Einatmen, ausrasten",
+    "author": "Hall, Georgie",
+    "subtitle": "Roman | Der witzigste Roman zum Thema Wechseljahre, den Sie je gelesen haben!",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1840601487-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Lieben ist schöner als Siegen",
+    "author": "Hansen, Hartwig",
+    "subtitle": "Paartherapie live in 100 Schlüsselsätzen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-787318720-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Nichts kommt zweimal vor. Wisława Szymborska.",
+    "author": "Kijowska, Marta",
+    "subtitle": "Eine Biografie",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1929467655-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Troubleshooting and Debugging Bash",
+    "author": "Colins, Sean",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505202716-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Act creative!",
+    "author": "Stadler, Christian;",
+    "subtitle": "Effektive Tools für Beratung, Coaching, Psychotherapie und Supervision",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-409135977-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "A Couple of Truly Wonderful Stories Ein paar wirklich wunderbare Geschichten",
+    "author": "Twain, Mark",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-360734651-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Kanak Kids",
+    "author": "Dimitrova, Anna",
+    "subtitle": "Halb angepasst und voll dazwischen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956381913-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Drei Kameradinnen",
+    "author": "Bazyar, Shida",
+    "subtitle": "Roman | Die Buchvorlage zum gleichnamigen Film von Milena Aboyan",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1629070079-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "A bis Z der Interventionen in der Paar- und Familientherapie",
+    "author": "Hansen, Hartwig",
+    "subtitle": "Ein Praxishandbuch",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362404274-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   },
+   {
+    "title": "Entgrenzte Figuren des Bösen",
+    "author": "Eisele, Sabrina",
+    "subtitle": "Film- und tanzwissenschaftliche Analysen",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-432789844-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Joke"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 39,
+  "title": "Vernon Subutex 1",
+  "author": "Virginie Despentes",
+  "searches": [
+   {
+    "query": "Vernon Subutex 1",
+    "total": 3,
+    "cards": 3
+   },
+   {
+    "query": "Vernon Subutex",
+    "total": 4,
+    "cards": 4
+   },
+   {
+    "query": "Vernon Subutex 1 Despentes",
+    "total": 3,
+    "cards": 3
+   }
+  ],
+  "hits": [
+   {
+    "title": "Das Leben des Vernon Subutex 1",
+    "author": "Despentes, Virginie",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-665148051-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Vernon Subutex 1"
+   },
+   {
+    "title": "Das Leben des Vernon Subutex 2",
+    "author": "Despentes, Virginie",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-739038884-200-0-0-0-0-0-0-0.html",
+    "match": 0.67,
+    "query": "Vernon Subutex 1"
+   },
+   {
+    "title": "Das Leben des Vernon Subutex",
+    "author": "Despentes, Virginie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-586417031-200-0-0-0-0-0-0-0.html",
+    "match": 0.67,
+    "query": "Vernon Subutex"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Das Leben des Vernon Subutex 1",
+    "author": "Despentes, Virginie",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-665148051-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Vernon Subutex 1"
+   },
+   {
+    "title": "Das Leben des Vernon Subutex 2",
+    "author": "Despentes, Virginie",
+    "subtitle": "Roman",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-739038884-200-0-0-0-0-0-0-0.html",
+    "match": 0.67,
+    "query": "Vernon Subutex 1"
+   },
+   {
+    "title": "Das Leben des Vernon Subutex",
+    "author": "Despentes, Virginie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-586417031-200-0-0-0-0-0-0-0.html",
+    "match": 0.67,
+    "query": "Vernon Subutex"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "Das Leben des Vernon Subutex",
+    "author": "Despentes, Virginie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-586417031-200-0-0-0-0-0-0-0.html",
+    "match": 0.67,
+    "query": "Vernon Subutex"
+   }
+  ]
+ },
+ {
+  "id": 40,
+  "title": "The Poisonwood Bible",
+  "author": "Barbara Kingsolver",
+  "searches": [
+   {
+    "query": "The Poisonwood Bible",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Poisonwood Bible Kingsolver",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 41,
+  "title": "Atomised",
+  "author": "Michel Houellebecq",
+  "searches": [
+   {
+    "query": "Atomised",
+    "total": 2,
+    "cards": 2
+   },
+   {
+    "query": "The Elementary Particles",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Atomised Houellebecq",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Zwischen Offenheit und Abschottung",
+    "author": "",
+    "subtitle": "Wie die Politik zurück in die Mitte findet",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-730775543-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Atomised"
+   },
+   {
+    "title": "Rock War - Unter Strom",
+    "author": "Muchamore, Robert",
+    "subtitle": "Band 1",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-365746527-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Atomised"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 42,
+  "title": "Independence Day",
+  "author": "Richard Ford",
+  "searches": [
+   {
+    "query": "Independence Day",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "Independence Day Ford",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Roland Emmerich",
+    "author": "Müller, Jo",
+    "subtitle": "Die offizielle Biografie",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-463745856-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Independence Day"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 43,
+  "title": "The Glass Hotel",
+  "author": "Emily St. John Mandel",
+  "searches": [
+   {
+    "query": "The Glass Hotel",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Glass Hotel Mandel",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 44,
+  "title": "The Death of Ivan Ilyich and Other Stories",
+  "author": "Leo Tolstoy",
+  "searches": [
+   {
+    "query": "The Death of Ivan Ilyich and Other Stories",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Death of Ivan Ilyich and Other Stories Tolstoy",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 45,
+  "title": "The Waiter",
+  "author": "Matias Faldbakken",
+  "searches": [
+   {
+    "query": "The Waiter",
+    "total": 19,
+    "cards": 19
+   },
+   {
+    "query": "The Waiter Faldbakken",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Windows Performance Tools: DeadLock Analysis with Intel VTune Amplifier",
+    "author": "Pantels, Thomas",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505259075-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Der Fall Charles Dexter Ward (Teil 1 von 2)",
+    "author": "Lovecraft, H. P.;",
+    "subtitle": "Gruselkabinett, Folge 24",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-352659511-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Real Estate Photography: Exterior at Twilight",
+    "author": "Hargis, Scott",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505278093-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Python Automation and Testing",
+    "author": "Agarwal, Bhoomika",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505284381-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Svelte: First Look",
+    "author": "Villalobos, Ray",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505335419-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Essentials of Team Collaboration",
+    "author": "Brownlee, Dana",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611204326-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Der Donnerstagsmordclub und die verirrte Kugel",
+    "author": "Osman, Richard",
+    "subtitle": "Kriminalroman | britisch, warmherzig und oh so very funny - die Bestseller-Serie geht weiter",
+    "availability": "21.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1942847494-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "SQL Server 2017: What&#039;s New",
+    "author": "Wilbert, Adam",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505363995-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Aaron Draplin Takes On a Logo Design Challenge",
+    "author": "Draplin, Aaron",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505224389-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "One-Minute Songwriting Tips",
+    "author": "Goldmacher, Cliff",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505327747-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Richard Gibbs with Bobby Owsinski: Rocking Clubs to Writing Scores",
+    "author": "Owsinski, Bobby",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505145642-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Advanced Photography: Flash",
+    "author": "Long, Ben",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505290381-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Advanced Appium",
+    "author": "Lipps, Jonathan",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505307868-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "SQL Server Database Triggers",
+    "author": "Wilbert, Adam",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611206874-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Enhancing Images with Artificial Intelligence (AI)",
+    "author": "Harrington, Richard",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505195141-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Revit to Unreal for Architecture, Visualization, and VR",
+    "author": "Manning, Simon",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505176505-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "AWS: Deploying and Provisioning",
+    "author": "Rich, Brandon",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505287704-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "The Elements of Composition for Illustrators",
+    "author": "Begin, Mary Jane",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505221123-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   },
+   {
+    "title": "Python Theory for Network Engineers",
+    "author": "Bombal, David",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505295836-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Waiter"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 46,
+  "title": "The History Boys",
+  "author": "Alan Bennett",
+  "searches": [
+   {
+    "query": "The History Boys",
+    "total": 2,
+    "cards": 2
+   },
+   {
+    "query": "The History Boys Bennett",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Sonic Life",
+    "author": "Moore, Thurston",
+    "subtitle": "The new memoir from the Sonic Youth founding member",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1940943202-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The History Boys"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 47,
+  "title": "The Woman Who Walked Into Doors",
+  "author": "Roddy Doyle",
+  "searches": [
+   {
+    "query": "The Woman Who Walked Into Doors",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Woman Who Walked Into Doors Doyle",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 48,
+  "title": "The Living Sea of Waking Dreams",
+  "author": "Richard Flanagan",
+  "searches": [
+   {
+    "query": "The Living Sea of Waking Dreams",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Living Sea of Waking Dreams Flanagan",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 49,
+  "title": "The Watcher in the Shadows",
+  "author": "Carlos Ruiz Zafon",
+  "searches": [
+   {
+    "query": "The Watcher in the Shadows",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "The Watcher in the Shadows Zafon",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "After Effects Apprentice: 19 Motion Tracking with Cinema 4D Lite",
+    "author": "Meyer, Trish;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505249145-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Watcher in the Shadows"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 50,
+  "title": "Everything Is Illuminated",
+  "author": "Jonathan Safran Foer",
+  "searches": [
+   {
+    "query": "Everything Is Illuminated",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Everything Is Illuminated Foer",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 51,
+  "title": "The Corrections",
+  "author": "Jonathan Franzen",
+  "searches": [
+   {
+    "query": "The Corrections",
+    "total": 88,
+    "cards": 20
+   },
+   {
+    "query": "The Corrections Franzen",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Introduction to Video Color Correction",
+    "author": "Kennedy, Ashley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611204076-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Advanced Photoshop Color Correction",
+    "author": "Tally, Taz",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505347149-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Learning Photoshop Color Correction",
+    "author": "Tally, Taz",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505309783-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "DxO Labs : La correction d&#039;images",
+    "author": "Théophile, Gilles",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505282899-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Lightroom 5 : La correction d&#039;images",
+    "author": "Théophile, Gilles",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505282909-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Adobe Camera Raw: Color Correction",
+    "author": "Tally, Taz",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505226539-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Photoshop CC : Les outils de correction",
+    "author": "Barrois, Daniel",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505315248-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Premiere Pro CC : La correction colorimétrique",
+    "author": "Brencher, Sven;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505241475-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Final Cut Pro : La correction colorimétrique",
+    "author": "Azawi, Karim El",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505230677-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Final Cut Pro X Guru: Color Correction",
+    "author": "Harauz, Nick",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505286662-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "DaVinci Resolve Guru: Hardware for Color Correction",
+    "author": "Carman, Robbie;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505188848-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "EPK Editing: 3 Color Correction, Visual Effects, and Finishing",
+    "author": "Jago, Maxim",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505314848-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "L&#039;essentiel de Photoshop Elements 12 : 4. La correction d&#039;images",
+    "author": "Chatain, Yves",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505275118-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Color for Video Editors",
+    "author": "Carman, Robbie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505271960-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Compositing Zombies in NUKE",
+    "author": "Wright, Steve",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505358514-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Video Post Tips",
+    "author": "Kennedy, Ashley",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505275654-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Enhancing Interior Architectural Photos",
+    "author": "Klein, Richard",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505313768-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Premiere Pro Guru: LUTs and Look Files",
+    "author": "Harrington, Richard",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505169353-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "DaVinci Resolve: Editing Basics",
+    "author": "Greenberg, Jeff I.",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505308770-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   },
+   {
+    "title": "Melodyne Studio Essential Training",
+    "author": "Lewin, Skye",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505139055-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Corrections"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 52,
+  "title": "The Narrow Road to the Deep North",
+  "author": "Richard Flanagan",
+  "searches": [
+   {
+    "query": "The Narrow Road to the Deep North",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Narrow Road to the Deep North Flanagan",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 53,
+  "title": "Station Eleven",
+  "author": "Emily St. John Mandel",
+  "searches": [
+   {
+    "query": "Station Eleven",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Station Eleven Mandel",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 54,
+  "title": "The Little Goblin Girl",
+  "author": "Illy Hymen",
+  "searches": [
+   {
+    "query": "The Little Goblin Girl",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Little Goblin Girl Hymen",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 55,
+  "title": "The Luminaries",
+  "author": "Eleanor Catton",
+  "searches": [
+   {
+    "query": "The Luminaries",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "The Luminaries Catton",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Leading and Managing the Whole Self",
+    "author": "Think, Big",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611206733-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Luminaries"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 56,
+  "title": "Empire of the Sun",
+  "author": "J. G. Ballard",
+  "searches": [
+   {
+    "query": "Empire of the Sun",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Empire of the Sun Ballard",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 57,
+  "title": "Notes from Underground",
+  "author": "Fyodor Dostoevsky",
+  "searches": [
+   {
+    "query": "Notes from Underground",
+    "total": 1,
+    "cards": 1
+   },
+   {
+    "query": "Notes from Underground and Other Stories",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Notes from Underground Dostoevsky",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Friday Brown",
+    "author": "Wakefield, Vikki",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363088323-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Notes from Underground"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 58,
+  "title": "Celestial Bodies",
+  "author": "Jokha Alharthi",
+  "searches": [
+   {
+    "query": "Celestial Bodies",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "Celestial Bodies Alharthi",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 59,
+  "title": "Freedom",
+  "author": "Jonathan Franzen",
+  "searches": [
+   {
+    "query": "Freedom",
+    "total": 37,
+    "cards": 20
+   },
+   {
+    "query": "Freedom Franzen",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Freedom",
+    "author": "Merkel, Angela",
+    "subtitle": "Memoirs 1954 - 2021",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956753726-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Ways to Build a Winning Team: Trust, Freedom, and Play",
+    "author": "Think, Big",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505322331-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Pussy Riot!",
+    "author": "Riot, Pussy",
+    "subtitle": "A Punk Prayer for Freedom",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956526520-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Lightroom Classic CC: Advanced Workflow Techniques",
+    "author": "Orwig,  Chris",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505318395-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Motivate Remote Teams",
+    "author": "Croft, Chris",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611201588-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Freelancing and Consulting in User Experience",
+    "author": "Lebson, Cory",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505219698-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Introduction to jamovi",
+    "author": "Poulson, Barton",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505347058-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Cinematography: Maya",
+    "author": "Ross, Aaron F.",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505148101-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "The adventures of Huckleberry Finn",
+    "author": "Twain, Mark",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363592575-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "HOW TO STAND UP TO A DICTATOR - Der Kampf um unsere Zukunft",
+    "author": "Ressa, Maria",
+    "subtitle": "Ungekürzt",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1940115141-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Introduction to Gratitude Meditation",
+    "author": "Kornfield, Jack;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611205269-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Der salzige Geschmack unserer Freiheit",
+    "author": "Abendroth, Christopher",
+    "subtitle": "eine dystopische SciFi-Novelle",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956925651-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Designing a Typographic Art Nouveau Poster",
+    "author": "French, Nigel",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505313658-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Evan Cheng Character Designer",
+    "author": "Cheng, Evan",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505222093-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Statistics Foundations: 3",
+    "author": "Davila, Eddie",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505187984-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "InDesign: EPUB",
+    "author": "French, Nigel",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505347287-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Rhino: Modeling for 3D Printing",
+    "author": "Morgan, Olivia",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611185248-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Organizing Your Remote Office for Maximum Productivity",
+    "author": "Rizzo, Paula",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611208330-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Mike Hathorn: 3D Printing in the Classroom",
+    "author": "Hathorn, Michael",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505238969-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "WordPress: WP-CLI",
+    "author": "Casabona, Joe",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1611197063-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Freedom"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "Freedom",
+    "author": "Merkel, Angela",
+    "subtitle": "Memoirs 1954 - 2021",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956753726-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Ways to Build a Winning Team: Trust, Freedom, and Play",
+    "author": "Think, Big",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505322331-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Freedom"
+   },
+   {
+    "title": "Pussy Riot!",
+    "author": "Riot, Pussy",
+    "subtitle": "A Punk Prayer for Freedom",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956526520-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "Freedom"
+   }
+  ],
+  "audio_hits": []
+ },
+ {
+  "id": 60,
+  "title": "The Blind Assassin",
+  "author": "Margaret Atwood",
+  "searches": [
+   {
+    "query": "The Blind Assassin",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Blind Assassin Atwood",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 61,
+  "title": "Wolf Hall",
+  "author": "Hilary Mantel",
+  "searches": [
+   {
+    "query": "Wolf Hall",
+    "total": 4,
+    "cards": 4
+   },
+   {
+    "query": "Wolf Hall Mantel",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "Baskerville Hall - Das geheimnisvolle Internat der besonderen Talente",
+    "author": "Standish, Ali",
+    "subtitle": "",
+    "availability": "22.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956640582-200-0-0-0-0-0-0-0.html",
+    "match": 0.5,
+    "query": "Wolf Hall"
+   },
+   {
+    "title": "Baskerville Hall – Das geheimnisvolle Internat der besonderen Talente (Teil 1)",
+    "author": "Standish, Ali",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956921146-200-0-0-0-0-0-0-0.html",
+    "match": 0.5,
+    "query": "Wolf Hall"
+   },
+   {
+    "title": "Jahresabschluss und Jahresabschlussanalyse",
+    "author": "Schultze, Wolfgang;",
+    "subtitle": "Betriebswirtschaftliche, handelsrechtliche, steuerrechtliche und internationale Grundlagen - HGB, IAS/IFRS, US-GAAP, DRS",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-414875450-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Wolf Hall"
+   },
+   {
+    "title": "Die Bibel. Das Projekt",
+    "author": "Batberger, Reinhold;",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_emusic",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-483532156-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "Wolf Hall"
+   }
+  ],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 62,
+  "title": "The Sea",
+  "author": "John Banville",
+  "searches": [
+   {
+    "query": "The Sea",
+    "total": 44,
+    "cards": 20
+   },
+   {
+    "query": "The Sea Banville",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [
+   {
+    "title": "The mystery of the sea",
+    "author": "Stoker, Bram",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364482065-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The Kingdom over the Sea – Das Land der tausend Träume (The Kingdom over the Sea 1)",
+    "author": "Nabi, Zohra",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957058185-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The Kingdom over the Sea – Die Stadt hinter den Sternen (The Kingdom over the Sea 2)",
+    "author": "Nabi, Zohra",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957058191-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The sea-wolf",
+    "author": "London, Jack",
+    "subtitle": "",
+    "availability": "23.10.2026",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593872-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Almost isn&#039;t enough. Whispers by the Sea",
+    "author": "Bright, Jennifer",
+    "subtitle": "Roman",
+    "availability": "23.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956943530-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Erläuterungen zu Ernest Hemingway, Der alte Mann und das Meer (The old man and the sea)",
+    "author": "Poppe, Reiner",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-354094122-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The seven seas",
+    "author": "Kipling, Rudyard",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364482361-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The Four Seasons",
+    "author": "Vivaldi, Antonio",
+    "subtitle": "In a simple arrangement for piano",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1771114286-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Engage the Likability Effect in the Job Search",
+    "author": "Graham, Dawn",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505290138-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Seasons of the Storm – Gaias Gefangene",
+    "author": "Cosimano, Elle",
+    "subtitle": "Mitreißende Urban-Fantasy-Romance",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1917902274-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Seasons of the Storm – Chronos&#039; Krieger",
+    "author": "Cosimano, Elle",
+    "subtitle": "Mitreißende Urban-Fantasy-Romance – das fulminante Finale",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1953092051-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Apocalypsis, Season 1, Episode 5: Island of the Light",
+    "author": "Giordano, Mario",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-358124305-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Apocalypsis - Season 1",
+    "author": "Giordano, Mario",
+    "subtitle": "Collector&#039;s Pack. Thriller",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-360775003-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The Value of Professional Graphic Design",
+    "author": "Adams, Sean",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505175931-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Graphic Design History: The Bauhaus Movement",
+    "author": "Adams, Sean",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505354223-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Graphic Design History: The Arts and Crafts Movement",
+    "author": "Adams, Sean",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_elearning",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1505291417-200-0-0-0-0-0-0-0.html",
+    "match": 0.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Sea Quest - Cephalox, die Riesenkrake",
+    "author": "Blade, Adam",
+    "subtitle": "Band 1",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362377566-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Sea Quest - Silda, die Seeschlange",
+    "author": "Blade, Adam",
+    "subtitle": "Band 2",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362377608-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Sea Quest - Manak, der Teufelsrochen",
+    "author": "Blade, Adam",
+    "subtitle": "Band 3",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364209230-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   }
+  ],
+  "title_hits": [
+   {
+    "title": "The mystery of the sea",
+    "author": "Stoker, Bram",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364482065-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The Kingdom over the Sea – Das Land der tausend Träume (The Kingdom over the Sea 1)",
+    "author": "Nabi, Zohra",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957058185-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The Kingdom over the Sea – Die Stadt hinter den Sternen (The Kingdom over the Sea 2)",
+    "author": "Nabi, Zohra",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1957058191-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "The sea-wolf",
+    "author": "London, Jack",
+    "subtitle": "",
+    "availability": "23.10.2026",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593872-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Almost isn&#039;t enough. Whispers by the Sea",
+    "author": "Bright, Jennifer",
+    "subtitle": "Roman",
+    "availability": "23.10.2026",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-1956943530-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Erläuterungen zu Ernest Hemingway, Der alte Mann und das Meer (The old man and the sea)",
+    "author": "Poppe, Reiner",
+    "subtitle": "",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-354094122-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Sea Quest - Cephalox, die Riesenkrake",
+    "author": "Blade, Adam",
+    "subtitle": "Band 1",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362377566-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Sea Quest - Silda, die Seeschlange",
+    "author": "Blade, Adam",
+    "subtitle": "Band 2",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-362377608-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   },
+   {
+    "title": "Sea Quest - Manak, der Teufelsrochen",
+    "author": "Blade, Adam",
+    "subtitle": "Band 3",
+    "availability": "",
+    "media_types": [
+     "ic_ebook",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-364209230-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   }
+  ],
+  "audio_hits": [
+   {
+    "title": "The sea-wolf",
+    "author": "London, Jack",
+    "subtitle": "",
+    "availability": "23.10.2026",
+    "media_types": [
+     "ic_eaudio",
+     "ic_more",
+     "ic_star"
+    ],
+    "detail": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593872-200-0-0-0-0-0-0-0.html",
+    "match": 1.0,
+    "query": "The Sea"
+   }
+  ]
+ },
+ {
+  "id": 63,
+  "title": "The Sense of an Ending",
+  "author": "Julian Barnes",
+  "searches": [
+   {
+    "query": "The Sense of an Ending",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Sense of an Ending Barnes",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ },
+ {
+  "id": 64,
+  "title": "The Dying Animal",
+  "author": "Philip Roth",
+  "searches": [
+   {
+    "query": "The Dying Animal",
+    "total": 0,
+    "cards": 0
+   },
+   {
+    "query": "The Dying Animal Roth",
+    "total": 0,
+    "cards": 0
+   }
+  ],
+  "hits": [],
+  "title_hits": [],
+  "audio_hits": []
+ }
+]

@@ -1,0 +1,146 @@
+[
+ {
+  "display": "Jetzt ausleihen; Verfügbar",
+  "key": "ol_363593406",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593406-200-0-0-0-0-0-0-0.html",
+  "book": 3
+ },
+ {
+  "display": "0 of 2 copies available; Wait time: About 5 weeks; Place a hold",
+  "key": "od_335520",
+  "url": "https://voebb.overdrive.com/media/335520",
+  "book": 4
+ },
+ {
+  "display": "0 of 2 copies available; Wait time: About 3 weeks; Place a hold",
+  "key": "od_3886722",
+  "url": "https://voebb.overdrive.com/media/3886722",
+  "book": 5
+ },
+ {
+  "display": "Wait time: About 8 weeks; Place a hold",
+  "key": "od_123544",
+  "url": "https://voebb.overdrive.com/media/123544",
+  "book": 7
+ },
+ {
+  "display": "Wait time: About 10 weeks; Place a hold",
+  "key": "od_589885",
+  "url": "https://voebb.overdrive.com/media/589885",
+  "book": 14
+ },
+ {
+  "display": "Wait time: About 4 weeks; Place a hold",
+  "key": "od_3619131",
+  "url": "https://voebb.overdrive.com/media/3619131",
+  "book": 15
+ },
+ {
+  "display": "0 of 3 copies available; Wait time: Available soon; Place a hold",
+  "key": "od_3946564",
+  "url": "https://voebb.overdrive.com/media/3946564",
+  "book": 15
+ },
+ {
+  "display": "0 of 4 copies available; Wait time: About 4 weeks; Place a hold",
+  "key": "od_4554951",
+  "url": "https://voebb.overdrive.com/media/4554951",
+  "book": 16
+ },
+ {
+  "display": "Wait time: About 10 weeks; Place a hold",
+  "key": "od_858758",
+  "url": "https://voebb.overdrive.com/media/858758",
+  "book": 18
+ },
+ {
+  "display": "0 of 3 copies available; Wait time: Available soon; Place a hold",
+  "key": "od_86990",
+  "url": "https://voebb.overdrive.com/media/86990",
+  "book": 19
+ },
+ {
+  "display": "0 of 2 copies available; Wait time: Available soon; Place a hold",
+  "key": "od_3995095",
+  "url": "https://voebb.overdrive.com/media/3995095",
+  "book": 22
+ },
+ {
+  "display": "Wait time: About 2 weeks; Place a hold",
+  "key": "od_66481",
+  "url": "https://voebb.overdrive.com/media/66481",
+  "book": 26
+ },
+ {
+  "display": "Jetzt ausleihen; Verfügbar",
+  "key": "ol_363593207",
+  "url": "https://voebb.onleihe.de/berlin/frontend/mediaInfo,0-0-363593207-200-0-0-0-0-0-0-0.html",
+  "book": 26
+ },
+ {
+  "display": "Wait time: About 2 weeks; Place a hold",
+  "key": "od_122671",
+  "url": "https://voebb.overdrive.com/media/122671",
+  "book": 30
+ },
+ {
+  "display": "Wait time: About 2 weeks; Place a hold",
+  "key": "od_3171769",
+  "url": "https://voebb.overdrive.com/media/3171769",
+  "book": 30
+ },
+ {
+  "display": "Wait time: About 4 weeks; Place a hold",
+  "key": "od_681057",
+  "url": "https://voebb.overdrive.com/media/681057",
+  "book": 31
+ },
+ {
+  "display": "Wait time: About 6 weeks; Place a hold",
+  "key": "od_122669",
+  "url": "https://voebb.overdrive.com/media/122669",
+  "book": 34
+ },
+ {
+  "display": "Wait time: About 4 weeks; Place a hold",
+  "key": "od_9920633",
+  "url": "https://voebb.overdrive.com/media/9920633",
+  "book": 36
+ },
+ {
+  "display": "1 of 2 copies available; Borrow",
+  "key": "od_1817988",
+  "url": "https://voebb.overdrive.com/media/1817988",
+  "book": 52
+ },
+ {
+  "display": "0 of 2 copies available; Wait time: About 7 weeks; Place a hold",
+  "key": "od_1499830",
+  "url": "https://voebb.overdrive.com/media/1499830",
+  "book": 53
+ },
+ {
+  "display": "Wait time: About 6 weeks; Place a hold",
+  "key": "od_143657",
+  "url": "https://voebb.overdrive.com/media/143657",
+  "book": 56
+ },
+ {
+  "display": "1 of 2 copies available; Borrow",
+  "key": "od_389422",
+  "url": "https://voebb.overdrive.com/media/389422",
+  "book": 59
+ },
+ {
+  "display": "1 of 3 copies available; Borrow",
+  "key": "od_1004466",
+  "url": "https://voebb.overdrive.com/media/1004466",
+  "book": 61
+ },
+ {
+  "display": "Wait time: About 4 weeks; Place a hold",
+  "key": "od_3836264",
+  "url": "https://voebb.overdrive.com/media/3836264",
+  "book": 61
+ }
+]
