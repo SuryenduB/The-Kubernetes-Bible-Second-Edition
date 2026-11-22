@@ -264,7 +264,7 @@ try {
     Write-Host "`n[5/6] Resetting embedded etcd from snapshot on nuc..." -ForegroundColor Yellow
     $resetOutput = Invoke-Remote -Target $nucTarget -Command "echo $script:NodePassword | sudo -S -p '' timeout 300 k3s server --cluster-reset --cluster-reset-restore-path=$snapshotDir/$($selected.Snapshot) 2>&1"
     Write-Host ($resetOutput | Out-String).Trim() -ForegroundColor Gray
-    if ($resetOutput -notmatch 'cluster has been reset|cluster-reset') {
+    if ($resetOutput -notmatch 'Managed etcd cluster has been reset|cluster has been reset') {
         throw "Cluster reset did not report success. Inspect output before proceeding."
     }
 
