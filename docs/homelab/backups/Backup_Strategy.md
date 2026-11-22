@@ -1,5 +1,12 @@
 # Backup Strategy — K3s Homelab
 
+> **Superseded control-plane note (2026-11-22):** `WindowsLab/k3s-backup-to-nas.sh`
+> was removed from the repo. The live control-plane job is
+> `k3s-etcd-safe-backup.sh` (APP-01, 6-hourly, non-disruptive online etcd snapshot
+> + config/identity archives). The old 02:00 `state.db` description below is
+> historical. `Restore-K3sCluster.ps1` still expects `k3s-state.db` and needs a
+> separate update to restore from etcd snapshots — treat that as an open gap.
+
 **Status: OPERATIONAL** (volume layer since 2026-09-06; control-plane layer pre-existing).
 **Last validated against live state: 2026-09-06 ~13:00 UTC** — see §7 Validation record.
 Credentials in runbook commands are intentionally redacted to vault/env refs.
@@ -158,7 +165,7 @@ kubectl -n longhorn-system get backups.longhorn.io
 - [ ] Reconcile retention docs (script: last 10 vs audit doc: `-mtime +30` prune).
 - [ ] Stuck `backup-b15856e29ef54a3f` (`Deleting` since 12:07 UTC) — clear or delete manually.
 - [x] ~~`k3s-config.tar.gz` TLS contents~~ — resolved 2026-09-06: scope extended to `k3s-identity.tar.gz`, verified in snapshot.
-- [x] ~~Commit `k3s-backup-to-nas.sh`~~ — resolved 2026-09-06: `WindowsLab/k3s-backup-to-nas.sh` is source of truth.
+- [x] ~~Commit `k3s-backup-to-nas.sh`~~ — resolved 2026-09-06; the script was removed 2026-11-22 after APP-01 replaced it with `k3s-etcd-safe-backup.sh`.
 - [ ] Recover `linguacafe-mariadb` (faulted/detached) so it joins `backup-daily`.
 - [ ] Fix NAS clock (~15 min slow) for log correlation and cert validation.
 - [ ] Harden NFS exports: `longhorn` and `Public` are `*(rw,no_root_squash)` — restrict to node IPs `.19–.26`.

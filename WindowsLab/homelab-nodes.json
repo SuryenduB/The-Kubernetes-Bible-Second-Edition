@@ -146,7 +146,7 @@
       "ip": "192.168.0.128",
       "role": "nas",
       "os": "QNAP QTS",
-      "notes": "NFS backup target for k3s-backup-to-nas.sh."
+      "notes": "NFS backup target for K3s etcd snapshots and identity archives (k3s-etcd-safe-backup.sh)."
     },
     {
       "name": "registry",

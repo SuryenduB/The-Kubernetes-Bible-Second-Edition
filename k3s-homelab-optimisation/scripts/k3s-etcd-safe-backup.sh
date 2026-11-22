@@ -32,10 +32,11 @@
 # ENV OVERRIDES (for testing only; cron uses the defaults):
 #   NAS_IP, NAS_MOUNT_TIMEOUT_SECONDS
 #
-# ROLLBACK PROCEDURE (to restore previous legacy cron if required):
+# ROLLBACK PROCEDURE:
 #   sudo crontab -e
-#   Replace the k3s-etcd-safe-backup.sh entry with:
-#   0 2 * * * /usr/local/bin/k3s-backup-to-nas.sh >> /var/log/k3s-backup.log 2>&1
+#   Remove the 6-hourly k3s-etcd-safe-backup.sh entry to pause off-node backups.
+#   The former disruptive k3s-backup-to-nas.sh was removed from the repo on
+#   2026-11-22 and is NOT a valid rollback target.
 #
 # MANUAL TEST PROCEDURE:
 #   sudo /usr/local/bin/k3s-etcd-safe-backup.sh --manual-test   (no publish)

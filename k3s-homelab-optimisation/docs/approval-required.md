@@ -49,7 +49,9 @@ Each proposed change includes technical rationale grounded in measured evidence,
   ```
 - **Rollback:**
   ```bash
-  sudo crontab -l | sed 's|.*k3s-etcd-safe-backup.sh.*|0 2 * * * /usr/local/bin/k3s-backup-to-nas.sh >> /var/log/k3s-backup.log 2>\&1|' | sudo crontab -
+  # Pause off-node backups by removing the safe-backup entry. The legacy
+  # k3s-backup-to-nas.sh was removed from the repo 2026-11-22; not a valid rollback target.
+  sudo crontab -l | grep -v 'k3s-etcd-safe-backup.sh' | sudo crontab -
   ```
 
 **Status (2026-10-17): ✅ Applied & verified.** Hardened script (sha256 `20a74f2e…`) installed on `nuc`; cron `0 */6 * * *`; manual + real cron runs produced 225 MB snapshots with matching NAS sha256; K3s was never stopped. Original crontab backed up on `nuc` (`/root/crontab-before-app01-20261017.bak`). See change-log §7.
